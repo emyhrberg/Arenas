@@ -236,22 +236,30 @@ public abstract class UIDraggablePanel : UIElement
         if (Parent == null)
             return;
 
-        if (ClosePanel.IsMouseHovering || RefreshPanel?.IsMouseHovering == true || ResizeButton?.IsMouseHovering == true || IsTabButtonHovered())
-            return;
-
         if (dragging)
         {
+            if (!Main.mouseLeft)
+            {
+                dragging = false;
+                return;
+            }
+
             var parent = Parent.GetDimensions();
 
-            Left.Pixels = Main.mouseX - dragOffset.X - parent.X;
-            Top.Pixels = Main.mouseY - dragOffset.Y - parent.Y;
+            Vector2 mouse = Main.MouseScreen;
+            Left.Pixels = mouse.X - dragOffset.X - parent.X;
+            Top.Pixels = mouse.Y - dragOffset.Y - parent.Y;
 
             // Clamp to screen
             var dims = GetDimensions();
             Left.Pixels = Utils.Clamp(Left.Pixels, 0f, Math.Max(0f, parent.Width - dims.Width));
             Top.Pixels = Utils.Clamp(Top.Pixels, 0f, Math.Max(0f, parent.Height - dims.Height));
             Recalculate();
+            return;
         }
+
+        if (ClosePanel.IsMouseHovering || RefreshPanel?.IsMouseHovering == true || ResizeButton?.IsMouseHovering == true || IsTabButtonHovered())
+            return;
 
         // Ensure panel stays on screen
         var parentSpace = Parent.GetDimensions().ToRectangle();
@@ -300,7 +308,7 @@ public abstract class UIDraggablePanel : UIElement
         }
 
         dragging = true;
-        dragOffset = evt.MousePosition - GetDimensions().Position();
+        dragOffset = Main.MouseScreen - GetDimensions().Position();
     }
 
     private void BringToFront()

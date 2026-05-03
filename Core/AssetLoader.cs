@@ -29,7 +29,7 @@ public static class Ass
         Icon_Refresh = ModContent.Request<Texture2D>("Arenas/Assets/Icon_Refresh", AssetRequestMode.AsyncLoad);
         Icon_Resize = ModContent.Request<Texture2D>("Arenas/Assets/Icon_Resize", AssetRequestMode.AsyncLoad);
         Icon_Arenas = ModContent.Request<Texture2D>("Arenas/Assets/Icon_Arenas", AssetRequestMode.AsyncLoad);
-        Icon_StartGame = ModContent.Request<Texture2D>("Arenas/Assets/Icon_Arenas", AssetRequestMode.AsyncLoad);
+        Icon_StartGame = ModContent.Request<Texture2D>("Arenas/Assets/Icon_StartGame", AssetRequestMode.AsyncLoad);
         Icon_EndGame = ModContent.Request<Texture2D>("Arenas/Assets/Icon_EndGame", AssetRequestMode.AsyncLoad);
 
         Initialized = true;

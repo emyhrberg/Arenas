@@ -12,8 +12,12 @@ public sealed class UIDraggableElement : UIElement
 
     public void BeginDrag(UIMouseEvent evt)
     {
+        if (Parent == null)
+            return;
+
+        ConvertLayoutToAbsolutePixels();
         dragging = true;
-        dragOffset = evt.MousePosition - GetDimensions().Position();
+        dragOffset = Main.MouseScreen - GetDimensions().Position();
     }
 
     public void EndDrag(UIMouseEvent evt)
@@ -40,10 +44,26 @@ public sealed class UIDraggableElement : UIElement
         var parent = Parent.GetDimensions();
         var dims = GetDimensions();
 
-        Left.Pixels = Main.mouseX - dragOffset.X - parent.X;
-        Top.Pixels = Main.mouseY - dragOffset.Y - parent.Y;
+        Vector2 mouse = Main.MouseScreen;
+        Left.Pixels = mouse.X - dragOffset.X - parent.X;
+        Top.Pixels = mouse.Y - dragOffset.Y - parent.Y;
         Left.Pixels = Utils.Clamp(Left.Pixels, 0f, Math.Max(0f, parent.Width - dims.Width));
         Top.Pixels = Utils.Clamp(Top.Pixels, 0f, Math.Max(0f, parent.Height - dims.Height));
+        Recalculate();
+    }
+
+    private void ConvertLayoutToAbsolutePixels()
+    {
+        var parent = Parent.GetDimensions();
+        var dims = GetDimensions();
+
+        HAlign = 0f;
+        VAlign = 0f;
+        Left.Percent = 0f;
+        Top.Percent = 0f;
+        Left.Pixels = dims.X - parent.X;
+        Top.Pixels = dims.Y - parent.Y;
+
         Recalculate();
     }
 }
