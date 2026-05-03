@@ -1,0 +1,7 @@
+displayName = TPVPA Arenas
+author = Erky
+version = 0.1
+modReferences = SubworldLibrary
+weakReferences = DragonLens
+sortAfter = SubworldLibrary, DragonLens
+loadAfter = SubworldLibrary, DragonLens
