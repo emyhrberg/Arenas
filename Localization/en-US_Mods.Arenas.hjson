@@ -1,3 +1,180 @@
 # This file will automatically update with entries for new content after a build and reload.
 # Please read https://github.com/tModLoader/tModLoader/wiki/Localization to learn more about localization and these files.
 
+Mods: {
+	Arenas: {
+		Tools: {
+			DLArenasAdminTool: {
+				DisplayName: Arenas Admin
+				Description: Opens the Arenas admin panel.
+				Title: Arenas Admin
+			}
+		}
+
+		Keybinds.ArenasMenu.DisplayName: Arenas Menu
+	}
+}
+
+Keybinds: {
+	DLArenasAdminTool.DisplayName: D L Arenas Admin Tool
+	ArenasMenu.DisplayName: Arenas Menu
+}
+
+Tools: {
+	DLArenasAdminTool: {
+		DisplayName: DLArenasAdminTool
+		Description: The tool has no description! Add one in .hjson files!
+	}
+}
+
+Configs: {
+	ArenasConfig: {
+		DisplayName: Arenas Config
+
+		Headers: {
+			Arenas: Arenas Header
+			Respawn: Respawn Header
+			Loadouts: Loadouts Header
+		}
+
+		IsArenasEnabled: {
+			Label: Is Arenas Enabled
+			Tooltip: ""
+		}
+
+		MaxHealth: {
+			Label: Max Health
+			Tooltip: ""
+		}
+
+		MaxMana: {
+			Label: Max Mana
+			Tooltip: ""
+		}
+
+		RevealMap: {
+			Label: Reveal Map
+			Tooltip: ""
+		}
+
+		EnableCustomRespawnTimer: {
+			Label: Enable Custom Respawn Timer
+			Tooltip: ""
+		}
+
+		RespawnTimeSeconds: {
+			Label: Respawn Time Seconds
+			Tooltip: ""
+		}
+
+		ArenaLoadouts: {
+			Label: Arena Loadouts
+			Tooltip: ""
+		}
+	}
+
+	Loadout: {
+		Tooltip: ""
+
+		Name: {
+			Label: Name
+			Tooltip: ""
+		}
+
+		Armor: {
+			Label: Armor
+			Tooltip: ""
+		}
+
+		Accessories: {
+			Label: Accessories
+			Tooltip: ""
+		}
+
+		Equipment: {
+			Label: Equipment
+			Tooltip: ""
+		}
+
+		Inventory: {
+			Label: Inventory
+			Tooltip: ""
+		}
+	}
+
+	Armor: {
+		Tooltip: ""
+
+		Head: {
+			Label: Head
+			Tooltip: ""
+		}
+
+		Body: {
+			Label: Body
+			Tooltip: ""
+		}
+
+		Legs: {
+			Label: Legs
+			Tooltip: ""
+		}
+	}
+
+	Accessories: {
+		Tooltip: ""
+
+		Accessory1: {
+			Label: Accessory1
+			Tooltip: ""
+		}
+
+		Accessory2: {
+			Label: Accessory2
+			Tooltip: ""
+		}
+
+		Accessory3: {
+			Label: Accessory3
+			Tooltip: ""
+		}
+
+		Accessory4: {
+			Label: Accessory4
+			Tooltip: ""
+		}
+
+		Accessory5: {
+			Label: Accessory5
+			Tooltip: ""
+		}
+	}
+
+	Equipment: {
+		Tooltip: ""
+
+		GrapplingHook: {
+			Label: Grappling Hook
+			Tooltip: ""
+		}
+
+		Mount: {
+			Label: Mount
+			Tooltip: ""
+		}
+	}
+
+	LoadoutItem: {
+		Tooltip: ""
+
+		Item: {
+			Label: Item
+			Tooltip: ""
+		}
+
+		Stack: {
+			Label: Stack
+			Tooltip: ""
+		}
+	}
+}

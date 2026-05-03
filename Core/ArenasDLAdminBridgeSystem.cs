@@ -1,4 +1,5 @@
-﻿using DragonLens.Core.Systems;
+using Arenas.Core;
+using DragonLens.Core.Systems;
 using SubworldLibrary;
 using System;
 using System.Collections.Generic;
@@ -13,8 +14,8 @@ namespace Arenas;
 [ExtendsFromMod("DragonLens")]
 internal sealed class ArenasDragonLensAdminBridgeSystem : ModSystem, ICopyWorldData
 {
-    private const string WorldIdKey = "!PvPAdventure.DragonLensWorldId";
-    private const string AdminsKey = "!PvPAdventure.DragonLensAdmins";
+    private const string WorldIdKey = "!Arenas.DragonLensWorldId";
+    private const string AdminsKey = "!Arenas.DragonLensAdmins";
 
     private readonly bool[] adminAckSent = new bool[Main.maxPlayers];
     private int lastVisualHash;

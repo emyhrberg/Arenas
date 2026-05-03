@@ -1,4 +1,5 @@
-﻿using Microsoft.Xna.Framework;
+using Arenas.Core.UI;
+using Microsoft.Xna.Framework;
 using Terraria;
 using Terraria.GameContent.UI.Elements;
 using Terraria.ID;
@@ -29,7 +30,7 @@ internal sealed class ArenasAdminPanel : UIDraggablePanel
     }
 
     public ArenasAdminPanel()
-        : base(Language.GetTextValue("Mods.PvPAdventure.Tools.DLArenasAdminTool.Title"))
+        : base(Language.GetTextValue("Mods.Arenas.Tools.DLArenasAdminTool.Title"))
     {
         Width.Set(560, 0);
         Height.Set(420, 0);
@@ -228,7 +229,7 @@ internal sealed class ArenasAdminPanel : UIDraggablePanel
 
         arenasIcon.OnLeftClick += (_, _) =>
         {
-            Main.NewText($"Send {Main.player[playerIndex].name} to arenas");
+            ArenasAdminNetHandler.Request(ArenasAdminNetHandler.ArenasAdminPacketType.SendPlayerToArenas, playerIndex);
         };
 
         row.Append(arenasIcon);
@@ -263,7 +264,7 @@ internal sealed class ArenasAdminPanel : UIDraggablePanel
 
         playIcon.OnLeftClick += (_, _) =>
         {
-            Main.NewText($"Send {Main.player[playerIndex].name} to main world");
+            ArenasAdminNetHandler.Request(ArenasAdminNetHandler.ArenasAdminPacketType.SendPlayerToMainWorld, playerIndex);
         };
 
         row.Append(playIcon);

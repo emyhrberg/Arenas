@@ -143,7 +143,7 @@ public abstract class UIDraggablePanel : UIElement
             RefreshPanel.OnMouseOut += (_, _) => RefreshPanel.BorderColor = Color.Black;
             RefreshPanel.SetPadding(0);
 
-            RefreshPanel.Append(new UIImage(Ass.Icon_Reset.Value)
+            RefreshPanel.Append(new UIImage(Ass.Icon_Refresh.Value)
             {
                 HAlign = 0.5f,
                 VAlign = 0.5f

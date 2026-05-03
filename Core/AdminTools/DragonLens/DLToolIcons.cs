@@ -13,7 +13,7 @@ internal sealed class DLToolIcons : ModSystem
 {
     public static string ArenasAdminKey => "ArenasAdmin";
 
-    public static Asset<Texture2D>? GlowAlpha { get; private set; }
+    public static Asset<Texture2D> GlowAlpha { get; private set; }
 
     public override bool IsLoadingEnabled(Mod mod) => !Main.dedServ && ModLoader.HasMod("DragonLens");
 
@@ -46,7 +46,7 @@ internal sealed class DLToolIcons : ModSystem
             if (provider == null || provider.icons == null)
                 continue;
 
-            //provider.icons[ArenasAdminKey] = Ass.Icon_Arenas.Value;
+            provider.icons[ArenasAdminKey] = Ass.Icon_Arenas.Value;
         }
 
         ModContent.GetInstance<ToolbarHandler>().OnModLoad();

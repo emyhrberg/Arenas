@@ -1,9 +1,6 @@
 ﻿using Arenas.Core.Configs;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using PvPAdventure.Common.Arenas;
-using PvPAdventure.Common.Travel;
-using PvPAdventure.UI;
 using ReLogic.Content;
 using SubworldLibrary;
 using System;
@@ -208,9 +205,7 @@ public class ArenasLoadoutUIState : UIState
 
         // Check if player can select loadout
         var arenaPlayer = p.GetModPlayer<ArenasPlayer>();
-        //bool inSpawnRegion = p.GetModPlayer<SpawnPlayer>().IsPlayerInSpawnRegion();
-        bool inSpawnRegion = TravelRegionSystem.IsInTravelRegion(arenaPlayer.Player);
-        if (!inSpawnRegion && !arenaPlayer.CanSelectLoadout(out string reason))
+        if (!arenaPlayer.CanSelectLoadout(out string reason))
         {
             Main.NewText($"Cannot select loadout: {reason}", Color.OrangeRed);
             return;

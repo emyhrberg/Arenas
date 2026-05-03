@@ -6,9 +6,9 @@ using Terraria;
 using Terraria.ID;
 using Terraria.ModLoader.Config;
 
-namespace PvPAdventure.Common.Arenas;
+namespace Arenas.Core;
 
-// Class used to define a player's loadout for arenas, a new gamemode developed during 2026-01!
+// Class used to define a player's arena loadout.
 public class Loadout
 {
     public string Name { get; set; } = "";

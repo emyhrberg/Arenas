@@ -9,15 +9,15 @@ using Terraria;
 using Terraria.Localization;
 using Terraria.ModLoader;
 
-namespace PvPAdventure.Common.AdminTools.DragonLens.Tools;
+namespace Arenas.Core.AdminTools.DragonLens.Tools;
 
 [JITWhenModsEnabled("DragonLens")]
 [ExtendsFromMod("DragonLens")]
 public sealed class DLArenasAdminTool : Tool
 {
     public override string IconKey => DLToolIcons.ArenasAdminKey;
-    public override string DisplayName => Language.GetTextValue("Mods.PvPAdventure.Tools.DLArenasAdminTool.DisplayName");
-    public override string Description => Language.GetTextValue("Mods.PvPAdventure.Tools.DLArenasAdminTool.Description");
+    public override string DisplayName => Language.GetTextValue("Mods.Arenas.Tools.DLArenasAdminTool.DisplayName");
+    public override string Description => Language.GetTextValue("Mods.Arenas.Tools.DLArenasAdminTool.Description");
 
     public override void OnActivate()
     {

@@ -88,8 +88,7 @@ internal sealed class ItemMountDefinitionElement : FilteredItemDefinitionElement
         if (!ContentSamples.ItemsByType.TryGetValue(type, out var sample))
             return false;
 
-        // Vanilla: -1 means not a mount item.
-        return sample.mountType >= 0;
+        return sample.mountType != MountID.None;
     }
 }
 

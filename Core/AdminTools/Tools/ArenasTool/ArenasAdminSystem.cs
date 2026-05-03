@@ -50,7 +50,7 @@ internal sealed class ArenasAdminSystem : ModSystem
             return;
 
         layers.Insert(index, new LegacyGameInterfaceLayer(
-            name: "PvPAdventure: ArenasAdminSystem",
+            name: "Arenas: AdminSystem",
             drawMethod: () =>
             {
                 if (IsActive())

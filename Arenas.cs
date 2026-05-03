@@ -1,9 +1,5 @@
-using System;
-using System.Collections.Generic;
+using Arenas.Core.AdminTools.Tools.ArenasTool;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Terraria.ModLoader;
 
 namespace Arenas
@@ -13,12 +9,19 @@ namespace Arenas
 	{
         public enum ArenasPacketType
         {
-
+            Admin = 0
         }
 
         public override void HandlePacket(BinaryReader reader, int whoAmI)
         {
-            base.HandlePacket(reader, whoAmI);
+            var type = (ArenasPacketType)reader.ReadByte();
+
+            switch (type)
+            {
+                case ArenasPacketType.Admin:
+                    ArenasAdminNetHandler.HandlePacket(reader, whoAmI);
+                    break;
+            }
         }
 	}
 }

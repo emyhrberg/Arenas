@@ -1,9 +1,5 @@
 ﻿using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
-using PvPAdventure.Common.SSC;
-using PvPAdventure.UI;
 using SubworldLibrary;
-using System;
 using Terraria.GameContent.UI.Elements;
 using Terraria.UI;
 
@@ -90,7 +86,8 @@ public class ArenasJoinUIState : UIState
     private void EnterMainWorld()
     {
         ArenasUISystem.Close();
-        SSCDelayJoinSystem.SendJoinRequest();
+        if (SubworldSystem.AnyActive())
+            SubworldSystem.Exit();
     }
 
     public override void Update(GameTime gameTime)

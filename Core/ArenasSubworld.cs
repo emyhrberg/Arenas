@@ -1,6 +1,5 @@
 ﻿using Arenas.Core.Configs;
 using Microsoft.Xna.Framework;
-using PvPAdventure.Core.Input;
 using SubworldLibrary;
 using System;
 using System.Collections.Generic;
@@ -36,18 +35,17 @@ public class ArenasSubworld : Subworld
     {
         return
         [
-            Pass("GeneratePvPArena", GeneratePvPArena),
+            Pass("GenerateArena", GenerateArena),
             Pass("AdjustWorldHeight", AdjustWorldHeight), // perform this pass LAST ALWAYS!
-            //Pass("Arenas", GenerateArenas),
         ];
     }
 
-    private static void GeneratePvPArena()
+    private static void GenerateArena()
     {
         try
         {
-            var mod = ModContent.GetInstance<PvPAdventure>();
-            const string path = "Common/Arenas/WorldFiles/Arenas_v10.wld";
+            var mod = ModContent.GetInstance<global::Arenas.Arenas>();
+            const string path = "Core/WorldFiles/Arenas_v10.wld";
 
             byte[] bytes = mod.GetFileBytes(path);
             if (bytes == null || bytes.Length == 0)
@@ -63,7 +61,7 @@ public class ArenasSubworld : Subworld
         }
         catch (Exception e)
         {
-            DebugLog.Error("Failed to generate PvPArena: " + e);
+            DebugLog.Error("Failed to generate arena: " + e);
         }
     }
 
@@ -76,57 +74,6 @@ public class ArenasSubworld : Subworld
         // move spawn pos up
         //Main.spawnTileX += 3;
         //Main.spawnTileY -= 110;
-    }
-
-    [JITWhenModsEnabled("StructureHelper")]
-    private static void GenerateArenas()
-    {
-        // size: ~680x169
-
-        var mod = ModContent.GetInstance<PvPAdventure>();
-        const string path = "Common/Arenas/Structures/arenas_v3";
-
-        Point16 dims = StructureHelper.API.Generator.GetStructureDimensions(path, mod);
-
-        const int margin = 20;
-
-        // Center the structure
-        int x = (Main.maxTilesX - dims.X) / 2;
-        int y = (Main.maxTilesY - dims.Y) / 2;
-
-        x = Utils.Clamp(x, margin, Main.maxTilesX - dims.X - margin);
-        y = Utils.Clamp(y, margin, Main.maxTilesY - dims.Y - margin);
-
-        Point16 pos = new(x, y);
-
-        DebugLog.Debug($"Miniworld dims: {dims.X}x{dims.Y}");
-        DebugLog.Debug($"World dims: {Main.maxTilesX}x{Main.maxTilesY}");
-        DebugLog.Debug($"Placing at: {pos.X},{pos.Y}");
-
-        if (!StructureHelper.API.Generator.IsInBounds(path, mod, pos))
-        {
-            DebugLog.Error("Miniworld does not fit subworld. Aborting gen.");
-            DebugLog.Chat("Miniworld does not fit subworld. Aborting gen.");
-            return;
-        }
-
-        // Avoid huge SendTileSquare net payloads on dedicated servers
-        int oldNetMode = Main.netMode;
-        try
-        {
-            if (Main.netMode == NetmodeID.Server)
-                Main.netMode = NetmodeID.SinglePlayer;
-
-            StructureHelper.API.Generator.GenerateStructure(
-                path,
-                pos,
-                mod
-            );
-        }
-        finally
-        {
-            Main.netMode = oldNetMode;
-        }
     }
 
     private static GenPass Pass(string name, Action action, string message = null, float weight = 1f)

@@ -1,4 +1,4 @@
-displayName = TPVPA Arenas
+displayName = Arenas
 author = Erky
 version = 0.1
 modReferences = SubworldLibrary

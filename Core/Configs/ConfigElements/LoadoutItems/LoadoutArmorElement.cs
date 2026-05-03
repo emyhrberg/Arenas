@@ -1,4 +1,4 @@
-﻿using PvPAdventure.Common.Arenas;
+using Arenas.Core;
 using Terraria.ModLoader.Config;
 using Terraria.ModLoader.Config.UI;
 
