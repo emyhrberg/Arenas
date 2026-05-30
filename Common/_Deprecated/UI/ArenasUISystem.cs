@@ -1,0 +1,121 @@
+﻿//using Arenas.Core;
+//using Arenas.Core.Configs;
+//using Microsoft.Xna.Framework;
+//using SubworldLibrary;
+//using System.Collections.Generic;
+//using Terraria;
+//using Terraria.ID;
+//using Terraria.ModLoader;
+//using Terraria.UI;
+
+//namespace Arenas.Common.UI;
+
+//[Autoload(Side = ModSide.Client)]
+//public sealed class ArenasUISystem : ModSystem
+//{
+//    // UI
+//    private static UserInterface Interface;
+//    private static ArenasLoadoutUIState LoadoutUIState;
+//    private static ArenasJoinUIState JoinUIState;
+
+//    // Enabled check
+//    public static bool IsEnabled
+//    {
+//        get
+//        {
+//            var config = ModContent.GetInstance<ArenasConfig>();
+//            if (config == null)
+//            {
+//                DebugLog.Warn("ServerConfig not loaded – Arenas disabled by default");
+//                return false;
+//            }
+
+//            return config.IsArenasEnabled;
+//        }
+//    }
+
+//    public override void OnWorldLoad()
+//    {
+//        Interface = new();
+//        LoadoutUIState = new();
+//        JoinUIState = new();
+
+//#if DEBUG
+//        // Show in SP for testing.
+//#else
+//        // Don't show in SP.
+//    if (Main.netMode == NetmodeID.SinglePlayer)
+//                return;
+//#endif
+
+//        if (IsEnabled)
+//        {
+//            Toggle();
+//        }
+//    }
+
+//    public static void Toggle()
+//    {
+//        // Toggle loadout UI if in arena subworld.
+//        if (SubworldSystem.AnyActive())
+//        {
+//            if (Interface?.CurrentState == null)
+//            {
+//                Interface?.SetState(LoadoutUIState);
+//            }
+//            else
+//            {
+//                Interface?.SetState(null);
+//            }
+//        }
+
+//        else
+//        {
+//            // Otherwise toggle join UI.
+//            if (Interface?.CurrentState == null)
+//                Interface?.SetState(JoinUIState);
+//            else
+//                Interface?.SetState(null);
+//        }
+//    }
+
+//    public static void Close()
+//    {
+
+//        if (Interface?.CurrentState != null)
+//            Interface?.SetState(null);
+//    }
+
+//    public override void UpdateUI(GameTime gameTime)
+//    {
+//        //var ss = ModContent.GetInstance<SpawnSelector.SpawnSystem>();
+//        //if (ss.ui.CurrentState != null)
+//        //{
+//        //    if (Interface.CurrentState != null)
+//        //    {
+//        //        Interface.SetState(null);
+//        //    }
+//        //}
+
+//        Interface?.Update(gameTime);
+//    }
+
+//    public override void ModifyInterfaceLayers(List<GameInterfaceLayer> layers)
+//    {
+//        if (Interface?.CurrentState == null)
+//            return;
+
+//        int index = layers.FindIndex(l => l.Name == "Vanilla: Mouse Text");
+//        if (index == -1)
+//            return;
+
+//        layers.Insert(index, new LegacyGameInterfaceLayer(
+//            "Arenas: UI",
+//            () =>
+//            {
+//                Interface.Draw(Main.spriteBatch, new GameTime());
+//                return true;
+//            },
+//            InterfaceScaleType.UI));
+//    }
+//}

@@ -1,5 +1,6 @@
 using Arenas.Core.Configs.ConfigElements;
 using Arenas.Core.Configs.ConfigElements.LoadoutItems;
+using Arenas.Core.Utilities;
 using DragonLens.Core.Systems;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -88,7 +89,7 @@ internal class ArenasConfig : ModConfig
 
     public override void HandleAcceptClientChangesReply(bool success, int player, NetworkText message)
     {
-        DebugLog.Chat("Server accepted changes!");
+        Log.Chat("Server accepted changes!");
         base.HandleAcceptClientChangesReply(success, player, message);
     }
     public override void OnLoaded()
