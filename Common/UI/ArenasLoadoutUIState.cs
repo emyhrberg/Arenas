@@ -1,4 +1,7 @@
-﻿using Arenas.Core.Configs;
+﻿using Arenas.Core;
+using Arenas.Core.Configs;
+using Arenas.Core.Configs.ConfigElements;
+using Arenas.Common.UI;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using ReLogic.Content;
@@ -13,7 +16,7 @@ using Terraria.ModLoader;
 using Terraria.ModLoader.Config;
 using Terraria.UI;
 
-namespace Arenas.Core.UI;
+namespace Arenas.Common.UI;
 
 /// <summary>
 /// The UI and state for selecting loadouts in arenas.

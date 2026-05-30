@@ -1,4 +1,4 @@
-using Arenas.Core.AdminTools.Tools.ArenasTool;
+using Arenas.Common.AdminTools.Tools.ArenasTool;
 using System.IO;
 using Terraria.ModLoader;
 

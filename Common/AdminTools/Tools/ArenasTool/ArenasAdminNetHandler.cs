@@ -1,3 +1,4 @@
+using Arenas.Core;
 using DragonLens.Core.Systems;
 using SubworldLibrary;
 using System.IO;
@@ -5,7 +6,7 @@ using Terraria;
 using Terraria.ID;
 using Terraria.ModLoader;
 
-namespace Arenas.Core.AdminTools.Tools.ArenasTool;
+namespace Arenas.Common.AdminTools.Tools.ArenasTool;
 
 internal static class ArenasAdminNetHandler
 {
@@ -28,7 +29,7 @@ internal static class ArenasAdminNetHandler
         if (Main.netMode != NetmodeID.MultiplayerClient)
             return;
 
-        var packet = ModContent.GetInstance<global::Arenas.Arenas>().GetPacket();
+        var packet = ModContent.GetInstance<Arenas>().GetPacket();
         packet.Write((byte)global::Arenas.Arenas.ArenasPacketType.Admin);
         packet.Write((byte)type);
         packet.Write((short)targetPlayer);
@@ -49,7 +50,7 @@ internal static class ArenasAdminNetHandler
                 return;
             }
 
-            var packet = ModContent.GetInstance<global::Arenas.Arenas>().GetPacket();
+            var packet = ModContent.GetInstance<Arenas>().GetPacket();
             packet.Write((byte)global::Arenas.Arenas.ArenasPacketType.Admin);
             packet.Write((byte)type);
             packet.Write((short)targetPlayer);

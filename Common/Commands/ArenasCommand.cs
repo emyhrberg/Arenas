@@ -1,7 +1,7 @@
-﻿using Arenas.Core.UI;
+﻿using Arenas.Common.UI;
 using Terraria.ModLoader;
 
-namespace Arenas.Core.Commands;
+namespace Arenas.Common.Commands;
 
 internal sealed class ArenasCommand : ModCommand
 {

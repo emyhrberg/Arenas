@@ -1,5 +1,4 @@
-﻿using Arenas.Core.AdminTools.DragonLens;
-using Arenas.Core.AdminTools.Tools.ArenasTool;
+﻿using Arenas.Common.AdminTools.Tools.ArenasTool;
 using DragonLens.Core.Systems.ThemeSystem;
 using DragonLens.Core.Systems.ToolSystem;
 using DragonLens.Helpers;
@@ -9,7 +8,7 @@ using Terraria;
 using Terraria.Localization;
 using Terraria.ModLoader;
 
-namespace Arenas.Core.AdminTools.DragonLens.Tools;
+namespace Arenas.Common.AdminTools.DragonLens;
 
 [JITWhenModsEnabled("DragonLens")]
 [ExtendsFromMod("DragonLens")]

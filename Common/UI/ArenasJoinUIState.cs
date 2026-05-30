@@ -1,9 +1,11 @@
-﻿using Microsoft.Xna.Framework;
+﻿using Arenas.Core;
+using Arenas.Common.UI;
+using Microsoft.Xna.Framework;
 using SubworldLibrary;
 using Terraria.GameContent.UI.Elements;
 using Terraria.UI;
 
-namespace Arenas.Core.UI;
+namespace Arenas.Common.UI;
 
 public class ArenasJoinUIState : UIState
 {

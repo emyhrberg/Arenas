@@ -4,7 +4,7 @@ using Terraria;
 using Terraria.ModLoader;
 using Terraria.UI;
 
-namespace Arenas.Core.AdminTools.Tools.ArenasTool;
+namespace Arenas.Common.AdminTools.Tools.ArenasTool;
 
 [Autoload(Side = ModSide.Client)]
 internal sealed class ArenasAdminSystem : ModSystem

@@ -6,7 +6,7 @@ using Terraria;
 using Terraria.ID;
 using Terraria.ModLoader.Config;
 
-namespace Arenas.Core;
+namespace Arenas.Core.Configs.ConfigElements;
 
 // Class used to define a player's arena loadout.
 public class Loadout

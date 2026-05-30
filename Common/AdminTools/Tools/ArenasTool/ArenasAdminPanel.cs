@@ -1,4 +1,5 @@
-using Arenas.Core.UI;
+using Arenas.Common.UI;
+using Arenas.Core;
 using Microsoft.Xna.Framework;
 using Terraria;
 using Terraria.GameContent.UI.Elements;
@@ -7,7 +8,7 @@ using Terraria.Localization;
 using Terraria.ModLoader;
 using Terraria.UI;
 
-namespace Arenas.Core.AdminTools.Tools.ArenasTool;
+namespace Arenas.Common.AdminTools.Tools.ArenasTool;
 
 internal sealed class ArenasAdminPanel : UIDraggablePanel
 {

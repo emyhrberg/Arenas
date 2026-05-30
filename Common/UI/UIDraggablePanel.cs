@@ -1,4 +1,5 @@
-﻿using Microsoft.Xna.Framework;
+﻿using Arenas.Core;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using ReLogic.Content;
 using System;
@@ -8,14 +9,14 @@ using Terraria.GameContent.UI.Elements;
 using Terraria.ID;
 using Terraria.UI;
 
-namespace Arenas.Core.UI;
+namespace Arenas.Common.UI;
 
 /// <summary>
 /// Class used to define common properties for admin tool window panels,
 /// such as 
 /// <see cref="PointsSetter"/> 
 /// <seealso cref="GameStarter"/>, etc.
-/// <seealso cref="Common.AdminTools"/>
+/// <seealso cref="AdminTools"/>
 /// <seealso cref="Common.Spectator.UI"/>
 /// </summary>
 public abstract class UIDraggablePanel : UIElement

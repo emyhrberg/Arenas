@@ -1,4 +1,5 @@
 using System;
+using Arenas.Core;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using ReLogic.Content;
@@ -6,7 +7,7 @@ using Terraria;
 using Terraria.GameContent.UI.Elements;
 using Terraria.UI;
 
-namespace Arenas.Core.UI;
+namespace Arenas.Common.UI;
 
 public class UIResizeButton : UIImageButton
 {

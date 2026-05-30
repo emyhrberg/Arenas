@@ -1,4 +1,4 @@
-using Arenas.Core;
+using Arenas.Core.Configs.ConfigElements;
 using Arenas.Core.Configs.ConfigElements.LoadoutItems;
 using DragonLens.Core.Systems;
 using System.Collections.Generic;

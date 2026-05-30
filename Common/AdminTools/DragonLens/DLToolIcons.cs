@@ -1,11 +1,12 @@
-﻿using DragonLens.Core.Systems.ThemeSystem;
+﻿using Arenas.Core;
+using DragonLens.Core.Systems.ThemeSystem;
 using DragonLens.Core.Systems.ToolbarSystem;
 using Microsoft.Xna.Framework.Graphics;
 using ReLogic.Content;
 using Terraria;
 using Terraria.ModLoader;
 
-namespace Arenas.Core.AdminTools.DragonLens;
+namespace Arenas.Common.AdminTools.DragonLens;
 
 [JITWhenModsEnabled("DragonLens")]
 [ExtendsFromMod("DragonLens")]

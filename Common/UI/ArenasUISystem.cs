@@ -1,4 +1,5 @@
-﻿using Arenas.Core.Configs;
+﻿using Arenas.Core;
+using Arenas.Core.Configs;
 using Microsoft.Xna.Framework;
 using SubworldLibrary;
 using System.Collections.Generic;
@@ -7,7 +8,7 @@ using Terraria.ID;
 using Terraria.ModLoader;
 using Terraria.UI;
 
-namespace Arenas.Core.UI;
+namespace Arenas.Common.UI;
 
 [Autoload(Side = ModSide.Client)]
 public sealed class ArenasUISystem : ModSystem

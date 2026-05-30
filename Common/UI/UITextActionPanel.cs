@@ -6,7 +6,7 @@ using Terraria.Audio;
 using Terraria.GameContent.UI.Elements;
 using Terraria.ID;
 
-namespace Arenas.Core.UI;
+namespace Arenas.Common.UI;
 
 public sealed class UITextActionPanel : UITextPanel<string>
 {

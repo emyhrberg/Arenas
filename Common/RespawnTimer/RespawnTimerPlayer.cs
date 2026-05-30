@@ -6,7 +6,7 @@ using Terraria;
 using Terraria.DataStructures;
 using Terraria.ModLoader;
 
-namespace Arenas.Core.RespawnTimer;
+namespace Arenas.Common.RespawnTimer;
 
 public sealed class RespawnTimerPlayer : ModPlayer
 {

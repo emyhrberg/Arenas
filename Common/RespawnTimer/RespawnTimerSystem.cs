@@ -4,7 +4,7 @@ using System;
 using Terraria;
 using Terraria.ModLoader;
 
-namespace Arenas.Core.RespawnTimer;
+namespace Arenas.Common.RespawnTimer;
 
 internal sealed class RespawnTimerSystem : ModSystem
 {

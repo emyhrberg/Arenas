@@ -3,7 +3,7 @@ using System;
 using Terraria;
 using Terraria.UI;
 
-namespace Arenas.Core.UI;
+namespace Arenas.Common.UI;
 
 public sealed class UIDraggableElement : UIElement
 {
