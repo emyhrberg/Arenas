@@ -73,7 +73,8 @@ internal static class ArenasAdminNetHandler
         if (player == null || !player.active)
             return false;
 
-        return ModLoader.HasMod("DragonLens") && IsDragonLensAdmin(player);
+        return (ModLoader.HasMod("DragonLens") && IsDragonLensAdmin(player))
+            || ArenasErkySSCAdminBridgeSystem.IsAdmin(player);
     }
 
     [JITWhenModsEnabled("DragonLens")]
