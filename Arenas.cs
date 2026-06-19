@@ -7,7 +7,7 @@ public class Arenas : Mod
 {
 public enum ArenasPacketType
 {
-    Admin = 0
+    ArenasManager = 0
 }
 
     public override void HandlePacket(BinaryReader reader, int whoAmI)
@@ -16,8 +16,8 @@ public enum ArenasPacketType
 
         switch (type)
         {
-            case ArenasPacketType.Admin:
-                Common.AdminTools.ArenasAdminNetHandler.HandlePacket(reader, whoAmI);
+            case ArenasPacketType.ArenasManager:
+                Common.AdminTools.ArenasManager.ArenasManagerNetHandler.HandlePacket(reader, whoAmI);
                 break;
         }
     }

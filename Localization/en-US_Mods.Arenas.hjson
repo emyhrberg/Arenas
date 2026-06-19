@@ -4,8 +4,8 @@
 Mods: {
 	Arenas: {
 		Tools: {
-			ArenasAdminPanel: {
-				Title: Arenas Admin
+			ArenasManagerPanel: {
+				Title: Arenas Manager
 			}
 		}
 

@@ -4,10 +4,10 @@ using Terraria;
 using Terraria.ModLoader;
 using Terraria.UI;
 
-namespace Arenas.Common.AdminTools;
+namespace Arenas.Common.AdminTools.ArenasManager;
 
 [Autoload(Side = ModSide.Client)]
-internal sealed class ArenasAdminSystem : ModSystem
+internal sealed class ArenasManagerUISystem : ModSystem
 {
     public UserInterface ui;
     public UIState uiState;
@@ -34,7 +34,7 @@ internal sealed class ArenasAdminSystem : ModSystem
     {
         ui = new UserInterface();
         uiState = new UIState();
-        uiState.Append(new ArenasAdminPanel());
+        uiState.Append(new ArenasManagerPanel());
         ui.SetState(null);
     }
 
@@ -50,7 +50,7 @@ internal sealed class ArenasAdminSystem : ModSystem
             return;
 
         layers.Insert(index, new LegacyGameInterfaceLayer(
-            name: "Arenas: AdminSystem",
+            name: "Arenas: ManagerUISystem",
             drawMethod: () =>
             {
                 if (IsActive())

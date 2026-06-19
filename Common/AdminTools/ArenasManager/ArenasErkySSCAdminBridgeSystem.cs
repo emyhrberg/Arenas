@@ -7,7 +7,7 @@ using Terraria;
 using Terraria.ID;
 using Terraria.ModLoader;
 
-namespace Arenas.Common.AdminTools;
+namespace Arenas.Common.AdminTools.ArenasManager;
 
 internal sealed class ArenasErkySSCAdminBridgeSystem : ModSystem, ICopyWorldData
 {

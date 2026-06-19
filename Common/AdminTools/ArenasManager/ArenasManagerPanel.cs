@@ -8,9 +8,12 @@ using Terraria.Localization;
 using Terraria.ModLoader;
 using Terraria.UI;
 
-namespace Arenas.Common.AdminTools;
+namespace Arenas.Common.AdminTools.ArenasManager;
 
-internal sealed class ArenasAdminPanel : UIDraggablePanel
+/// <summary>
+/// Sends players to worlds with the ArenaSubworld, and provides some basic info about the subworld.
+/// </summary>
+internal sealed class ArenasManagerPanel : UIDraggablePanel
 {
     private readonly UITextPanel<string> sendToMainWorldButton;
     private readonly UITextPanel<string> sendToArenasButton;
@@ -27,11 +30,11 @@ internal sealed class ArenasAdminPanel : UIDraggablePanel
 
     protected override void OnClosePanelLeftClick()
     {
-        ModContent.GetInstance<ArenasAdminSystem>().ToggleActive();
+        ModContent.GetInstance<ArenasManagerUISystem>().ToggleActive();
     }
 
-    public ArenasAdminPanel()
-        : base(Language.GetTextValue("Mods.Arenas.Tools.ArenasAdminPanel.Title"))
+    public ArenasManagerPanel()
+        : base(Language.GetTextValue("Mods.Arenas.Tools.ArenasManagerPanel.Title"))
     {
         Width.Set(560, 0);
         Height.Set(420, 0);
@@ -55,7 +58,7 @@ internal sealed class ArenasAdminPanel : UIDraggablePanel
         sendToMainWorldButton.OnMouseOut += (_, _) => sendToMainWorldButton.BorderColor = Color.Black;
         sendToMainWorldButton.OnLeftClick += (_, _) =>
         {
-            ArenasAdminNetHandler.Request(ArenasAdminNetHandler.ArenasAdminPacketType.SendAllToMainWorld);
+            ArenasManagerNetHandler.Request(ArenasManagerNetHandler.ArenasManagerPacketType.SendAllToMainWorld);
         };
 
         // Button 2 (top-right)
@@ -70,7 +73,7 @@ internal sealed class ArenasAdminPanel : UIDraggablePanel
         sendToArenasButton.OnMouseOut += (_, _) => sendToArenasButton.BorderColor = Color.Black;
         sendToArenasButton.OnLeftClick += (_, _) =>
         {
-            ArenasAdminNetHandler.Request(ArenasAdminNetHandler.ArenasAdminPacketType.SendAllToArenas);
+            ArenasManagerNetHandler.Request(ArenasManagerNetHandler.ArenasManagerPacketType.SendAllToArenas);
         };
 
         ContentPanel.Append(sendToMainWorldButton);
@@ -230,7 +233,7 @@ internal sealed class ArenasAdminPanel : UIDraggablePanel
 
         arenasIcon.OnLeftClick += (_, _) =>
         {
-            ArenasAdminNetHandler.Request(ArenasAdminNetHandler.ArenasAdminPacketType.SendPlayerToArenas, playerIndex);
+            ArenasManagerNetHandler.Request(ArenasManagerNetHandler.ArenasManagerPacketType.SendPlayerToArenas, playerIndex);
         };
 
         row.Append(arenasIcon);
@@ -265,7 +268,7 @@ internal sealed class ArenasAdminPanel : UIDraggablePanel
 
         playIcon.OnLeftClick += (_, _) =>
         {
-            ArenasAdminNetHandler.Request(ArenasAdminNetHandler.ArenasAdminPacketType.SendPlayerToMainWorld, playerIndex);
+            ArenasManagerNetHandler.Request(ArenasManagerNetHandler.ArenasManagerPacketType.SendPlayerToMainWorld, playerIndex);
         };
 
         row.Append(playIcon);

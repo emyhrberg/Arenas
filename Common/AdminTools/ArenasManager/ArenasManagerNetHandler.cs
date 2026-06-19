@@ -3,11 +3,11 @@ using SubworldLibrary;
 using System.IO;
 using Terraria.ID;
 
-namespace Arenas.Common.AdminTools;
+namespace Arenas.Common.AdminTools.ArenasManager;
 
-internal static class ArenasAdminNetHandler
+internal static class ArenasManagerNetHandler
 {
-    public enum ArenasAdminPacketType : byte
+    public enum ArenasManagerPacketType : byte
     {
         SendAllToMainWorld = 0,
         SendAllToArenas = 1,
@@ -15,7 +15,7 @@ internal static class ArenasAdminNetHandler
         SendPlayerToArenas = 3
     }
 
-    public static void Request(ArenasAdminPacketType type, int targetPlayer = -1)
+    public static void Request(ArenasManagerPacketType type, int targetPlayer = -1)
     {
         if (Main.netMode == NetmodeID.SinglePlayer)
         {
@@ -27,7 +27,7 @@ internal static class ArenasAdminNetHandler
             return;
 
         var packet = ModContent.GetInstance<Arenas>().GetPacket();
-        packet.Write((byte)global::Arenas.Arenas.ArenasPacketType.Admin);
+        packet.Write((byte)Arenas.ArenasPacketType.ArenasManager);
         packet.Write((byte)type);
         packet.Write((short)targetPlayer);
         packet.Send();
@@ -35,7 +35,7 @@ internal static class ArenasAdminNetHandler
 
     public static void HandlePacket(BinaryReader reader, int fromWho)
     {
-        var type = (ArenasAdminPacketType)reader.ReadByte();
+        var type = (ArenasManagerPacketType)reader.ReadByte();
         int targetPlayer = reader.ReadInt16();
 
         if (Main.netMode == NetmodeID.Server)
@@ -49,7 +49,7 @@ internal static class ArenasAdminNetHandler
             }
 
             var packet = ModContent.GetInstance<Arenas>().GetPacket();
-            packet.Write((byte)global::Arenas.Arenas.ArenasPacketType.Admin);
+            packet.Write((byte)Arenas.ArenasPacketType.ArenasManager);
             packet.Write((byte)type);
             packet.Write((short)targetPlayer);
             packet.Send(toClient: -1, ignoreClient: -1);
@@ -60,21 +60,21 @@ internal static class ArenasAdminNetHandler
             Execute(type, targetPlayer);
     }
 
-    private static void Execute(ArenasAdminPacketType type, int targetPlayer)
+    private static void Execute(ArenasManagerPacketType type, int targetPlayer)
     {
         if (targetPlayer >= 0 && targetPlayer != Main.myPlayer)
             return;
 
         Main.QueueMainThreadAction(() =>
         {
-            if (type == ArenasAdminPacketType.SendAllToArenas || type == ArenasAdminPacketType.SendPlayerToArenas)
+            if (type == ArenasManagerPacketType.SendAllToArenas || type == ArenasManagerPacketType.SendPlayerToArenas)
             {
                 if (!SubworldSystem.AnyActive())
                     SubworldSystem.Enter<ArenasSubworld>();
                 return;
             }
 
-            if (type == ArenasAdminPacketType.SendAllToMainWorld || type == ArenasAdminPacketType.SendPlayerToMainWorld)
+            if (type == ArenasManagerPacketType.SendAllToMainWorld || type == ArenasManagerPacketType.SendPlayerToMainWorld)
             {
                 if (SubworldSystem.AnyActive())
                     SubworldSystem.Exit();
