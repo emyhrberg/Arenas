@@ -4,9 +4,7 @@
 Mods: {
 	Arenas: {
 		Tools: {
-			DLArenasAdminTool: {
-				DisplayName: Arenas Admin
-				Description: Opens the Arenas admin panel.
+			ArenasAdminPanel: {
 				Title: Arenas Admin
 			}
 		}
@@ -16,15 +14,7 @@ Mods: {
 }
 
 Keybinds: {
-	DLArenasAdminTool.DisplayName: D L Arenas Admin Tool
 	ArenasMenu.DisplayName: Arenas Menu
-}
-
-Tools: {
-	DLArenasAdminTool: {
-		DisplayName: DLArenasAdminTool
-		Description: The tool has no description! Add one in .hjson files!
-	}
 }
 
 Configs: {

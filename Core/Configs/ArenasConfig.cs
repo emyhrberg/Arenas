@@ -1,13 +1,10 @@
 using Arenas.Core.Configs.ConfigElements;
 using Arenas.Core.Configs.ConfigElements.LoadoutItems;
-using Arenas.Core.Utilities;
-using DragonLens.Core.Systems;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using Terraria;
 using Terraria.ID;
 using Terraria.Localization;
-using Terraria.ModLoader;
 using Terraria.ModLoader.Config;
 
 namespace Arenas.Core.Configs;
@@ -57,33 +54,36 @@ internal class ArenasConfig : ModConfig
     #region Hooks / methods
     public override bool AcceptClientChanges(ModConfig pendingConfig, int whoAmI, ref NetworkText message)
     {
-        // Singleplayer always allowed
         if (Main.netMode == NetmodeID.SinglePlayer)
             return true;
 
-        // If dragonlens isn't loaded, disallow modifying the config.
-        if (!ModLoader.HasMod("DragonLens"))
+        if (!ModLoader.TryGetMod("ErkySSC", out Mod erkySsc))
         {
-            message = NetworkText.FromLiteral("Server config changes require DragonLens admin (DragonLens not loaded).");
+            message = NetworkText.FromLiteral("Server config changes require ErkySSC admin permissions.");
             return false;
         }
 
-        // DragonLens admin check
-        return AcceptClientChanges_DragonLens(whoAmI, ref message);
-    }
+        bool isAdmin = false;
 
-    [JITWhenModsEnabled("DragonLens")]
-    private static bool AcceptClientChanges_DragonLens(int whoAmI, ref NetworkText message)
-    {
-        Player player = Main.player[whoAmI];
-
-        if (!PermissionHandler.CanUseTools(player))
+        try
         {
-            message = NetworkText.FromLiteral("You must be a DragonLens admin to modify this config.");
+            object result = erkySsc.Call("IsAdmin", whoAmI);
+
+            if (result is bool value)
+                isAdmin = value;
+        }
+        catch (Exception e)
+        {
+            Log.Chat($"Failed to check ErkySSC admin permission for config change. whoAmI={whoAmI}, error={e.Message}");
+        }
+
+        if (!isAdmin)
+        {
+            message = NetworkText.FromLiteral("You must be an ErkySSC admin to modify this config.");
             return false;
         }
+
         message = NetworkText.FromLiteral("Saved!");
-
         return true;
     }
 

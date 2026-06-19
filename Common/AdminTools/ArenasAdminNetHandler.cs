@@ -1,9 +1,7 @@
-using DragonLens.Core.Systems;
+using Arenas.Core.Compat;
 using SubworldLibrary;
 using System.IO;
-using Terraria;
 using Terraria.ID;
-using Terraria.ModLoader;
 
 namespace Arenas.Common.AdminTools;
 
@@ -42,10 +40,11 @@ internal static class ArenasAdminNetHandler
 
         if (Main.netMode == NetmodeID.Server)
         {
-            if (!IsAuthorizedAdmin(fromWho))
+            if (!ErkySSCCompat.IsPlayerAdmin(Main.player[fromWho], out string reason))
             {
                 string name = fromWho >= 0 && fromWho < Main.maxPlayers ? Main.player[fromWho]?.name : "unknown";
                 Log.Warn($"Rejected Arenas admin packet '{type}' from {name} ({fromWho}).");
+                Log.Warn($"Reason: {reason}");
                 return;
             }
 
@@ -59,28 +58,6 @@ internal static class ArenasAdminNetHandler
 
         if (Main.netMode == NetmodeID.MultiplayerClient)
             Execute(type, targetPlayer);
-    }
-
-    private static bool IsAuthorizedAdmin(int fromWho)
-    {
-        if (Main.netMode == NetmodeID.SinglePlayer)
-            return true;
-
-        if (fromWho < 0 || fromWho >= Main.maxPlayers)
-            return false;
-
-        Player player = Main.player[fromWho];
-        if (player == null || !player.active)
-            return false;
-
-        return (ModLoader.HasMod("DragonLens") && IsDragonLensAdmin(player))
-            || ArenasErkySSCAdminBridgeSystem.IsAdmin(player);
-    }
-
-    [JITWhenModsEnabled("DragonLens")]
-    private static bool IsDragonLensAdmin(Player player)
-    {
-        return PermissionHandler.CanUseTools(player);
     }
 
     private static void Execute(ArenasAdminPacketType type, int targetPlayer)

@@ -31,7 +31,7 @@ internal sealed class ArenasAdminPanel : UIDraggablePanel
     }
 
     public ArenasAdminPanel()
-        : base(Language.GetTextValue("Mods.Arenas.Tools.DLArenasAdminTool.Title"))
+        : base(Language.GetTextValue("Mods.Arenas.Tools.ArenasAdminPanel.Title"))
     {
         Width.Set(560, 0);
         Height.Set(420, 0);
