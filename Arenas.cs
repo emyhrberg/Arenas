@@ -5,10 +5,12 @@ namespace Arenas;
 
 public class Arenas : Mod
 {
-public enum ArenasPacketType
-{
-    ArenasManager = 0
-}
+    public enum ArenasPacketType
+    {
+        ArenasManager,
+        ArenaRound,
+        TeamBoss
+    }
 
     public override void HandlePacket(BinaryReader reader, int whoAmI)
     {
@@ -18,6 +20,12 @@ public enum ArenasPacketType
         {
             case ArenasPacketType.ArenasManager:
                 Common.AdminTools.ArenasManager.ArenasManagerNetHandler.HandlePacket(reader, whoAmI);
+                break;
+            case ArenasPacketType.ArenaRound:
+                Common.Rounds.ArenaRoundNetHandler.HandlePacket(reader, whoAmI);
+                break;
+            case ArenasPacketType.TeamBoss:
+                Common.TeamBoss.TeamBossNetHandler.HandlePacket(reader, whoAmI);
                 break;
         }
     }

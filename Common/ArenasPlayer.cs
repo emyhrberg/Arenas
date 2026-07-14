@@ -88,6 +88,12 @@ internal class ArenasPlayer : ModPlayer
 
     public bool CanSelectLoadout(out string reason)
     {
+        if (SubworldSystem.IsActive<ArenasSubworld>() && Rounds.ArenaRoundSystem.Phase != Rounds.RoundPhase.Idle)
+        {
+            reason = "round in progress";
+            return false;
+        }
+
         //if (Player.whoAmI != Main.LocalPlayer.whoAmI)
         //{
         //    reason = "null";

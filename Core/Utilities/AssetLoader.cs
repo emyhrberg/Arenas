@@ -24,6 +24,10 @@ public static class Ass
     public static Asset<Texture2D> IconResize;
     public static Asset<Texture2D> IconArenas;
     public static Asset<Texture2D> IconArenasHighlighted;
+    public static Asset<Texture2D> IconCheckOn;
+    public static Asset<Texture2D> IconCheckOnHover;
+    public static Asset<Texture2D> IconCheckOff;
+    public static Asset<Texture2D> IconCheckOffHover;
 
     // Flag
     public static bool Initialized { get; set; }

@@ -1,20 +1,8 @@
-# This file will automatically update with entries for new content after a build and reload.
-# Please read https://github.com/tModLoader/tModLoader/wiki/Localization to learn more about localization and these files.
-
-Mods: {
-	Arenas: {
-		Tools: {
-			ArenasManagerPanel: {
-				Title: Arenas Manager
-			}
-		}
-
-		Keybinds.ArenasMenu.DisplayName: Arenas Menu
-	}
-}
+Tools.ArenasManagerPanel.Title: Arenas Manager
 
 Keybinds: {
 	ArenasMenu.DisplayName: Arenas Menu
+	Scoreboard.DisplayName: Scoreboard
 }
 
 Configs: {
@@ -22,9 +10,11 @@ Configs: {
 		DisplayName: Arenas Config
 
 		Headers: {
-			Arenas: Arenas Header
-			Respawn: Respawn Header
-			Loadouts: Loadouts Header
+			Arenas: Arenas
+			Respawn: Respawn
+			Rounds: Rounds
+			FightPresets: Fight Presets
+			Loadouts: Loadouts
 		}
 
 		IsArenasEnabled: {
@@ -57,8 +47,76 @@ Configs: {
 			Tooltip: ""
 		}
 
+		RoundDurationSeconds: {
+			Label: Round Duration Seconds
+			Tooltip: ""
+		}
+
+		VotingDurationSeconds: {
+			Label: Voting Duration Seconds
+			Tooltip: ""
+		}
+
+		FreezeCountdownSeconds: {
+			Label: Freeze Countdown Seconds
+			Tooltip: ""
+		}
+
+		BossSpawn: {
+			Label: Boss Spawn
+			Tooltip: ""
+		}
+
+		RedSpawn: {
+			Label: Red Spawn
+			Tooltip: ""
+		}
+
+		BlueSpawn: {
+			Label: Blue Spawn
+			Tooltip: ""
+		}
+
+		FightPresets: {
+			Label: Fight Presets
+			Tooltip: ""
+		}
+
 		ArenaLoadouts: {
 			Label: Arena Loadouts
+			Tooltip: ""
+		}
+	}
+
+	BossFightPreset: {
+		Tooltip: ""
+
+		Name: {
+			Label: Name
+			Tooltip: ""
+		}
+
+		Boss: {
+			Label: Boss
+			Tooltip: ""
+		}
+
+		LoadoutName: {
+			Label: Loadout Name
+			Tooltip: ""
+		}
+	}
+
+	TilePoint: {
+		Tooltip: Use -1, -1 for the arena world spawn fallback.
+
+		X: {
+			Label: Tile X
+			Tooltip: ""
+		}
+
+		Y: {
+			Label: Tile Y
 			Tooltip: ""
 		}
 	}

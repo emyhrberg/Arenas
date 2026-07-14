@@ -46,6 +46,26 @@ internal class ArenasConfig : ModConfig
     [DefaultValue(5)]
     public int RespawnTimeSeconds { get; set; } = 5;
 
+    [Header("Rounds")]
+    [Range(60, 3600)]
+    [DefaultValue(600)]
+    public int RoundDurationSeconds { get; set; } = 600;
+
+    [Range(5, 300)]
+    [DefaultValue(30)]
+    public int VotingDurationSeconds { get; set; } = 30;
+
+    [Range(1, 30)]
+    [DefaultValue(10)]
+    public int FreezeCountdownSeconds { get; set; } = 10;
+
+    public TilePoint BossSpawn { get; set; } = new();
+    public TilePoint RedSpawn { get; set; } = new();
+    public TilePoint BlueSpawn { get; set; } = new();
+
+    [Header("FightPresets")]
+    public List<BossFightPreset> FightPresets { get; set; } = [];
+
     [Header("Loadouts")]
     [BackgroundColor(90, 40, 110)]
     [CustomModConfigItem(typeof(LoadoutListElement))]
