@@ -3,7 +3,7 @@ using System.IO;
 using Terraria;
 using Terraria.Enums;
 
-namespace PvPAdventure.Common.Game.EndScreen;
+namespace Arenas.Common.EndScreen;
 
 /// <summary>Match outcome for this team.</summary>
 public enum EndScreenResult : byte

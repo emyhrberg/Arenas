@@ -48,7 +48,7 @@ internal static class ArenaRoundNetHandler
             foreach (RoundPlayerStats entry in scoreboard)
             {
                 writer.Write(entry.PlayerId); writer.Write((byte)entry.Team); writer.Write(entry.Name ?? "");
-                writer.Write(entry.Kills); writer.Write(entry.Deaths); writer.Write(entry.Damage);
+                writer.Write(entry.Kills); writer.Write(entry.Deaths); writer.Write(entry.Damage); writer.Write(entry.BossDamage);
             }
         }, playerId);
     }
@@ -60,7 +60,7 @@ internal static class ArenaRoundNetHandler
         List<int> counts = []; List<List<byte>> voters = [];
         for (int i = reader.ReadByte(); i > 0; i--) { List<byte> group = []; for (int n = reader.ReadByte(); n > 0; n--) group.Add(reader.ReadByte()); voters.Add(group); counts.Add(group.Count); }
         List<RoundPlayerStats> scoreboard = [];
-        for (int i = reader.ReadByte(); i > 0; i--) scoreboard.Add(new RoundPlayerStats(reader.ReadByte(), (Team)reader.ReadByte(), reader.ReadString(), reader.ReadInt32(), reader.ReadInt32(), reader.ReadInt64()));
+        for (int i = reader.ReadByte(); i > 0; i--) scoreboard.Add(new RoundPlayerStats(reader.ReadByte(), (Team)reader.ReadByte(), reader.ReadString(), reader.ReadInt32(), reader.ReadInt32(), reader.ReadInt64(), reader.ReadInt64()));
         ArenaRoundSystem.ApplyState(phase, result, ticks, preset, localVote, paused, autoStartHeld, life, lifeMax, counts, voters, scoreboard);
     }
 

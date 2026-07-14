@@ -1,10 +1,9 @@
-using PvPAdventure.Core.Net;
 using System.IO;
 using Terraria;
 using Terraria.ID;
 using Terraria.ModLoader;
 
-namespace PvPAdventure.Common.Game.EndScreen;
+namespace Arenas.Common.EndScreen;
 
 /// <summary>Sends end screen snapshots to team clients.</summary>
 public static class EndScreenNetHandler
@@ -23,8 +22,8 @@ public static class EndScreenNetHandler
         if (Main.netMode != NetmodeID.Server || snapshot == null)
             return;
 
-        ModPacket packet = ModContent.GetInstance<PvPAdventure>().GetPacket();
-        packet.Write((byte)AdventurePacketIdentifier.EndScreen);
+        ModPacket packet = ModContent.GetInstance<Arenas>().GetPacket();
+        packet.Write((byte)Arenas.ArenasPacketType.EndScreen);
         snapshot.Serialize(packet);
         packet.Send(toClient); // team-filtered by caller
     }

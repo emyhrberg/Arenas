@@ -181,9 +181,6 @@ public sealed class TeamBossNPC : GlobalNPC
         if (Main.netMode == NetmodeID.MultiplayerClient)
             return StrikeVanilla();
 
-        if (boss.LastDamageFromPlayer is DamageInfo damageSource)
-            ArenaRoundPlayer.RecordDamage(damageSource.Who, hit.Damage);
-
         var teamLife = boss._teamLife;
 
         if (teamLife.Count == 0)
@@ -218,6 +215,8 @@ public sealed class TeamBossNPC : GlobalNPC
         int strikerOld = teamLife[strikeTeam];
         int strikerNew = Math.Max(0, strikerOld - hit.Damage);
         teamLife[strikeTeam] = strikerNew;
+        if (boss.LastDamageFromPlayer is DamageInfo damageSource)
+            ArenaRoundPlayer.RecordBossDamage(damageSource.Who, strikerOld - strikerNew);
 
         if (Main.netMode == NetmodeID.Server)
             boss._lastAppliedStrikeTeam = strikeTeam;

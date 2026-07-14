@@ -1,6 +1,4 @@
-using Microsoft.Xna.Framework;
-using PvPAdventure.Common.Game.GameReporters;
-using PvPAdventure.Common.Statistics;
+using Arenas.Common.Rounds;
 using System.Collections.Generic;
 using System.Linq;
 using Terraria;
@@ -10,7 +8,7 @@ using Terraria.ID;
 using Terraria.ModLoader;
 using Terraria.UI;
 
-namespace PvPAdventure.Common.Game.EndScreen;
+namespace Arenas.Common.EndScreen;
 
 /// <summary>Owns end screen lifetime and snapshot creation.</summary>
 [Autoload(Side = ModSide.Both)]
@@ -83,8 +81,7 @@ public class EndScreenSystem : ModSystem
         // A manual /gamesummary view persists through an active match and team changes.
         if (!forcedView)
         {
-            GameManager gameManager = ModContent.GetInstance<GameManager>();
-            bool matchRestarted = gameManager._startGameCountdown.HasValue || (AgeFrames > 60 && gameManager.CurrentPhase == GameManager.Phase.Playing);
+            bool matchRestarted = AgeFrames > 60 && ArenaRoundSystem.Phase is RoundPhase.FreezeCountdown or RoundPhase.Playing;
             bool wrongTeam = (Team)Main.LocalPlayer.team != CurrentSnapshot.Team;
 
             if (matchRestarted || wrongTeam)
@@ -157,27 +154,27 @@ public class EndScreenSystem : ModSystem
         if (Main.netMode == NetmodeID.MultiplayerClient)
             return;
 
-        Team[] teamsWithPlayers = Main.player
-            .Where(p => p?.active == true && (Team)p.team != Team.None)
-            .Select(p => (Team)p.team)
+        Team[] teamsWithPlayers = ArenaRoundSystem.Scoreboard
+            .Where(p => p.Team != Team.None)
+            .Select(p => p.Team)
             .Distinct()
             .ToArray();
 
-        Team[] resultTeams = System.Enum.GetValues<Team>().Where(t => t != Team.None).ToArray();
+        if (teamsWithPlayers.Length == 0)
+            teamsWithPlayers = Main.player.Where(p => p?.active == true && (Team)p.team != Team.None).Select(p => (Team)p.team).Distinct().ToArray();
 
         foreach (Team team in teamsWithPlayers)
-            SendTeamSnapshot(team, teamsWithPlayers, resultTeams);
+            SendTeamSnapshot(team, teamsWithPlayers);
     }
 
-    private static void SendTeamSnapshot(Team team, Team[] scoreTeams, Team[] resultTeams)
+    private static void SendTeamSnapshot(Team team, Team[] scoreTeams)
     {
-        EndScreenSnapshot snapshot = BuildSnapshot(team, scoreTeams, resultTeams);
+        EndScreenSnapshot snapshot = BuildSnapshot(team, scoreTeams);
         if (snapshot.Players.Count == 0)
             return;
 
         if (Main.netMode == NetmodeID.SinglePlayer)
         {
-            snapshot.LocalPlayerReward = GetPlayerReward(Main.LocalPlayer, ModContent.GetInstance<PointsManager>());
             ModContent.GetInstance<EndScreenSystem>().ShowSnapshot(snapshot);
             return;
         }
@@ -186,27 +183,24 @@ public class EndScreenSystem : ModSystem
         {
             if (player?.active == true && (Team)player.team == team)
             {
-                snapshot.LocalPlayerReward = GetPlayerReward(player, ModContent.GetInstance<PointsManager>());
                 EndScreenNetHandler.SendSnapshot(snapshot, player.whoAmI);
             }
         }
     }
 
-    private static EndScreenSnapshot BuildSnapshot(Team team, Team[] scoreTeams, Team[] resultTeams)
+    private static EndScreenSnapshot BuildSnapshot(Team team, Team[] scoreTeams)
     {
-        PointsManager pointsManager = ModContent.GetInstance<PointsManager>();
-        int TeamScore(Team t) => pointsManager.Points.TryGetValue(t, out int value) ? value : 0;
+        int TeamScore(Team t) => ArenaRoundSystem.Scoreboard.Where(p => p.Team == t).Sum(p => p.Kills);
 
         int teamScore = TeamScore(team);
-        int bestScore = resultTeams.DefaultIfEmpty(team).Max(TeamScore);
-        int opponentScore = resultTeams.Where(t => t != team).DefaultIfEmpty(Team.None).Max(TeamScore);
+        int opponentScore = scoreTeams.Where(t => t != team).DefaultIfEmpty(Team.None).Max(TeamScore);
 
         EndScreenSnapshot snapshot = new()
         {
             Team = team,
             TeamScore = teamScore,
             OpponentScore = opponentScore,
-            Result = GetResult(teamScore, bestScore, resultTeams.Count(t => TeamScore(t) == bestScore))
+            Result = GetResult()
         };
 
         // Same team filter/order as the small Scoreline: only teams with active players.
@@ -220,57 +214,45 @@ public class EndScreenSystem : ModSystem
         return snapshot;
     }
 
-    private static uint GetPlayerReward(Player player, PointsManager pointsManager)
-    {
-        if (player == null || !player.active)
-            return 0u;
-
-        MatchRewardContext rewardContext = MatchRewardCalculator.CreateContext(player, pointsManager);
-        return MatchRewardCalculator.Calculate(rewardContext);
-    }
-
     private static IEnumerable<EndScreenPlayerStats> GetTeamPlayers(Team team)
     {
-        return Main.player
-            .Where(p => p?.active == true && (Team)p.team == team)
+        return ArenaRoundSystem.Scoreboard
+            .Where(p => p.Team == team)
             .Select(CreatePlayerStats)
             .OrderByDescending(p => p.Kills)
             .ThenBy(p => p.Deaths)
             .ThenByDescending(p => p.DamageDealt);
     }
 
-    private static EndScreenResult GetResult(int teamScore, int bestScore, int bestTeamCount)
+    private static EndScreenResult GetResult() => ArenaRoundSystem.Result switch
     {
-        if (teamScore != bestScore)
-            return EndScreenResult.Defeat;
+        RoundResult.BossDefeated => EndScreenResult.Victory,
+        RoundResult.AdminEnded => EndScreenResult.Tie,
+        _ => EndScreenResult.Defeat
+    };
 
-        return bestTeamCount > 1 ? EndScreenResult.Tie : EndScreenResult.Victory;
-    }
-
-    private static EndScreenPlayerStats CreatePlayerStats(Player player)
+    private static EndScreenPlayerStats CreatePlayerStats(RoundPlayerStats player)
     {
-        StatisticsPlayer statistics = player.GetModPlayer<StatisticsPlayer>();
-        Dictionary<string, uint> matchStats = StatsReporter.CopyStats(player);
-        Dictionary<string, IDictionary<int, uint>> itemStats = StatsReporter.CopyItemStats(player);
-        uint Stat(string key) => matchStats.TryGetValue(key, out uint value) ? value : 0u;
+        uint damage = player.Damage <= 0 ? 0u : player.Damage >= uint.MaxValue ? uint.MaxValue : (uint)player.Damage;
+        uint bossDamage = player.BossDamage <= 0 ? 0u : player.BossDamage >= uint.MaxValue ? uint.MaxValue : (uint)player.BossDamage;
 
         return new EndScreenPlayerStats(
-            (byte)player.whoAmI,
-            (Team)player.team,
-            player.name,
-            statistics.Kills,
-            statistics.Deaths,
-            Stat(StatsReporter.DamageDealt),
-            Stat(StatsReporter.DamageTaken),
-            Stat(StatsReporter.TilesMined),
-            Stat(StatsReporter.TilesPlaced),
-            Stat(StatsReporter.ConsumablesUsed),
-            Stat(StatsReporter.LavaDeaths),
-            Stat(StatsReporter.FoodEaten),
-            Stat(StatsReporter.BossDamageDealt),
-            Stat(StatsReporter.PortalKills),
-            CountDifferentWeapons(itemStats),
-            Stat(StatsReporter.LostHoney));
+            player.PlayerId,
+            player.Team,
+            player.Name,
+            player.Kills,
+            player.Deaths,
+            damage,
+            0u,
+            0u,
+            0u,
+            0u,
+            0u,
+            0u,
+            bossDamage,
+            0u,
+            0u,
+            0u);
     }
 
     private static List<EndScreenPlayerStats> AssignRoles(List<EndScreenPlayerStats> players)
@@ -302,24 +284,6 @@ public class EndScreenSystem : ModSystem
         EndScreenPlayerStats winner = players.Where(p => !roles.ContainsKey(p.PlayerIndex)).OrderBy(p => p.Deaths).ThenByDescending(p => p.Kills).ThenByDescending(p => p.DamageDealt).FirstOrDefault();
         if (winner != null)
             roles[winner.PlayerIndex] = ("Survivor", $"{winner.Deaths} {Plural((uint)winner.Deaths, "death")}");
-    }
-
-    private static uint CountDifferentWeapons(Dictionary<string, IDictionary<int, uint>> itemStats)
-    {
-        HashSet<int> weapons = [];
-        AddWeapons(itemStats, StatsReporter.DamageDealt, weapons);
-        AddWeapons(itemStats, StatsReporter.BossDamageDealt, weapons);
-        return (uint)weapons.Count;
-    }
-
-    private static void AddWeapons(Dictionary<string, IDictionary<int, uint>> itemStats, string statKey, HashSet<int> weapons)
-    {
-        if (!itemStats.TryGetValue(statKey, out IDictionary<int, uint> byItem))
-            return;
-
-        foreach ((int itemId, uint amount) in byItem)
-            if (amount > 0 && itemId > ItemID.None && itemId < ItemLoader.ItemCount)
-                weapons.Add(itemId);
     }
 
     private static string Short(uint value) => value >= 1000 ? $"{value / 1000f:0.0}k" : value.ToString();

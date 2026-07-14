@@ -1,9 +1,9 @@
-Tools.ArenasManagerPanel.Title: Arenas Manager
-
-Keybinds: {
-	ArenasMenu.DisplayName: Arenas Menu
-	Scoreboard.DisplayName: Scoreboard
+Tools: {
+	ArenasManagerPanel.Title: Arenas Player Manager
+	ArenaGameManagerPanel.Title: Arenas Game Manager
 }
+
+Keybinds.Scoreboard.DisplayName: Scoreboard
 
 Configs: {
 	ArenasConfig: {
@@ -64,16 +64,6 @@ Configs: {
 
 		BossSpawn: {
 			Label: Boss Spawn
-			Tooltip: ""
-		}
-
-		RedSpawn: {
-			Label: Red Spawn
-			Tooltip: ""
-		}
-
-		BlueSpawn: {
-			Label: Blue Spawn
 			Tooltip: ""
 		}
 

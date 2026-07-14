@@ -9,7 +9,9 @@ public class Arenas : Mod
     {
         ArenasManager,
         ArenaRound,
-        TeamBoss
+        TeamBoss,
+        ArenaGameManager,
+        EndScreen
     }
 
     public override void HandlePacket(BinaryReader reader, int whoAmI)
@@ -26,6 +28,12 @@ public class Arenas : Mod
                 break;
             case ArenasPacketType.TeamBoss:
                 Common.TeamBoss.TeamBossNetHandler.HandlePacket(reader, whoAmI);
+                break;
+            case ArenasPacketType.ArenaGameManager:
+                Common.AdminTools.GameManager.ArenaGameManagerNetHandler.HandlePacket(reader, whoAmI);
+                break;
+            case ArenasPacketType.EndScreen:
+                Common.EndScreen.EndScreenNetHandler.HandlePacket(reader, whoAmI);
                 break;
         }
     }

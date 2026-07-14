@@ -1,3 +1,6 @@
+using Arenas.Core;
+using Arenas.Core.Utilities;
+using Arenas.Common.Rounds;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System;
@@ -14,7 +17,9 @@ using Terraria.ModLoader.UI;
 using Terraria.UI;
 using Terraria.UI.Chat;
 
-namespace PvPAdventure.Common.Game.EndScreen;
+namespace Arenas.Common.EndScreen;
+
+internal readonly record struct GlassPanelStyle(Color Primary, Color Secondary, Color Border, float Opacity, float BlurRadius, float Refraction, float Gloss, float BorderStrength);
 
 /// <summary>Draws the blurred world backdrop and sharp stars behind the summary.</summary>
 public class EndScreenBackdropLayer : GameInterfaceLayer
@@ -23,7 +28,7 @@ public class EndScreenBackdropLayer : GameInterfaceLayer
     private readonly EndScreenSystem system;
 
     public EndScreenBackdropLayer(EndScreenSystem system)
-        : base("PvPAdventure: End Screen Backdrop", InterfaceScaleType.None)
+        : base("Arenas: End Screen Backdrop", InterfaceScaleType.None)
     {
         this.system = system;
     }
@@ -108,6 +113,7 @@ public class EndScreenLayer : GameInterfaceLayer
     private const float StatLabelScale = 0.94f;
     private const float StatValueScale = 0.96f;
 
+    private static int ViewX => 0;
     private static int ViewW => Main.screenWidth;
     private static int ViewH => Main.screenHeight;
     private static Texture2D PanelBackground => Main.Assets.Request<Texture2D>("Images/UI/PanelBackground").Value;
@@ -135,7 +141,7 @@ public class EndScreenLayer : GameInterfaceLayer
     private bool playedGemSound;
 
     public EndScreenLayer(EndScreenSystem system)
-        : base("PvPAdventure: End Screen", InterfaceScaleType.None)
+        : base("Arenas: End Screen", InterfaceScaleType.None)
     {
         this.system = system;
 
@@ -170,6 +176,9 @@ public class EndScreenLayer : GameInterfaceLayer
 
         DrawBackButton(spriteBatch, opacity, layout.BackButtonBox);
 
+        if (ArenaRoundSystem.Phase == RoundPhase.Voting)
+            ArenaBossVoteDrawer.Draw();
+
         return true;
     }
 
@@ -192,12 +201,13 @@ public class EndScreenLayer : GameInterfaceLayer
     {
         EndScreenPlayerStats[] teamPlayers = snapshot.Players.Where(p => p.Team == selectedTeam).ToArray();
 
-        if (teamPlayers.Length <= MaxCardsPerPage)
+        int cardsPerPage = MaxCardsPerPage;
+        if (teamPlayers.Length <= cardsPerPage)
             return teamPlayers;
 
-        int pageCount = (teamPlayers.Length + MaxCardsPerPage - 1) / MaxCardsPerPage;
+        int pageCount = (teamPlayers.Length + cardsPerPage - 1) / cardsPerPage;
         int page = (system.AgeFrames / PageFrames) % pageCount;
-        return teamPlayers.Skip(page * MaxCardsPerPage).Take(MaxCardsPerPage).ToArray();
+        return teamPlayers.Skip(page * cardsPerPage).Take(cardsPerPage).ToArray();
     }
 
     private void DrawCards(SpriteBatch spriteBatch, IReadOnlyList<EndScreenPlayerStats> players, float opacity, EndScreenLayout layout)
@@ -772,7 +782,7 @@ public class EndScreenLayer : GameInterfaceLayer
 
     private static Rectangle CenteredBox(int width, int height, int y)
     {
-        return new Rectangle((ViewW - width) / 2, y, width, height);
+        return new Rectangle(ViewX + (ViewW - width) / 2, y, width, height);
     }
 
     private static EndScreenLayout GetLayout(EndScreenSnapshot snapshot, int visiblePlayerCount, bool showOwnTeamPanels)
@@ -795,7 +805,7 @@ public class EndScreenLayer : GameInterfaceLayer
         Rectangle title = showOwnTeamPanels ? CenteredBox(titleWidth, TitleHeight, top) : Rectangle.Empty;
         int scoreY = showOwnTeamPanels ? title.Bottom + TitleScoreGap : top;
         Rectangle score = CenteredBox(scoreWidth, ScoreHeight, scoreY);
-        Rectangle cards = new((ViewW - cardsWidth) / 2, score.Bottom + ScoreCardsGap, cardsWidth, cardHeight);
+        Rectangle cards = new(ViewX + (ViewW - cardsWidth) / 2, score.Bottom + ScoreCardsGap, cardsWidth, cardHeight);
         Rectangle reward = showOwnTeamPanels ? CenteredBox(rewardWidth, RewardHeight, cards.Bottom + RewardGap) : Rectangle.Empty;
         int backY = (showOwnTeamPanels ? reward.Bottom : cards.Bottom) + BackButtonGap;
         Rectangle backButton = CenteredBox(BackButtonWidth, BackButtonHeight, backY);

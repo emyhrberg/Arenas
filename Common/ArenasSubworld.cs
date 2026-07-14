@@ -107,17 +107,10 @@ public class ArenasSubworld : Subworld
     {
         if (Main.netMode != NetmodeID.Server)
         {
-            var keybinds = ModContent.GetInstance<Keybinds>();
-
-            string loadoutKeybind =
-                keybinds.ArenasMenu.GetAssignedKeys().Count > 0
-                    ? keybinds.ArenasMenu.GetAssignedKeys()[0]
-                    : "Unbound";
-
             Main.dayTime = true;
             Main.time = 12000;
 
-            Main.NewText($"Welcome to Arenas - Use [{loadoutKeybind}] to show loadouts to get started.", Color.MediumPurple);
+            Main.NewText("Welcome to Arenas - join Red Team or Blue Team to start your adventure.", Color.MediumPurple);
         }
     }
 

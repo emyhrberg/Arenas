@@ -3,11 +3,11 @@ using Microsoft.Xna.Framework.Graphics;
 using ReLogic.Content;
 using Terraria.ModLoader;
 
-namespace PvPAdventure.Core.Utilities;
+namespace Arenas.Core.Utilities;
 
 public class EffectLoader : ModSystem
 {
-    private const string GrayscalePath = "PvPAdventure/Assets/Effects/Grayscale";
+    private const string GrayscalePath = "Arenas/Assets/Effects/Grayscale";
 
     private static readonly Lazy<Effect> GrayscaleEffect = new(LoadGrayscaleEffect);
 
@@ -39,8 +39,8 @@ public class EffectLoader : ModSystem
         }
     }
 
-    private const string LiquidGlassPath = "PvPAdventure/Assets/Effects/LiquidGlass";
-    private const string SpawnBoxBorderPath = "PvPAdventure/Assets/Effects/SpawnBoxBorder";
+    private const string LiquidGlassPath = "Arenas/Assets/Effects/LiquidGlass";
+    private const string SpawnBoxBorderPath = "Arenas/Assets/Effects/SpawnBoxBorder";
 
     private static Effect liquidGlassEffect;
     private static Effect spawnBoxBorderEffect;

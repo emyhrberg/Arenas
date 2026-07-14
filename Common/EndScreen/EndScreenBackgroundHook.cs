@@ -7,7 +7,7 @@ using Terraria;
 using Terraria.GameContent;
 using Terraria.ModLoader;
 
-namespace PvPAdventure.Common.Game.EndScreen;
+namespace Arenas.Common.EndScreen;
 
 /// <summary>Replaces only the vanilla background while the end screen is visible.</summary>
 public class EndScreenBackgroundHook : ModSystem

@@ -5,7 +5,7 @@ using Terraria;
 using Terraria.GameContent;
 using Terraria.Utilities;
 
-namespace PvPAdventure.Common.Game.EndScreen;
+namespace Arenas.Common.EndScreen;
 
 /// <summary>ZensSky-style generated star state for the end screen.</summary>
 public static class EndScreenStarSystem

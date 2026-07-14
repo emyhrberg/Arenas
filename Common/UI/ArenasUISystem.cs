@@ -15,7 +15,6 @@ public sealed class ArenasUISystem : ModSystem
 {
     // UI
     private static UserInterface Interface;
-    private static ArenasLoadoutUIState LoadoutUIState;
     private static ArenasJoinUIState JoinUIState;
 
     // Enabled check
@@ -37,7 +36,6 @@ public sealed class ArenasUISystem : ModSystem
     public override void OnWorldLoad()
     {
         Interface = new();
-        LoadoutUIState = new();
         JoinUIState = new();
 
 #if DEBUG
@@ -56,27 +54,17 @@ public sealed class ArenasUISystem : ModSystem
 
     public static void Toggle()
     {
-        // Toggle loadout UI if in arena subworld.
-        if (SubworldSystem.AnyActive())
+        // Preset kits are server-owned; there is no manual loadout selector in Arenas.
+        if (SubworldSystem.IsActive<ArenasSubworld>())
         {
-            if (Interface?.CurrentState == null)
-            {
-                Interface?.SetState(LoadoutUIState);
-            }
-            else
-            {
-                Interface?.SetState(null);
-            }
+            Close();
+            return;
         }
 
+        if (Interface?.CurrentState == null)
+            Interface?.SetState(JoinUIState);
         else
-        {
-            // Otherwise toggle join UI.
-            if (Interface?.CurrentState == null)
-                Interface?.SetState(JoinUIState);
-            else
-                Interface?.SetState(null);
-        }
+            Interface?.SetState(null);
     }
 
     public static void Close()

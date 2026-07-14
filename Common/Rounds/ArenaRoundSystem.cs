@@ -12,7 +12,7 @@ namespace Arenas.Common.Rounds;
 
 public enum RoundPhase : byte { Idle, Playing, Voting, FreezeCountdown }
 public enum RoundResult : byte { None, BossDefeated, TimeExpired, BossDespawned, SpawnFailed, AdminEnded }
-public readonly record struct RoundPlayerStats(byte PlayerId, Team Team, string Name, int Kills, int Deaths, long Damage);
+public readonly record struct RoundPlayerStats(byte PlayerId, Team Team, string Name, int Kills, int Deaths, long Damage, long BossDamage);
 
 internal sealed class ArenaRoundSystem : ModSystem
 {
@@ -62,7 +62,8 @@ internal sealed class ArenaRoundSystem : ModSystem
         switch (Phase)
         {
             case RoundPhase.Idle:
-                if (!IsAutoStartHeld && GetValidPresets().Count >= 2 && TeamsReady()) StartFreeze(0);
+                int requiredPresets = Main.netMode == NetmodeID.SinglePlayer ? 1 : 2;
+                if (!IsAutoStartHeld && GetValidPresets().Count >= requiredPresets && TeamsReady()) StartFreeze(0);
                 break;
             case RoundPhase.FreezeCountdown: TickFreeze(); break;
             case RoundPhase.Playing: TickPlaying(); break;
@@ -167,7 +168,7 @@ internal sealed class ArenaRoundSystem : ModSystem
         Phase = RoundPhase.FreezeCountdown; Result = RoundResult.None; RemainingTicks = countdownTicks >= 0 ? countdownTicks : Config.FreezeCountdownSeconds * 60; CurrentPresetIndex = presetIndex; LocalVote = -1;
         nextRoundTicks = playingTicks >= 0 ? playingTicks : Config.RoundDurationSeconds * 60; IsTimerPaused = IsAutoStartHeld = false;
         votes.Clear(); scoreboard.Clear(); participants.Clear();
-        participants.AddRange(Main.player.Where(p => IsTeam(p, Team.Red) || IsTeam(p, Team.Blue)).Select(p => new RoundPlayerStats((byte)p.whoAmI, (Team)p.team, p.name, 0, 0, 0)));
+        participants.AddRange(Main.player.Where(p => IsTeam(p, Team.Red) || IsTeam(p, Team.Blue)).Select(p => new RoundPlayerStats((byte)p.whoAmI, (Team)p.team, p.name, 0, 0, 0, 0)));
 
         Loadout loadout = FindLoadout(presets[presetIndex].LoadoutName);
         foreach (RoundPlayerStats entry in participants)
@@ -175,7 +176,7 @@ internal sealed class ArenaRoundSystem : ModSystem
             Player player = Main.player[entry.PlayerId];
             player.GetModPlayer<ArenaRoundPlayer>().ResetStats();
             LoadoutService.Apply(player, loadout);
-            Teleport(player, Resolve(entry.Team == Team.Red ? Config.RedSpawn : Config.BlueSpawn, entry.Team == Team.Red ? -50 : 50));
+            Teleport(player, ArenaGeometry.TeamSpawn(entry.Team));
             if (Main.netMode == NetmodeID.Server) ArenaRoundNetHandler.SendApplyKit(entry.PlayerId, presetIndex);
         }
 
@@ -193,10 +194,11 @@ internal sealed class ArenaRoundSystem : ModSystem
     {
         List<BossFightPreset> presets = GetValidPresets();
         if (CurrentPresetIndex < 0 || CurrentPresetIndex >= presets.Count) { SetIdle(); return; }
-        TilePoint spawn = Resolve(Config.BossSpawn, 0);
+        TilePoint spawn = ResolveBossSpawn();
         bossType = presets[CurrentPresetIndex].Boss.Type;
         bossIndex = NPC.NewNPC(new EntitySource_Misc("ArenasRound"), spawn.X * 16 + 8, spawn.Y * 16, bossType);
         if (bossIndex < 0 || bossIndex >= Main.maxNPCs || !Main.npc[bossIndex].active) { EndRound(RoundResult.SpawnFailed); return; }
+        ConstrainBosses();
         Main.npc[bossIndex].netUpdate = true;
         Phase = RoundPhase.Playing; RemainingTicks = Math.Max(0, nextRoundTicks); IsTimerPaused = false;
         bossLife = Main.npc[bossIndex].life; bossLifeMax = Main.npc[bossIndex].lifeMax;
@@ -209,6 +211,7 @@ internal sealed class ArenaRoundSystem : ModSystem
         NPC boss = Main.npc[bossIndex];
         if (boss.life <= 0) { EndRound(RoundResult.BossDefeated); return; }
         if (!boss.active || boss.type != bossType) { EndRound(RoundResult.BossDespawned); return; }
+        ConstrainBosses();
         bossLife = boss.life; bossLifeMax = boss.lifeMax;
         if (!IsTimerPaused && --RemainingTicks <= 0) EndRound(RoundResult.TimeExpired);
     }
@@ -219,13 +222,14 @@ internal sealed class ArenaRoundSystem : ModSystem
         scoreboard.Clear(); scoreboard.AddRange(LiveStats());
         CleanupBoss(); votes.Clear(); ResizeVotes(GetValidPresets().Count);
         Phase = RoundPhase.Voting; RemainingTicks = Config.VotingDurationSeconds * 60; LocalVote = -1; IsTimerPaused = false;
+        EndScreen.EndScreenSystem.SendMatchEndSnapshots();
         ArenaRoundNetHandler.SendStateToAll();
     }
 
     private static void TickVoting()
     {
         List<BossFightPreset> presets = GetValidPresets();
-        if (presets.Count < 2) { SetIdle(); return; }
+        if (presets.Count == 0) { SetIdle(); return; }
         if (IsTimerPaused || --RemainingTicks > 0) return;
         ResolveVoting();
     }
@@ -233,7 +237,7 @@ internal sealed class ArenaRoundSystem : ModSystem
     private static void ResolveVoting()
     {
         List<BossFightPreset> presets = GetValidPresets();
-        if (presets.Count < 2) { SetIdle(); return; }
+        if (presets.Count == 0) { SetIdle(); return; }
         if (!TeamsReady()) { SetIdle(); return; }
         int best = voteCounts.Count == 0 ? 0 : voteCounts.Max();
         List<int> choices = Enumerable.Range(0, presets.Count).Where(i => best == 0 || voteCounts[i] == best).ToList();
@@ -266,13 +270,30 @@ internal sealed class ArenaRoundSystem : ModSystem
         bossIndex = -1; bossType = bossLife = bossLifeMax = 0;
     }
 
-    private static TilePoint Resolve(TilePoint point, int fallbackX) => point?.X >= 0 && point.Y >= 0 ? point : new TilePoint { X = Main.spawnTileX + fallbackX, Y = Main.spawnTileY };
+    private static TilePoint ResolveBossSpawn() => Config.BossSpawn?.X >= 0 && Config.BossSpawn.Y >= 0
+        ? Config.BossSpawn : new TilePoint { X = ArenaGeometry.BossTileArea.Center.X, Y = ArenaGeometry.BossTileArea.Center.Y };
 
-    private static void Teleport(Player player, TilePoint tile)
+    private static void Teleport(Player player, Point tile)
     {
         Vector2 position = new(tile.X * 16, tile.Y * 16 - player.height);
         player.Teleport(position, TeleportationStyleID.RodOfDiscord);
         if (Main.netMode == NetmodeID.Server) NetMessage.SendData(MessageID.TeleportEntity, number: 0, number2: player.whoAmI, number3: position.X, number4: position.Y, number5: TeleportationStyleID.RodOfDiscord);
+    }
+
+    private static void ConstrainBosses()
+    {
+        Rectangle area = ArenaGeometry.BossWorldArea;
+        for (int i = 0; i < Main.maxNPCs; i++)
+        {
+            NPC npc = Main.npc[i];
+            if (!npc.active || (!npc.boss && npc.whoAmI != bossIndex && npc.realLife != bossIndex)) continue;
+            float minX = area.Left, minY = area.Top, maxX = Math.Max(minX, area.Right - npc.width), maxY = Math.Max(minY, area.Bottom - npc.height);
+            Vector2 next = new(MathHelper.Clamp(npc.position.X, minX, maxX), MathHelper.Clamp(npc.position.Y, minY, maxY));
+            if (next == npc.position) continue;
+            if (next.X != npc.position.X) npc.velocity.X = 0;
+            if (next.Y != npc.position.Y) npc.velocity.Y = 0;
+            npc.position = next; npc.netUpdate = true;
+        }
     }
 
     private static void ResizeVotes(int count) { voteCounts.Clear(); voteVoters.Clear(); for (int i = 0; i < count; i++) { voteCounts.Add(0); voteVoters.Add([]); } }
@@ -285,6 +306,6 @@ internal sealed class ArenaRoundSystem : ModSystem
     private static List<RoundPlayerStats> LiveStats() => participants.Select(p =>
     {
         ArenaRoundPlayer stats = Main.player[p.PlayerId].GetModPlayer<ArenaRoundPlayer>();
-        return p with { Kills = stats.Kills, Deaths = stats.Deaths, Damage = stats.Damage };
+        return p with { Kills = stats.Kills, Deaths = stats.Deaths, Damage = stats.Damage, BossDamage = stats.BossDamage };
     }).ToList();
 }

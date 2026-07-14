@@ -22,12 +22,19 @@ public static class Ass
     public static Asset<Texture2D> IconStartGame;
     public static Asset<Texture2D> IconRefresh;
     public static Asset<Texture2D> IconResize;
+    public static Asset<Texture2D> IconGem;
     public static Asset<Texture2D> IconArenas;
     public static Asset<Texture2D> IconArenasHighlighted;
     public static Asset<Texture2D> IconCheckOn;
     public static Asset<Texture2D> IconCheckOnHover;
     public static Asset<Texture2D> IconCheckOff;
     public static Asset<Texture2D> IconCheckOffHover;
+
+    public static Asset<Texture2D> SliderButton;
+    public static Asset<Texture2D> SliderButtonHighlight;
+    public static Asset<Texture2D> SliderGradient;
+    public static Asset<Texture2D> SliderHighlight;
+    public static Asset<Texture2D> Slider;
 
     // Flag
     public static bool Initialized { get; set; }

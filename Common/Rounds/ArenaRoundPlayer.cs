@@ -1,5 +1,6 @@
 using SubworldLibrary;
 using Terraria.DataStructures;
+using Terraria.GameInput;
 using Terraria.ID;
 
 namespace Arenas.Common.Rounds;
@@ -9,6 +10,7 @@ internal sealed class ArenaRoundPlayer : ModPlayer
     public int Kills { get; private set; }
     public int Deaths { get; private set; }
     public long Damage { get; private set; }
+    public long BossDamage { get; private set; }
 
     public override void PostHurt(Player.HurtInfo info)
     {
@@ -33,12 +35,27 @@ internal sealed class ArenaRoundPlayer : ModPlayer
         Player.controlUseItem = Player.controlUseTile = Player.controlThrow = false;
     }
 
-    internal void ResetStats() { Kills = Deaths = 0; Damage = 0; }
+    public override void ProcessTriggers(TriggersSet triggersSet)
+    {
+        if (Player.whoAmI != Main.myPlayer) return;
+        ModKeybind key = ModContent.GetInstance<Core.Keybinds>().Scoreboard;
+        if (key?.JustPressed == true) ArenaRoundUI.SetScoreboardVisible(true);
+        else if (key?.JustReleased == true) ArenaRoundUI.SetScoreboardVisible(false);
+    }
+
+    internal void ResetStats() { Kills = Deaths = 0; Damage = BossDamage = 0; }
 
     internal static void RecordDamage(int playerId, int damage)
     {
         if (damage <= 0 || ArenaRoundSystem.Phase != RoundPhase.Playing || !ArenaRoundSystem.IsParticipant(playerId)) return;
         Main.player[playerId].GetModPlayer<ArenaRoundPlayer>().Damage += damage;
+    }
+
+    internal static void RecordBossDamage(int playerId, int damage)
+    {
+        RecordDamage(playerId, damage);
+        if (damage > 0 && ArenaRoundSystem.Phase == RoundPhase.Playing && ArenaRoundSystem.IsParticipant(playerId))
+            Main.player[playerId].GetModPlayer<ArenaRoundPlayer>().BossDamage += damage;
     }
 
     public override void SyncPlayer(int toWho, int fromWho, bool newPlayer)
