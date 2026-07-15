@@ -80,7 +80,7 @@ internal static class ArenaBossVoteDrawer
             int id = voters[i];
             if (id < 0 || id >= Main.maxPlayers) continue;
             Player player = Main.player[id];
-            Rectangle tile = new((int)MathF.Round(start + step * i) - 6, row.Y + s(14), size, size);
+            Rectangle tile = new((int)MathF.Round(start + step * i) - 10, row.Y + s(14), size, size);
             Color team = player.team > 0 && player.team < Main.teamColor.Length ? Main.teamColor[player.team] : Color.Gray;
             DrawPanel(tile, Color.Lerp(player.shirtColor, team, .25f), DarkEdge, s(6));
             Main.MapPlayerRenderer.DrawPlayerHead(Main.Camera, player, tile.Center.ToVector2(), 1f, .58f * scale, team);

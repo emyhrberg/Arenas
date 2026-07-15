@@ -11,7 +11,8 @@ public class Arenas : Mod
         ArenaRound,
         TeamBoss,
         ArenaGameManager,
-        EndScreen
+        EndScreen,
+        SpawnBox
     }
 
     public override void HandlePacket(BinaryReader reader, int whoAmI)
@@ -34,6 +35,9 @@ public class Arenas : Mod
                 break;
             case ArenasPacketType.EndScreen:
                 Common.EndScreen.EndScreenNetHandler.HandlePacket(reader, whoAmI);
+                break;
+            case ArenasPacketType.SpawnBox:
+                Common.Spawnbox.SpawnBoxNetHandler.HandlePacket(reader, whoAmI);
                 break;
         }
     }

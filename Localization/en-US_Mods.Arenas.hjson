@@ -1,6 +1,7 @@
 Tools: {
 	ArenasManagerPanel.Title: Arenas Player Manager
 	ArenaGameManagerPanel.Title: Arenas Game Manager
+	SpawnBoxToolPanel.Title: Arenas Spawnbox Tool
 }
 
 Keybinds.Scoreboard.DisplayName: Scoreboard

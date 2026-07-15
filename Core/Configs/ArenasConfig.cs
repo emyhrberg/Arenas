@@ -60,8 +60,6 @@ internal class ArenasConfig : ModConfig
     public int FreezeCountdownSeconds { get; set; } = 10;
 
     public TilePoint BossSpawn { get; set; } = new();
-    public TilePoint RedSpawn { get; set; } = new();
-    public TilePoint BlueSpawn { get; set; } = new();
 
     [Header("FightPresets")]
     public List<BossFightPreset> FightPresets { get; set; } = [];

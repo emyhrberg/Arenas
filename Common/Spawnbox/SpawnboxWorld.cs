@@ -1,22 +1,20 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using PvPAdventure.Core.Utilities;
+using Arenas.Core.Utilities;
 using System;
 using System.Collections.Generic;
 using Terraria;
 using Terraria.GameContent;
+using Terraria.Enums;
 using Terraria.ModLoader;
 using Terraria.UI;
 
-namespace PvPAdventure.Common.Spawnbox;
+namespace Arenas.Common.Spawnbox;
 
 [Autoload(Side = ModSide.Client)]
 public sealed class SpawnBoxWorld : ModSystem
 {
     private const float TileSize = 16f;
-    private static readonly Color BlockedColor = new(255, 80, 80);
-    private static readonly Color PassableColor = new(70, 226, 158);
-
     public override void ModifyInterfaceLayers(List<GameInterfaceLayer> layers)
     {
         int index = layers.FindIndex(l => l.Name == "Vanilla: Interface Logic 1");
@@ -24,7 +22,7 @@ public sealed class SpawnBoxWorld : ModSystem
             layers.Insert(index + 1, new SpawnBoxInterfaceLayer());
     }
 
-    private sealed class SpawnBoxInterfaceLayer() : GameInterfaceLayer("PvPAdventure: SpawnBox", InterfaceScaleType.Game)
+    private sealed class SpawnBoxInterfaceLayer() : GameInterfaceLayer("Arenas: SpawnBox", InterfaceScaleType.Game)
     {
         protected override bool DrawSelf()
         {
@@ -38,16 +36,16 @@ public sealed class SpawnBoxWorld : ModSystem
                 return;
 
             SpawnBoxSystem box = ModContent.GetInstance<SpawnBoxSystem>();
-            Rectangle inner = GetScreenRect(box.TileArea);
-            int thickness = box.Thickness * (int)TileSize;
-
-            if (inner.Width <= 0 || inner.Height <= 0 || thickness <= 0)
-                return;
-
-            if (EffectLoader.TryGetSpawnBoxBorderEffect(out Effect effect))
-                DrawShaderBorder(spriteBatch, inner, thickness, effect);
-            else
-                DrawPixelBorder(spriteBatch, inner, thickness);
+            if (!box.Active) return;
+            foreach (Team team in new[] { Team.Red, Team.Green })
+            {
+                Rectangle area = box.GetTileArea(team), inner = GetScreenRect(area); int thickness = box.GetThickness(team) * (int)TileSize;
+                if (inner.Width <= 0 || inner.Height <= 0 || thickness <= 0) continue;
+                bool inside = SpawnBoxSystem.TileToWorld(area).Contains(Main.LocalPlayer.Center.ToPoint());
+                Color color = Main.teamColor[(int)team]; float opacity = box.CanExit && inside ? .5f : .88f;
+                if (EffectLoader.TryGetSpawnBoxBorderEffect(out Effect effect)) DrawShaderBorder(spriteBatch, inner, thickness, color, opacity, inside, effect);
+                else { DrawPixelBorder(spriteBatch, inner, thickness, color, opacity, inside); DrawCollisionLine(spriteBatch, inner, thickness, color, opacity, inside); }
+            }
         }
 
         private static Rectangle GetScreenRect(Rectangle area)
@@ -67,16 +65,8 @@ public sealed class SpawnBoxWorld : ModSystem
             return rect;
         }
 
-        private static bool CanLocalPlayerCross(SpawnBoxSystem box) =>
-            box.CanExit && box.TouchesWorldHitbox(Main.LocalPlayer.Hitbox);
-
-        private static Color GetDrawColor(SpawnBoxSystem box) => CanLocalPlayerCross(box) ? PassableColor : BlockedColor;
-
-        private static float GetDrawOpacity(SpawnBoxSystem box) => CanLocalPlayerCross(box) ? 0.5f : 0.88f;
-
-        private static void DrawShaderBorder(SpriteBatch sb, Rectangle inner, int thickness, Effect effect)
+        private static void DrawShaderBorder(SpriteBatch sb, Rectangle inner, int thickness, Color color, float opacity, bool inside, Effect effect)
         {
-            SpawnBoxSystem box = ModContent.GetInstance<SpawnBoxSystem>();
             Rectangle outer = inner;
             outer.Inflate(thickness, thickness);
 
@@ -84,11 +74,12 @@ public sealed class SpawnBoxWorld : ModSystem
                 return;
 
             effect.Parameters["globalTime"]?.SetValue((float)Main.timeForVisualEffects);
-            effect.Parameters["borderColor"]?.SetValue(GetDrawColor(box).ToVector3());
-            effect.Parameters["opacity"]?.SetValue(GetDrawOpacity(box));
+            effect.Parameters["borderColor"]?.SetValue(color.ToVector3());
+            effect.Parameters["opacity"]?.SetValue(opacity);
             effect.Parameters["borderSize"]?.SetValue(new Vector2(thickness / (float)outer.Width, thickness / (float)outer.Height));
-            effect.Parameters["outerEdgeFade"]?.SetValue(0.42f);
-            effect.Parameters["innerEdgeFade"]?.SetValue(0.30f);
+            float collisionEdge = Math.Min(1f, 1f / thickness);
+            effect.Parameters["outerEdgeFade"]?.SetValue(inside ? 1f : collisionEdge);
+            effect.Parameters["innerEdgeFade"]?.SetValue(inside ? collisionEdge : 1f);
             effect.Parameters["pulseStrength"]?.SetValue(0.12f);
             effect.Parameters["shimmerStrength"]?.SetValue(0.08f);
             effect.Parameters["shimmerScale"]?.SetValue(34f);
@@ -99,19 +90,35 @@ public sealed class SpawnBoxWorld : ModSystem
             effect.CurrentTechnique.Passes[0].Apply();
             sb.Draw(TextureAssets.MagicPixel.Value, outer, Color.White);
             sb.End();
+            sb.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, Main.DefaultSamplerState, DepthStencilState.None, Main.Rasterizer, null, Main.GameViewMatrix.TransformationMatrix);
+            DrawCollisionLine(sb, inner, thickness, color, opacity, inside);
+            sb.End();
             sb.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, Main.DefaultSamplerState, DepthStencilState.None, Main.Rasterizer, null, Main.UIScaleMatrix);
         }
 
-        private static void DrawPixelBorder(SpriteBatch sb, Rectangle inner, int thickness)
+        private static void DrawPixelBorder(SpriteBatch sb, Rectangle inner, int thickness, Color color, float opacity, bool inside)
         {
-            SpawnBoxSystem box = ModContent.GetInstance<SpawnBoxSystem>();
-            Color color = GetDrawColor(box) * GetDrawOpacity(box);
-            Texture2D pixel = TextureAssets.MagicPixel.Value;
+            Texture2D pixel = TextureAssets.MagicPixel.Value; int steps = Math.Min(thickness, 24);
+            for (int i = 0; i < steps; i++)
+            {
+                int start = i * thickness / steps, end = (i + 1) * thickness / steps, band = end - start;
+                float strength = inside ? MathF.Pow(1f - end / (float)thickness, .35f) : MathF.Pow(start / (float)thickness, .35f);
+                Rectangle outer = inner, innerBand = inner; outer.Inflate(end, end); innerBand.Inflate(start, start); Color tint = color * (opacity * strength);
+                sb.Draw(pixel, new Rectangle(outer.X, outer.Y, outer.Width, band), tint);
+                sb.Draw(pixel, new Rectangle(outer.X, innerBand.Bottom, outer.Width, band), tint);
+                sb.Draw(pixel, new Rectangle(outer.X, innerBand.Y, band, innerBand.Height), tint);
+                sb.Draw(pixel, new Rectangle(innerBand.Right, innerBand.Y, band, innerBand.Height), tint);
+            }
+        }
 
-            sb.Draw(pixel, new Rectangle(inner.X - thickness, inner.Y - thickness, inner.Width + thickness * 2, thickness), color);
-            sb.Draw(pixel, new Rectangle(inner.X - thickness, inner.Bottom, inner.Width + thickness * 2, thickness), color);
-            sb.Draw(pixel, new Rectangle(inner.X - thickness, inner.Y, thickness, inner.Height), color);
-            sb.Draw(pixel, new Rectangle(inner.Right, inner.Y, thickness, inner.Height), color);
+        private static void DrawCollisionLine(SpriteBatch sb, Rectangle inner, int thickness, Color color, float opacity, bool inside)
+        {
+            Rectangle edge = inner; if (!inside) edge.Inflate(thickness, thickness);
+            Color highlight = Color.Lerp(color, Color.White, .28f) * Math.Min(1f, opacity + .18f); Texture2D pixel = TextureAssets.MagicPixel.Value;
+            sb.Draw(pixel, new Rectangle(edge.X, edge.Y, edge.Width, 1), highlight);
+            sb.Draw(pixel, new Rectangle(edge.X, edge.Bottom - 1, edge.Width, 1), highlight);
+            sb.Draw(pixel, new Rectangle(edge.X, edge.Y + 1, 1, Math.Max(0, edge.Height - 2)), highlight);
+            sb.Draw(pixel, new Rectangle(edge.Right - 1, edge.Y + 1, 1, Math.Max(0, edge.Height - 2)), highlight);
         }
     }
 }

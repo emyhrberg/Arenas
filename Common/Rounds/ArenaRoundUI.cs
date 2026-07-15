@@ -80,7 +80,7 @@ internal sealed class ArenaRoundUI : ModSystem
     private static void DrawScoreboard()
     {
         IReadOnlyList<RoundPlayerStats> players = ScoreboardPlayers();
-        const int top = 200;
+        int top = 200 + (ArenaRoundSystem.Phase == RoundPhase.Voting && ModContent.GetInstance<EndScreenSystem>().IsVisible ? 40 : 0);
         int width = Math.Min(1280, Main.screenWidth - 40), height = Math.Min(ArenaScoreboardDrawer.MeasureHeight(players), Math.Max(1, Main.screenHeight - top - 20));
         ArenaScoreboardDrawer.Draw(new Rectangle((Main.screenWidth - width) / 2, top, width, height), players);
     }

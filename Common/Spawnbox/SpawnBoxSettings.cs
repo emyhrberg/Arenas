@@ -1,7 +1,7 @@
 using System;
 using System.IO;
 
-namespace PvPAdventure.Common.Spawnbox;
+namespace Arenas.Common.Spawnbox;
 
 public readonly record struct SpawnBoxSettings(int Width, int Height, int XOffset, int YOffset, int Thickness)
 {

@@ -75,7 +75,7 @@ internal static class ArenaScoreboardDrawer
             Main.spriteBatch.Draw(TextureAssets.MagicPixel.Value, row, local ? teamColor * .42f : hover ? Color.White * .14f : Color.Black * (i % 2 == 0 ? .22f : .12f));
             if (hover) { Main.LocalPlayer.mouseInterface = true; Main.instance.MouseText(stats.Name); }
             int headSize = Math.Min(52, rowHeight - 8);
-            Rectangle head = new(row.X + 3, row.Center.Y - headSize / 2, headSize, headSize);
+            Rectangle head = new(row.X - 1, row.Center.Y - headSize / 2, headSize, headSize);
             Utils.DrawInvBG(Main.spriteBatch, head, teamColor * .8f);
             if (stats.PlayerId < Main.maxPlayers && Main.player[stats.PlayerId] is Player player)
                 Main.MapPlayerRenderer.DrawPlayerHead(Main.Camera, player, head.Center.ToVector2(), 1f, .6f * headSize / 26f, teamColor);

@@ -1,11 +1,11 @@
 using Microsoft.Xna.Framework;
-using PvPAdventure.Core.Utilities;
 using System;
 using Terraria;
+using Terraria.Enums;
 using Terraria.ID;
 using Terraria.ModLoader;
 
-namespace PvPAdventure.Common.Spawnbox;
+namespace Arenas.Common.Spawnbox;
 
 internal sealed class SpawnBoxCollision : ModSystem
 {
@@ -16,14 +16,13 @@ internal sealed class SpawnBoxCollision : ModSystem
     {
         Vector2 result = orig(position, velocity, width, height, fallthrough, fall2, gravdir);
         SpawnBoxSystem box = ModContent.GetInstance<SpawnBoxSystem>();
-        return CollideWithBorder(position, result, width, height, box.BorderWorldAreas, SpawnBoxSystem.TileToWorld(box.TileArea), box.CanExit);
+        return box.Active ? CollideWithBorder(position, result, width, height, box.BorderWorldAreas, box.WorldAreas, box.CanExit) : result;
     }
 
-    private static Vector2 CollideWithBorder(Vector2 position, Vector2 velocity, int width, int height, Rectangle[] borders, Rectangle innerArea, bool canExit)
+    private static Vector2 CollideWithBorder(Vector2 position, Vector2 velocity, int width, int height, Rectangle[] borders, Rectangle[] innerAreas, bool canExit)
     {
         Rectangle source = new((int)position.X, (int)position.Y, width, height);
-        if (canExit && innerArea.Intersects(source))
-            return velocity;
+        if (canExit) foreach (Rectangle area in innerAreas) if (area.Intersects(source)) return velocity;
 
         float x = velocity.X;
 
@@ -88,9 +87,19 @@ internal sealed class SpawnBoxPlayer : ModPlayer
     {
         if (ModContent.GetInstance<SpawnBoxSystem>().TouchesWorldHitbox(Player.Hitbox))
         {
-            Player.AddBuff(ModContent.BuffType<Content.Buffs.PlayerInSpawn>(), 2);
             Player.AddBuff(BuffID.NoBuilding, 2);
         }
+    }
+
+    public override void OnRespawn()
+    {
+        SpawnBoxSystem box = ModContent.GetInstance<SpawnBoxSystem>(); Team team = (Team)Player.team;
+        if (!box.Active || team is not (Team.Red or Team.Blue or Team.Green)) return;
+        Rectangle area = SpawnBoxSystem.TileToWorld(box.GetTileArea(team));
+        Vector2 position = area.Center.ToVector2() - Player.Size * .5f;
+        Player.Teleport(position, TeleportationStyleID.RodOfDiscord); Player.velocity = Vector2.Zero;
+        if (Main.netMode == NetmodeID.Server)
+            NetMessage.SendData(MessageID.TeleportEntity, number: 0, number2: Player.whoAmI, number3: position.X, number4: position.Y, number5: TeleportationStyleID.RodOfDiscord);
     }
 
     public override bool CanHitPvp(Item item, Player target) => CanFight(Player, target);
@@ -110,7 +119,7 @@ internal sealed class SpawnBoxPlayer : ModPlayer
     private static void UseWiringTools(On_Player.orig_ItemCheck_UseWiringTools orig, Player self, Item item) { if (CanModifyTarget()) orig(self, item); }
     private static void CutTiles(On_Player.orig_ItemCheck_CutTiles orig, Player self, Item item, Rectangle itemRectangle, bool[] shouldIgnore)
     {
-        if (!ModContent.GetInstance<SpawnBoxSystem>().TouchesTileRectangle(itemRectangle.ToTileRectangle()))
+        if (!ModContent.GetInstance<SpawnBoxSystem>().TouchesTileRectangle(SpawnBoxSystem.WorldToTile(itemRectangle)))
             orig(self, item, itemRectangle, shouldIgnore);
     }
 }
@@ -170,14 +179,14 @@ internal sealed class SpawnBoxLiquidCleaner : ModSystem
         if (Main.netMode == NetmodeID.MultiplayerClient)
             return;
 
-        Rectangle area = ModContent.GetInstance<SpawnBoxSystem>().TileArea;
-        for (int x = area.Left; x < area.Right; x++)
-            for (int y = area.Top; y < area.Bottom; y++)
-                if (WorldGen.InWorld(x, y) && Main.tile[x, y].LiquidAmount > 0)
-                {
-                    Main.tile[x, y].LiquidAmount = 0;
-                    if (Main.netMode == NetmodeID.Server)
-                        NetMessage.sendWater(x, y);
-                }
+        SpawnBoxSystem box = ModContent.GetInstance<SpawnBoxSystem>(); if (!box.Active) return;
+        foreach (Rectangle area in box.TileAreas)
+            for (int x = area.Left; x < area.Right; x++)
+                for (int y = area.Top; y < area.Bottom; y++)
+                    if (WorldGen.InWorld(x, y) && Main.tile[x, y].LiquidAmount > 0)
+                    {
+                        Main.tile[x, y].LiquidAmount = 0;
+                        if (Main.netMode == NetmodeID.Server) NetMessage.sendWater(x, y);
+                    }
     }
 }

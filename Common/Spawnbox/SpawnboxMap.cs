@@ -2,41 +2,35 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Terraria;
 using Terraria.GameContent;
+using Terraria.Enums;
 using Terraria.Map;
 using Terraria.ModLoader;
 
-namespace PvPAdventure.Common.Spawnbox;
+namespace Arenas.Common.Spawnbox;
 
 public sealed class SpawnBoxMap : ModMapLayer
 {
-    private static readonly Color BlockedColor = new(255, 80, 80);
-    private static readonly Color PassableColor = new(70, 226, 158);
-
     public override void Draw(ref MapOverlayDrawContext context, ref string text)
     {
         if (Main.mapFullscreenScale < 0.5f)
             return;
 
         SpawnBoxSystem box = ModContent.GetInstance<SpawnBoxSystem>();
-        Rectangle area = box.BorderOuterTileArea;
-        Vector2 topLeft = (new Vector2(area.X, area.Y) - context.MapPosition) * context.MapScale + context.MapOffset;
-        Vector2 size = new(area.Width * context.MapScale, area.Height * context.MapScale);
-        Rectangle rect = new((int)topLeft.X, (int)topLeft.Y, (int)size.X, (int)size.Y);
-
-        if (!Main.mapFullscreen && Main.mapStyle == 1)
+        if (!box.Active) return;
+        foreach (Team team in new[] { Team.Red, Team.Green })
         {
-            rect = Rectangle.Intersect(rect, new Rectangle(Main.miniMapX, Main.miniMapY, Main.miniMapWidth, Main.miniMapHeight));
-            if (rect.Width <= 0 || rect.Height <= 0)
-                return;
+            Rectangle area = box.GetBorderOuterTileArea(team);
+            Vector2 topLeft = (new Vector2(area.X, area.Y) - context.MapPosition) * context.MapScale + context.MapOffset;
+            Vector2 size = new(area.Width * context.MapScale, area.Height * context.MapScale);
+            Rectangle rect = new((int)topLeft.X, (int)topLeft.Y, (int)size.X, (int)size.Y);
+            if (!Main.mapFullscreen && Main.mapStyle == 1)
+            {
+                rect = Rectangle.Intersect(rect, new Rectangle(Main.miniMapX, Main.miniMapY, Main.miniMapWidth, Main.miniMapHeight));
+                if (rect.Width <= 0 || rect.Height <= 0) continue;
+            }
+            bool canCross = box.CanExit && SpawnBoxSystem.TileToWorld(box.GetTileArea(team)).Intersects(Main.LocalPlayer.Hitbox);
+            DrawBorder(rect, Main.teamColor[(int)team] * (canCross ? .5f : .88f), Main.mapFullscreen ? (int)Main.mapFullscreenScale : 2);
         }
-
-        DrawBorder(rect, GetDrawColor(box), Main.mapFullscreen ? (int)Main.mapFullscreenScale : 2);
-    }
-
-    private static Color GetDrawColor(SpawnBoxSystem box)
-    {
-        bool canCross = box.CanExit && box.TouchesWorldHitbox(Main.LocalPlayer.Hitbox);
-        return (canCross ? PassableColor : BlockedColor) * (canCross ? 0.5f : 0.88f);
     }
 
     private static void DrawBorder(Rectangle r, Color color, int thickness)

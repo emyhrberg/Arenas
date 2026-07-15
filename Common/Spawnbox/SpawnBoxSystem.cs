@@ -1,78 +1,56 @@
 using Microsoft.Xna.Framework;
-using PvPAdventure.Common.Game;
-using PvPAdventure.Core.Config;
-using PvPAdventure.Core.Utilities;
+using Arenas.Common.Rounds;
+using SubworldLibrary;
 using System;
 using System.IO;
 using Terraria;
+using Terraria.Enums;
 using Terraria.ID;
 using Terraria.ModLoader;
 using Terraria.ModLoader.IO;
 
-namespace PvPAdventure.Common.Spawnbox;
+namespace Arenas.Common.Spawnbox;
 
 [Autoload(Side = ModSide.Both)]
 public sealed class SpawnBoxSystem : ModSystem
 {
-    private const string WidthKey = "SpawnBoxWidth";
-    private const string HeightKey = "SpawnBoxHeight";
-    private const string XOffsetKey = "SpawnBoxXOffset";
-    private const string YOffsetKey = "SpawnBoxYOffset";
-    private const string ThicknessKey = "SpawnBoxThickness";
     private const int TileSize = 16;
 
-    public SpawnBoxSettings Settings { get; private set; } = SpawnBoxSettings.Default;
+    public SpawnBoxSettings RedSettings { get; private set; } = SpawnBoxSettings.Default;
+    public SpawnBoxSettings GreenSettings { get; private set; } = SpawnBoxSettings.Default;
+    public bool Active => SubworldSystem.IsActive<ArenasSubworld>();
     public bool CanEnter => false;
-    public bool CanExit => ModContent.GetInstance<GameManager>().CurrentPhase == GameManager.Phase.Playing;
+    public bool CanExit => Active && ArenaRoundSystem.Phase == RoundPhase.Playing;
 
-    internal static SpawnBoxSettings DefaultSettings =>
-        ModContent.GetInstance<ServerConfig>()?.SpawnBox?.ToSettings() ?? SpawnBoxSettings.Default;
+    internal static SpawnBoxSettings DefaultSettings => SpawnBoxSettings.Default;
+    public SpawnBoxSettings GetSettings(Team team) => IsRight(team) ? GreenSettings : RedSettings;
 
-    public Rectangle TileArea
+    public Rectangle GetTileArea(Team team)
     {
-        get
+        SpawnBoxSettings s = GetSettings(team); Point center = ArenaGeometry.TeamSpawn(team);
+        int x = center.X - s.Width / 2 + s.XOffset, y = center.Y - s.Height / 2 + s.YOffset;
+        if (Main.maxTilesX > 0 && Main.maxTilesY > 0)
         {
-            SpawnBoxSettings s = Settings.Clamped();
-            int x = Main.spawnTileX - s.Width / 2 + s.XOffset;
-            int y = Main.spawnTileY - s.Height / 2 + s.YOffset;
-
-            if (Main.maxTilesX > 0 && Main.maxTilesY > 0)
-            {
-                x = Math.Clamp(x, 0, Math.Max(0, Main.maxTilesX - s.Width));
-                y = Math.Clamp(y, 0, Math.Max(0, Main.maxTilesY - s.Height));
-            }
-
-            return new Rectangle(x, y, s.Width, s.Height);
+            x = Math.Clamp(x, 0, Math.Max(0, Main.maxTilesX - s.Width));
+            y = Math.Clamp(y, 0, Math.Max(0, Main.maxTilesY - s.Height));
         }
+        return new Rectangle(x, y, s.Width, s.Height);
     }
 
-    public int Thickness => Settings.Clamped().Thickness;
+    public Rectangle[] TileAreas => [GetTileArea(Team.Red), GetTileArea(Team.Green)];
+    public Rectangle[] WorldAreas => [TileToWorld(GetTileArea(Team.Red)), TileToWorld(GetTileArea(Team.Green))];
+    public int GetThickness(Team team) => GetSettings(team).Thickness;
+    public Rectangle GetBorderOuterTileArea(Team team) => Outer(GetTileArea(team), GetThickness(team));
+    public Rectangle[] GetBorderTileAreas(Team team) => Borders(GetTileArea(team), GetThickness(team));
 
-    public Rectangle BorderOuterTileArea
-    {
-        get
-        {
-            Rectangle area = TileArea;
-            area.Inflate(Thickness, Thickness);
-            return area;
-        }
-    }
+    public Rectangle[] BorderOuterTileAreas => [GetBorderOuterTileArea(Team.Red), GetBorderOuterTileArea(Team.Green)];
 
     public Rectangle[] BorderTileAreas
     {
         get
         {
-            Rectangle inner = TileArea;
-            Rectangle outer = BorderOuterTileArea;
-            int t = Thickness;
-
-            return new[]
-            {
-                new Rectangle(outer.X, outer.Y, outer.Width, t),
-                new Rectangle(outer.X, inner.Bottom, outer.Width, t),
-                new Rectangle(outer.X, inner.Y, t, inner.Height),
-                new Rectangle(inner.Right, inner.Y, t, inner.Height)
-            };
+            Rectangle[] red = GetBorderTileAreas(Team.Red), green = GetBorderTileAreas(Team.Green);
+            return [red[0], red[1], red[2], red[3], green[0], green[1], green[2], green[3]];
         }
     }
 
@@ -88,10 +66,10 @@ public sealed class SpawnBoxSystem : ModSystem
         }
     }
 
-    public bool ContainsTile(int x, int y) => TileArea.Contains(x, y);
+    public bool ContainsTile(int x, int y) => Active && (GetTileArea(Team.Red).Contains(x, y) || GetTileArea(Team.Green).Contains(x, y));
     public bool ContainsTile(Point tile) => ContainsTile(tile.X, tile.Y);
-    public bool TouchesWorldHitbox(Rectangle hitbox) => TileArea.Intersects(hitbox.ToTileRectangle());
-    public bool TouchesTileRectangle(Rectangle tiles) => TileArea.Intersects(tiles);
+    public bool TouchesWorldHitbox(Rectangle hitbox) => TouchesTileRectangle(WorldToTile(hitbox));
+    public bool TouchesTileRectangle(Rectangle tiles) => Active && (GetTileArea(Team.Red).Intersects(tiles) || GetTileArea(Team.Green).Intersects(tiles));
     public bool TouchesBorderWorldHitbox(Rectangle hitbox)
     {
         foreach (Rectangle border in BorderWorldAreas)
@@ -103,40 +81,53 @@ public sealed class SpawnBoxSystem : ModSystem
 
     public static Rectangle TileToWorld(Rectangle tiles) =>
         new(tiles.X * TileSize, tiles.Y * TileSize, tiles.Width * TileSize, tiles.Height * TileSize);
+    public static Rectangle WorldToTile(Rectangle world) => new(world.Left / TileSize, world.Top / TileSize,
+        (world.Right + TileSize - 1) / TileSize - world.Left / TileSize, (world.Bottom + TileSize - 1) / TileSize - world.Top / TileSize);
 
-    internal void SetFromTool(SpawnBoxSettings settings, bool sync = false)
+    private static Rectangle Outer(Rectangle area, int thickness) { area.Inflate(thickness, thickness); return area; }
+    private static Rectangle[] Borders(Rectangle inner, int thickness)
     {
-        Settings = settings.Clamped();
-
-        if (sync && Main.netMode == NetmodeID.Server)
-            SpawnBoxNetHandler.SendSync(Settings);
+        Rectangle outer = Outer(inner, thickness);
+        return [new(outer.X, outer.Y, outer.Width, thickness), new(outer.X, inner.Bottom, outer.Width, thickness), new(outer.X, inner.Y, thickness, inner.Height), new(inner.Right, inner.Y, thickness, inner.Height)];
     }
 
-    internal void ReceiveSync(SpawnBoxSettings settings) => Settings = settings.Clamped();
+    internal void SetFromTool(Team team, SpawnBoxSettings settings, bool sync = false)
+    {
+        team = Normalize(team); settings = settings.Clamped();
+        if (team == Team.Green) GreenSettings = settings; else RedSettings = settings;
 
-    public override void ClearWorld() => Settings = DefaultSettings;
+        if (sync && Main.netMode == NetmodeID.Server)
+            SpawnBoxNetHandler.SendSync(team, settings);
+    }
+
+    internal void ReceiveSync(Team team, SpawnBoxSettings settings) => SetFromTool(team, settings);
+
+    public override void ClearWorld() => RedSettings = GreenSettings = DefaultSettings;
 
     public override void SaveWorldData(TagCompound tag)
     {
-        tag[WidthKey] = Settings.Width;
-        tag[HeightKey] = Settings.Height;
-        tag[XOffsetKey] = Settings.XOffset;
-        tag[YOffsetKey] = Settings.YOffset;
-        tag[ThicknessKey] = Settings.Thickness;
+        Save(tag, "RedSpawnBox", RedSettings);
+        Save(tag, "GreenSpawnBox", GreenSettings);
     }
 
     public override void LoadWorldData(TagCompound tag)
     {
-        Settings = tag.ContainsKey(WidthKey)
-            ? new SpawnBoxSettings(
-                tag.GetInt(WidthKey),
-                tag.GetInt(HeightKey),
-                tag.GetInt(XOffsetKey),
-                tag.GetInt(YOffsetKey),
-                tag.ContainsKey(ThicknessKey) ? tag.GetInt(ThicknessKey) : SpawnBoxSettings.DefaultThickness).Clamped()
-            : DefaultSettings;
+        SpawnBoxSettings legacy = Load(tag, "SpawnBox", DefaultSettings);
+        RedSettings = Load(tag, "RedSpawnBox", legacy);
+        GreenSettings = Load(tag, "GreenSpawnBox", legacy);
     }
 
-    public override void NetSend(BinaryWriter writer) => Settings.Write(writer);
-    public override void NetReceive(BinaryReader reader) => Settings = SpawnBoxSettings.Read(reader);
+    public override void NetSend(BinaryWriter writer) { RedSettings.Write(writer); GreenSettings.Write(writer); }
+    public override void NetReceive(BinaryReader reader) { RedSettings = SpawnBoxSettings.Read(reader); GreenSettings = SpawnBoxSettings.Read(reader); }
+
+    private static bool IsRight(Team team) => team is Team.Blue or Team.Green;
+    private static Team Normalize(Team team) => IsRight(team) ? Team.Green : Team.Red;
+    private static void Save(TagCompound tag, string prefix, SpawnBoxSettings s)
+    {
+        tag[$"{prefix}Width"] = s.Width; tag[$"{prefix}Height"] = s.Height; tag[$"{prefix}XOffset"] = s.XOffset;
+        tag[$"{prefix}YOffset"] = s.YOffset; tag[$"{prefix}Thickness"] = s.Thickness;
+    }
+    private static SpawnBoxSettings Load(TagCompound tag, string prefix, SpawnBoxSettings fallback) => !tag.ContainsKey($"{prefix}Width") ? fallback : new SpawnBoxSettings(
+        tag.GetInt($"{prefix}Width"), tag.GetInt($"{prefix}Height"), tag.GetInt($"{prefix}XOffset"), tag.GetInt($"{prefix}YOffset"),
+        tag.ContainsKey($"{prefix}Thickness") ? tag.GetInt($"{prefix}Thickness") : SpawnBoxSettings.DefaultThickness).Clamped();
 }
