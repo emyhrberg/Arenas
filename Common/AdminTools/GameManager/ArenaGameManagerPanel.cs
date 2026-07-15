@@ -56,11 +56,11 @@ internal sealed class ArenaGameManagerPanel : UIDraggablePanel
 
     private void AddButtons()
     {
-        AddButton(new(() => ArenaRoundSystem.Phase == RoundPhase.Idle ? "Start Selected Round" : "Restart Selected Round", Ass.IconStartGame, StartRound, CanStart, StartReason), 252);
-        AddButton(new(() => ArenaRoundSystem.IsTimerPaused ? "Resume Timer" : "Pause Timer", Ass.IconArenas, () => Request(ArenaGameManagerNetHandler.ActionType.TogglePause), () => InArena() && ArenaRoundSystem.Phase != RoundPhase.Idle, () => "Pause or resume the active phase timer."), 290);
+        AddButton(new(() => ArenaRoundSystem.Phase == RoundPhase.Idle ? "Start Round" : "Restart Round", Ass.IconStartGame, StartRound, CanStart, StartReason), 252);
+        AddButton(new(() => ArenaRoundSystem.IsTimerPaused ? "Resume Timer" : "Pause Timer", Ass.IconArenas, () => Request(ArenaGameManagerNetHandler.ActionType.TogglePause), () => InArena() && ArenaRoundSystem.Phase != RoundPhase.Idle, () => "Pause or resume the timer"), 290);
         AddButton(new(AdvanceText, Ass.IconRefresh, () => Request(ArenaGameManagerNetHandler.ActionType.AdvancePhase), () => InArena() && ArenaRoundSystem.Phase is RoundPhase.FreezeCountdown or RoundPhase.Voting, AdvanceTooltip), 328);
-        AddButton(new(() => "End Current Round", Ass.IconEndGame, () => Request(ArenaGameManagerNetHandler.ActionType.EndRound), () => InArena() && ArenaRoundSystem.Phase is RoundPhase.FreezeCountdown or RoundPhase.Playing, () => "End the round and open the summary and boss vote.", true), 366);
-        AddButton(new(() => ArenaRoundSystem.IsAutoStartHeld ? "Release Automatic Start" : "Stop and Hold in Idle", Ass.IconArenas, ToggleIdleHold, InArena, () => ArenaRoundSystem.IsAutoStartHeld ? "Allow automatic rounds to start again." : "Stop the round loop in Idle.", true), 404);
+        AddButton(new(() => "End Round", Ass.IconEndGame, () => Request(ArenaGameManagerNetHandler.ActionType.EndRound), () => InArena() && ArenaRoundSystem.Phase is RoundPhase.FreezeCountdown or RoundPhase.Playing, () => "End the round and open voting", true), 366);
+        AddButton(new(() => ArenaRoundSystem.IsAutoStartHeld ? "Turn On Auto Start" : "Stop Auto Start", Ass.IconArenas, ToggleIdleHold, InArena, () => ArenaRoundSystem.IsAutoStartHeld ? "Let rounds start on their own" : "Stop the game and stay idle", true), 404);
     }
 
     private void StartRound() { ArenaGameManagerNetHandler.Request(ArenaGameManagerNetHandler.ActionType.StartRound, preset.Index, (int)countdown.Value, (int)roundTime.Value); selectionTouched = false; }
@@ -70,9 +70,9 @@ internal sealed class ArenaGameManagerPanel : UIDraggablePanel
     private static bool InArena() => SubworldSystem.IsActive<ArenasSubworld>();
     private static bool TeamsReady() => Main.netMode == Terraria.ID.NetmodeID.SinglePlayer ? Main.LocalPlayer?.active == true : Main.player.Any(p => p?.active == true && (Team)p.team == Team.Red) && Main.player.Any(p => p?.active == true && (Team)p.team == Team.Blue);
     private bool CanStart() => InArena() && ArenaRoundSystem.GetValidPresets().Count > 0 && TeamsReady();
-    private string StartReason() => !InArena() ? "Enter the Arenas subworld first." : ArenaRoundSystem.GetValidPresets().Count == 0 ? "No valid boss fight presets are configured." : !TeamsReady() ? "Red and Blue must both have a player." : "Start or restart with the selected boss and timers.";
-    private static string AdvanceText() => ArenaRoundSystem.Phase == RoundPhase.FreezeCountdown ? "Start Fight Now" : ArenaRoundSystem.Phase == RoundPhase.Voting ? "Resolve Vote Now" : "Advance Phase";
-    private static string AdvanceTooltip() => ArenaRoundSystem.Phase == RoundPhase.FreezeCountdown ? "Skip the freeze countdown." : "Resolve the boss vote immediately.";
+    private string StartReason() => !InArena() ? "Enter Arenas first" : ArenaRoundSystem.GetValidPresets().Count == 0 ? "Add a valid boss fight preset" : !TeamsReady() ? "Red and Blue both need a player" : "Start this boss fight";
+    private static string AdvanceText() => ArenaRoundSystem.Phase == RoundPhase.FreezeCountdown ? "Start Fight" : ArenaRoundSystem.Phase == RoundPhase.Voting ? "End Voting" : "Next Phase";
+    private static string AdvanceTooltip() => ArenaRoundSystem.Phase == RoundPhase.FreezeCountdown ? "Skip the countdown" : "End voting now";
 
     private void RefreshValues()
     {

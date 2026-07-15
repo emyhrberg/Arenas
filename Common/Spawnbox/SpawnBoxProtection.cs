@@ -7,23 +7,26 @@ using Terraria.ModLoader;
 
 namespace Arenas.Common.Spawnbox;
 
-internal sealed class SpawnBoxCollision : ModSystem
+internal static class SpawnBoxCollision
 {
-    public override void Load() => On_Collision.TileCollision += OnTileCollision;
-    public override void Unload() => On_Collision.TileCollision -= OnTileCollision;
-
-    private static Vector2 OnTileCollision(On_Collision.orig_TileCollision orig, Vector2 position, Vector2 velocity, int width, int height, bool fallthrough, bool fall2, int gravdir)
+    public static Vector2 Resolve(Player player, SpawnBoxSystem box)
     {
-        Vector2 result = orig(position, velocity, width, height, fallthrough, fall2, gravdir);
-        SpawnBoxSystem box = ModContent.GetInstance<SpawnBoxSystem>();
-        return box.Active ? CollideWithBorder(position, result, width, height, box.BorderWorldAreas, box.WorldAreas, box.CanExit) : result;
+        Vector2 velocity = player.velocity;
+        foreach (Team team in SpawnBoxSystem.Teams)
+            if (!box.CanCross(team, (Team)player.team, player.Hitbox))
+                velocity = CollideWithBorder(player.position, velocity, player.width, player.height, SpawnBoxSystem.TileToWorld(box.GetTileArea(team)), box.GetThickness(team) * SpawnBoxSystem.TileSize);
+        return velocity;
     }
 
-    private static Vector2 CollideWithBorder(Vector2 position, Vector2 velocity, int width, int height, Rectangle[] borders, Rectangle[] innerAreas, bool canExit)
+    private static Vector2 CollideWithBorder(Vector2 position, Vector2 velocity, int width, int height, Rectangle inner, int thickness)
     {
+        Rectangle outer = inner; outer.Inflate(thickness, thickness);
+        Span<Rectangle> borders = stackalloc Rectangle[4]
+        {
+            new(outer.X, outer.Y, outer.Width, thickness), new(outer.X, inner.Bottom, outer.Width, thickness),
+            new(outer.X, inner.Y, thickness, inner.Height), new(inner.Right, inner.Y, thickness, inner.Height)
+        };
         Rectangle source = new((int)position.X, (int)position.Y, width, height);
-        if (canExit) foreach (Rectangle area in innerAreas) if (area.Intersects(source)) return velocity;
-
         float x = velocity.X;
 
         if (x != 0f)
@@ -89,6 +92,12 @@ internal sealed class SpawnBoxPlayer : ModPlayer
         {
             Player.AddBuff(BuffID.NoBuilding, 2);
         }
+    }
+
+    public override void PreUpdateMovement()
+    {
+        SpawnBoxSystem box = ModContent.GetInstance<SpawnBoxSystem>();
+        if (box.Active) Player.velocity = SpawnBoxCollision.Resolve(Player, box);
     }
 
     public override void OnRespawn()

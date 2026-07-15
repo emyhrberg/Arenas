@@ -99,7 +99,7 @@ Configs: {
 	}
 
 	TilePoint: {
-		Tooltip: Use -1, -1 for the arena world spawn fallback.
+		Tooltip: Use -1, -1 to use the arena spawn
 
 		X: {
 			Label: Tile X

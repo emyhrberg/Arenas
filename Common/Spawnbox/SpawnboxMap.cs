@@ -17,7 +17,7 @@ public sealed class SpawnBoxMap : ModMapLayer
 
         SpawnBoxSystem box = ModContent.GetInstance<SpawnBoxSystem>();
         if (!box.Active) return;
-        foreach (Team team in new[] { Team.Red, Team.Green })
+        foreach (Team team in SpawnBoxSystem.Teams)
         {
             Rectangle area = box.GetBorderOuterTileArea(team);
             Vector2 topLeft = (new Vector2(area.X, area.Y) - context.MapPosition) * context.MapScale + context.MapOffset;
@@ -28,8 +28,8 @@ public sealed class SpawnBoxMap : ModMapLayer
                 rect = Rectangle.Intersect(rect, new Rectangle(Main.miniMapX, Main.miniMapY, Main.miniMapWidth, Main.miniMapHeight));
                 if (rect.Width <= 0 || rect.Height <= 0) continue;
             }
-            bool canCross = box.CanExit && SpawnBoxSystem.TileToWorld(box.GetTileArea(team)).Intersects(Main.LocalPlayer.Hitbox);
-            DrawBorder(rect, Main.teamColor[(int)team] * (canCross ? .5f : .88f), Main.mapFullscreen ? (int)Main.mapFullscreenScale : 2);
+            bool canCross = box.CanCross(team, Main.LocalPlayer);
+            DrawBorder(rect, Main.teamColor[(int)(canCross ? Team.Green : Team.Red)] * (canCross ? .72f : .88f), Main.mapFullscreen ? (int)Main.mapFullscreenScale : 2);
         }
     }
 

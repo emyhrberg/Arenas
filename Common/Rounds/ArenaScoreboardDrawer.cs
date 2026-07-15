@@ -78,7 +78,7 @@ internal static class ArenaScoreboardDrawer
             Rectangle head = new(row.X - 1, row.Center.Y - headSize / 2, headSize, headSize);
             Utils.DrawInvBG(Main.spriteBatch, head, teamColor * .8f);
             if (stats.PlayerId < Main.maxPlayers && Main.player[stats.PlayerId] is Player player)
-                Main.MapPlayerRenderer.DrawPlayerHead(Main.Camera, player, head.Center.ToVector2(), 1f, .6f * headSize / 26f, teamColor);
+                Main.MapPlayerRenderer.DrawPlayerHead(Main.Camera, player, head.Center.ToVector2() - new Vector2(4f, 0f), 1f, .6f * headSize / 26f, teamColor);
             Text(stats.Name, new(row.X + 68, row.Center.Y - 12), local ? new Color(255, 244, 170) : Color.White, 1.16f, Math.Max(30, statsLeft - row.X - 76), 0f);
             Text(stats.Kills.ToString(), new(killsX, row.Center.Y - 12), Color.White, 1.08f, Math.Max(22, statsWidth * .14f));
             Text(stats.Deaths.ToString(), new(deathsX, row.Center.Y - 12), Color.White, 1.08f, Math.Max(22, statsWidth * .14f));

@@ -16,7 +16,7 @@ internal sealed class SpawnBoxToolQuickbarSystem : ModSystem
         if (!TryGetErkySSC(out Mod mod)) return;
         try
         {
-            mod.Call("RegisterAdminQuickbarEntry", Owner, "arenas_spawnbox", "Arenas Spawnbox Tool", "Adjust the Red and Green team spawnboxes.", Ass.IconArenas,
+            mod.Call("RegisterAdminQuickbarEntry", Owner, "arenas_spawnbox", "Arenas Spawnbox Tool", "Change the Red and Green spawnboxes", Ass.IconArenas,
                 new Action(() => ModContent.GetInstance<SpawnBoxToolUISystem>()?.Toggle()),
                 new Func<string>(() => ModContent.GetInstance<SpawnBoxToolUISystem>()?.IsActive == true ? "Close" : "Open"),
                 new Func<Color>(() => Color.White), true, 32, "");

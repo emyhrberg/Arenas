@@ -62,12 +62,12 @@ internal class ArenasConfig : ModConfig
     public TilePoint BossSpawn { get; set; } = new();
 
     [Header("FightPresets")]
-    public List<BossFightPreset> FightPresets { get; set; } = [];
+    public List<BossFightPreset> FightPresets { get; set; } = ArenaDefaults.CreateFightPresets();
 
     [Header("Loadouts")]
     [BackgroundColor(90, 40, 110)]
     [CustomModConfigItem(typeof(LoadoutListElement))]
-    public List<Loadout> ArenaLoadouts { get; set; } = [];
+    public List<Loadout> ArenaLoadouts { get; set; } = ArenaDefaults.CreateLoadouts();
 
     #region Hooks / methods
     public override bool AcceptClientChanges(ModConfig pendingConfig, int whoAmI, ref NetworkText message)

@@ -14,7 +14,8 @@ namespace Arenas.Common.Spawnbox;
 [Autoload(Side = ModSide.Both)]
 public sealed class SpawnBoxSystem : ModSystem
 {
-    private const int TileSize = 16;
+    public const int TileSize = 16;
+    internal static readonly Team[] Teams = [Team.Red, Team.Green];
 
     public SpawnBoxSettings RedSettings { get; private set; } = SpawnBoxSettings.Default;
     public SpawnBoxSettings GreenSettings { get; private set; } = SpawnBoxSettings.Default;
@@ -42,6 +43,12 @@ public sealed class SpawnBoxSystem : ModSystem
     public int GetThickness(Team team) => GetSettings(team).Thickness;
     public Rectangle GetBorderOuterTileArea(Team team) => Outer(GetTileArea(team), GetThickness(team));
     public Rectangle[] GetBorderTileAreas(Team team) => Borders(GetTileArea(team), GetThickness(team));
+    public Rectangle[] GetBorderWorldAreas(Team team)
+    {
+        Rectangle[] areas = GetBorderTileAreas(team);
+        for (int i = 0; i < areas.Length; i++) areas[i] = TileToWorld(areas[i]);
+        return areas;
+    }
 
     public Rectangle[] BorderOuterTileAreas => [GetBorderOuterTileArea(Team.Red), GetBorderOuterTileArea(Team.Green)];
 
@@ -58,13 +65,14 @@ public sealed class SpawnBoxSystem : ModSystem
     {
         get
         {
-            Rectangle[] tiles = BorderTileAreas;
-            for (int i = 0; i < tiles.Length; i++)
-                tiles[i] = TileToWorld(tiles[i]);
-
-            return tiles;
+            Rectangle[] red = GetBorderWorldAreas(Team.Red), green = GetBorderWorldAreas(Team.Green);
+            return [red[0], red[1], red[2], red[3], green[0], green[1], green[2], green[3]];
         }
     }
+
+    public bool CanCross(Team boxTeam, Player player) => player?.active == true && CanCross(boxTeam, (Team)player.team, player.Hitbox);
+    internal bool CanCross(Team boxTeam, Team playerTeam, Rectangle playerHitbox) =>
+        CanExit && IsArenaTeam(playerTeam) && Normalize(boxTeam) == Normalize(playerTeam) && TileToWorld(GetTileArea(boxTeam)).Intersects(playerHitbox);
 
     public bool ContainsTile(int x, int y) => Active && (GetTileArea(Team.Red).Contains(x, y) || GetTileArea(Team.Green).Contains(x, y));
     public bool ContainsTile(Point tile) => ContainsTile(tile.X, tile.Y);
@@ -121,6 +129,7 @@ public sealed class SpawnBoxSystem : ModSystem
     public override void NetReceive(BinaryReader reader) { RedSettings = SpawnBoxSettings.Read(reader); GreenSettings = SpawnBoxSettings.Read(reader); }
 
     private static bool IsRight(Team team) => team is Team.Blue or Team.Green;
+    private static bool IsArenaTeam(Team team) => team is Team.Red or Team.Blue or Team.Green;
     private static Team Normalize(Team team) => IsRight(team) ? Team.Green : Team.Red;
     private static void Save(TagCompound tag, string prefix, SpawnBoxSettings s)
     {

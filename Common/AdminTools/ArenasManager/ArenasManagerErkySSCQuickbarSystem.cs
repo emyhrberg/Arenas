@@ -27,7 +27,7 @@ internal sealed class ArenasManagerErkySSCQuickbarSystem : ModSystem
                 Owner,
                 EntryId,
                 "Arenas Player Manager",
-                "Open the Arenas player manager.",
+                "Open the player manager",
                 Ass.IconArenas,
                 new Action(ToggleArenasManager),
                 new Func<string>(ActionText),

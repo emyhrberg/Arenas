@@ -95,7 +95,7 @@ internal sealed class ArenaManagerPresetSelector : UIElement
     {
         base.Update(time); if (!IsMouseHovering) return; Main.LocalPlayer.mouseInterface = true;
         Rectangle rect = GetDimensions().ToRectangle(); Point mouse = Main.MouseScreen.ToPoint();
-        if (Previous(rect).Contains(mouse)) Main.instance.MouseText("Previous boss preset"); else if (Next(rect).Contains(mouse)) Main.instance.MouseText("Next boss preset");
+        if (Previous(rect).Contains(mouse)) Main.instance.MouseText("Previous boss"); else if (Next(rect).Contains(mouse)) Main.instance.MouseText("Next boss");
     }
 
     protected override void DrawSelf(SpriteBatch batch)

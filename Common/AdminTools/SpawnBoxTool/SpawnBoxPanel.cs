@@ -30,7 +30,7 @@ internal sealed class SpawnBoxPanel : UIDraggablePanel
         thickness = Slider("Border", SpawnBoxSettings.MinThickness, SpawnBoxSettings.MaxThickness); Add(thickness, 152);
         xOffset = Slider("X Offset", SpawnBoxSettings.MinOffset, SpawnBoxSettings.MaxOffset); Add(xOffset, 188);
         yOffset = Slider("Y Offset", SpawnBoxSettings.MinOffset, SpawnBoxSettings.MaxOffset); Add(yOffset, 224);
-        Add(new ArenaManagerButton(() => $"Reset {Name} Spawnbox", Ass.IconRefresh, Reset, () => true, () => $"Restore the default {Name.ToLowerInvariant()} team spawnbox size and position."), 264);
+        Add(new ArenaManagerButton(() => $"Reset {Name} Spawnbox", Ass.IconRefresh, Reset, () => true, () => $"Reset the {Name.ToLowerInvariant()} spawnbox size and position"), 264);
         RefreshValues();
     }
 
@@ -90,7 +90,7 @@ internal sealed class SpawnBoxTeamTabs : UIElement
     {
         base.Update(gameTime); if (!IsMouseHovering) return; Main.LocalPlayer.mouseInterface = true;
         Team team = Button(GetDimensions().ToRectangle(), Team.Red).Contains(Main.MouseScreen.ToPoint()) ? Team.Red : Team.Green;
-        Main.instance.MouseText($"Edit {(team == Team.Red ? "Red" : "Green")} team spawnbox");
+        Main.instance.MouseText($"Edit {(team == Team.Red ? "Red" : "Green")} spawnbox");
     }
 
     protected override void DrawSelf(SpriteBatch batch)
