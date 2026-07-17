@@ -11,10 +11,23 @@ public enum FightTime
     Night
 }
 
+public enum ArenaGeneratorKind
+{
+    Auto,
+    KingSlimeSurface,
+    EyeSurface,
+    PlanteraJungle,
+    GolemTemple
+}
+
 public sealed class BossFightPreset
 {
     [ConfigIcon(ItemID.SuspiciousLookingEye)]
     public NPCDefinition Boss { get; set; } = new();
+
+    [ConfigIcon(ItemID.DirtBlock)]
+    [DefaultValue(ArenaGeneratorKind.Auto)]
+    public ArenaGeneratorKind ArenaGenerator { get; set; } = ArenaGeneratorKind.Auto;
 
     [ConfigIcon(ItemID.LifeCrystal)]
     [DefaultValue(500)]

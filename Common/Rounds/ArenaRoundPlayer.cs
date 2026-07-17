@@ -1,4 +1,5 @@
 using System;
+using Arenas.Common.Generation;
 using Terraria.DataStructures;
 using Terraria.GameInput;
 using Terraria.ID;
@@ -34,10 +35,26 @@ internal sealed class ArenaRoundPlayer : ModPlayer
 
     public override void SetControls()
     {
-        if (!ArenaWorldSystem.Active || ArenaRoundSystem.Phase != RoundPhase.FreezeCountdown) return;
+        bool controlsLocked = !ArenaWorldSystem.WorldReady
+            || ArenaRoundSystem.Phase is RoundPhase.Generating or RoundPhase.FreezeCountdown;
+        if (!ArenaWorldSystem.Active || !controlsLocked) return;
         Player.controlLeft = Player.controlRight = Player.controlUp = Player.controlDown = false;
         Player.controlJump = Player.controlMount = Player.controlHook = false;
         Player.controlUseItem = Player.controlUseTile = Player.controlThrow = false;
+    }
+
+    public override void OnRespawn()
+    {
+        if (!ArenaWorldSystem.Active) return;
+        Point spawn = ArenaRoundSystem.Phase is RoundPhase.FreezeCountdown or RoundPhase.Playing
+            && ArenaRoundSystem.TryGetParticipantTeam(Player.whoAmI, out Terraria.Enums.Team team)
+            ? ArenaRoundSystem.TeamSpawn(team)
+            : ArenaGeneratorRegistry.WorldSpawn;
+        Vector2 position = new(spawn.X * 16, spawn.Y * 16 - Player.height);
+        Player.Teleport(position, TeleportationStyleID.RodOfDiscord);
+        Player.velocity = Vector2.Zero;
+        if (Main.netMode == NetmodeID.Server)
+            NetMessage.SendData(MessageID.TeleportEntity, number: 0, number2: Player.whoAmI, number3: position.X, number4: position.Y, number5: TeleportationStyleID.RodOfDiscord);
     }
 
     public override void ProcessTriggers(TriggersSet triggersSet)
@@ -86,6 +103,9 @@ internal sealed class ArenaRoundPlayer : ModPlayer
         ArenaRoundPlayer stats = player.GetModPlayer<ArenaRoundPlayer>();
         stats.CharacterKey = characterKey ?? "";
 
+        bool reassociated = Main.netMode != NetmodeID.MultiplayerClient
+            && ArenaRoundSystem.ReassociateParticipant(player, stats.CharacterKey);
+
         if (Main.netMode == NetmodeID.MultiplayerClient || root == null || !root.ContainsKey(ErkySscTag))
             return true;
 
@@ -99,7 +119,7 @@ internal sealed class ArenaRoundPlayer : ModPlayer
 
         if ((!string.IsNullOrEmpty(savedCharacter) && savedCharacter != stats.CharacterKey) ||
             string.IsNullOrEmpty(savedRound) || savedRound != ArenaRoundSystem.CurrentRoundToken ||
-            !ArenaRoundSystem.ReassociateParticipant(player, stats.CharacterKey))
+            !reassociated)
             return true;
 
         stats.Kills = Math.Max(0, saved.GetInt("kills"));

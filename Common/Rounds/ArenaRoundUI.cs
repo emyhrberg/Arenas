@@ -29,14 +29,39 @@ internal sealed class ArenaRoundUI : ModSystem
     private static bool Draw()
     {
         if (!ArenaWorldSystem.Active) return true;
-        if (ArenaRoundSystem.Phase == RoundPhase.Voting)
+        if (ArenaWorldSystem.IsClearing)
+            DrawWorldWaiting();
+        else if (ArenaRoundSystem.Phase == RoundPhase.Generating)
+            DrawGeneration();
+        else if (ArenaRoundSystem.Phase == RoundPhase.Voting)
         {
             if (!ModContent.GetInstance<EndScreenSystem>().IsVisible) ArenaBossVoteDrawer.Draw(260);
         }
-        else DrawTimer();
+        else if (ArenaRoundSystem.Phase != RoundPhase.Idle) DrawTimer();
         if (ArenaRoundSystem.Phase == RoundPhase.FreezeCountdown) DrawCountdown();
         if (ScoreboardVisible) DrawScoreboard();
         return true;
+    }
+
+    private static void DrawWorldWaiting()
+    {
+        Rectangle panel = new(Main.screenWidth / 2 - 210, Main.screenHeight / 2 - 45, 420, 90);
+        Utils.DrawInvBG(Main.spriteBatch, panel, new Color(25, 38, 86) * .94f);
+        string text = $"Clearing World  {ArenaWorldSystem.ClearingProgress:P0}";
+        Utils.DrawBorderStringBig(Main.spriteBatch, text, panel.Center.ToVector2(), Color.White, .5f, .5f, .5f);
+    }
+
+    private static void DrawGeneration()
+    {
+        float progress = Math.Clamp(ArenaRoundSystem.GenerationProgress, 0f, 1f);
+        Rectangle panel = new(Main.screenWidth / 2 - 210, Main.screenHeight / 2 - 56, 420, 112);
+        Rectangle bar = new(panel.X + 28, panel.Bottom - 38, panel.Width - 56, 16);
+        Utils.DrawInvBG(Main.spriteBatch, panel, new Color(25, 38, 86) * .94f);
+        Utils.DrawInvBG(Main.spriteBatch, bar, Color.Black * .8f);
+        Rectangle fill = new(bar.X + 3, bar.Y + 3, (int)((bar.Width - 6) * progress), bar.Height - 6);
+        if (fill.Width > 0) Main.spriteBatch.Draw(TextureAssets.MagicPixel.Value, fill, new Color(90, 190, 255));
+        Utils.DrawBorderStringBig(Main.spriteBatch, "Generating Arena", new Vector2(panel.Center.X, panel.Y + 28), Color.White, .65f, .5f, .5f);
+        Utils.DrawBorderString(Main.spriteBatch, $"{progress:P0}", new Vector2(panel.Center.X, panel.Y + 57), Color.White, .85f, .5f, .5f);
     }
 
     private static void DrawTimer()

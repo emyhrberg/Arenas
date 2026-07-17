@@ -18,13 +18,13 @@ internal sealed class ArenaGameManagerPanel : UIDraggablePanel
     private bool selectionTouched;
 
     protected override float MinResizeW => 400f;
-    protected override float MinResizeH => 500f;
+    protected override float MinResizeH => 540f;
     protected override float MaxResizeW => 520f;
     protected override float MaxResizeH => 620f;
 
     public ArenaGameManagerPanel() : base(Language.GetTextValue("Mods.Arenas.Tools.ArenaGameManagerPanel.Title"))
     {
-        Width.Set(420, 0); Height.Set(500, 0); HAlign = .5f; VAlign = 0f; Top.Set(200, 0); ContentPanel.SetPadding(6);
+        Width.Set(420, 0); Height.Set(540, 0); HAlign = .5f; VAlign = 0f; Top.Set(170, 0); ContentPanel.SetPadding(6);
         BossFightPreset selected = ArenaRoundSystem.GetPresetOrDefault(ArenaRoundSystem.CurrentPresetIndex);
         Add(new ArenaManagerStatusRow(), 0); Add(new ArenaManagerPlayerRow(), 40);
         preset = new(() => { selectionTouched = true; RefreshPresetDefaults(); }); Add(preset, 80);
@@ -57,22 +57,24 @@ internal sealed class ArenaGameManagerPanel : UIDraggablePanel
     private void AddButtons()
     {
         AddButton(new(() => ArenaRoundSystem.Phase == RoundPhase.Idle ? "Start Round" : "Restart Round", Ass.IconStartGame, StartRound, CanStart, StartReason), 252);
-        AddButton(new(() => ArenaRoundSystem.IsTimerPaused ? "Resume Timer" : "Pause Timer", Ass.IconArenas, () => Request(ArenaGameManagerNetHandler.ActionType.TogglePause), () => InArena() && ArenaRoundSystem.Phase != RoundPhase.Idle, () => "Pause or resume the timer"), 290);
-        AddButton(new(AdvanceText, Ass.IconRefresh, () => Request(ArenaGameManagerNetHandler.ActionType.AdvancePhase), () => InArena() && ArenaRoundSystem.Phase is RoundPhase.FreezeCountdown or RoundPhase.Voting, AdvanceTooltip), 328);
-        AddButton(new(() => "End Round", Ass.IconEndGame, () => Request(ArenaGameManagerNetHandler.ActionType.EndRound), () => InArena() && ArenaRoundSystem.Phase is RoundPhase.FreezeCountdown or RoundPhase.Playing, () => "End the round and open voting", true), 366);
-        AddButton(new(() => ArenaRoundSystem.IsAutoStartHeld ? "Turn On Auto Start" : "Stop Auto Start", Ass.IconArenas, ToggleIdleHold, InArena, () => ArenaRoundSystem.IsAutoStartHeld ? "Let rounds start on their own" : "Stop the game and stay idle", true), 404);
+        AddButton(new(() => "Balance Teams", Ass.IconArenas, () => Request(ArenaGameManagerNetHandler.ActionType.BalanceTeams), CanBalance, () => "Randomly split every online player as evenly as possible between Red and Blue"), 290);
+        AddButton(new(() => ArenaWorldSystem.IsClearing ? $"Clearing World ({ArenaWorldSystem.ClearingProgress:P0})" : "Clear World", Ass.IconRefresh, () => Request(ArenaGameManagerNetHandler.ActionType.ClearWorld), CanClear, () => "Stop the current game, erase the world, and create a small safe platform at the central spawn", true), 328);
+        AddButton(new(() => ArenaRoundSystem.IsTimerPaused ? "Resume Timer" : "Pause Timer", Ass.IconArenas, () => Request(ArenaGameManagerNetHandler.ActionType.TogglePause), () => InArena() && ArenaRoundSystem.Phase is not (RoundPhase.Idle or RoundPhase.Generating), () => "Pause or resume the timer"), 366);
+        AddButton(new(AdvanceText, Ass.IconRefresh, () => Request(ArenaGameManagerNetHandler.ActionType.AdvancePhase), () => InArena() && ArenaRoundSystem.Phase is RoundPhase.FreezeCountdown or RoundPhase.Voting, AdvanceTooltip), 404);
+        AddButton(new(() => ArenaRoundSystem.Phase == RoundPhase.Generating ? "Abort Generation" : "End Round", Ass.IconEndGame, () => Request(ArenaGameManagerNetHandler.ActionType.EndRound), () => InArena() && ArenaRoundSystem.Phase is RoundPhase.Generating or RoundPhase.FreezeCountdown or RoundPhase.Playing, () => ArenaRoundSystem.Phase == RoundPhase.Generating ? "Abort generation and return to a clean central spawn" : "End the round and open voting", true), 442);
     }
 
     private void StartRound() { ArenaGameManagerNetHandler.Request(ArenaGameManagerNetHandler.ActionType.StartRound, preset.Index, (int)countdown.Value, (int)roundTime.Value); selectionTouched = false; }
-    private void ToggleIdleHold() => ArenaGameManagerNetHandler.Request(ArenaGameManagerNetHandler.ActionType.SetIdleHold, ArenaRoundSystem.IsAutoStartHeld ? 0 : 1);
     private static void Request(ArenaGameManagerNetHandler.ActionType type) => ArenaGameManagerNetHandler.Request(type);
     private static int SecondsLeft() => Math.Max(0, (int)Math.Ceiling(ArenaRoundSystem.RemainingTicks / 60f));
     private static ArenaTimingConfig TimingConfig => ModContent.GetInstance<ArenaTimingConfig>();
     private static int DefaultCountdownSeconds() => TimingConfig.UseFreezeCountdown ? TimingConfig.FreezeCountdownSeconds : 0;
     private static bool InArena() => ArenaWorldSystem.Active;
     private static bool TeamsReady() => Main.netMode == Terraria.ID.NetmodeID.SinglePlayer ? Main.LocalPlayer?.active == true : Main.player.Any(p => p?.active == true && (Team)p.team == Team.Red) && Main.player.Any(p => p?.active == true && (Team)p.team == Team.Blue);
-    private bool CanStart() => InArena() && ArenaRoundSystem.GetValidPresets().Count > 0 && TeamsReady();
-    private string StartReason() => !InArena() ? "Enter Arenas first" : ArenaRoundSystem.GetValidPresets().Count == 0 ? "Add a valid boss fight preset" : !TeamsReady() ? "Red and Blue both need a player" : "Start this boss fight";
+    private bool CanStart() => InArena() && ArenaWorldSystem.WorldReady && !ArenaWorldSystem.IsClearing && ArenaRoundSystem.GetValidPresets().Count > 0 && TeamsReady();
+    private static bool CanBalance() => InArena() && ArenaRoundSystem.Phase == RoundPhase.Idle && !ArenaWorldSystem.IsClearing;
+    private static bool CanClear() => InArena() && !ArenaWorldSystem.IsClearing;
+    private string StartReason() => !InArena() ? "Enter Arenas first" : ArenaWorldSystem.IsClearing ? "Wait for the world clear to finish" : ArenaRoundSystem.GetValidPresets().Count == 0 ? "Add a valid boss fight preset" : !TeamsReady() ? "Balance teams first; Red and Blue both need a player" : "Generate this arena, teleport both teams, and start the freeze countdown";
     private static string AdvanceText() => ArenaRoundSystem.Phase == RoundPhase.FreezeCountdown ? "Start Fight" : ArenaRoundSystem.Phase == RoundPhase.Voting ? "End Voting" : "Next Phase";
     private static string AdvanceTooltip() => ArenaRoundSystem.Phase == RoundPhase.FreezeCountdown ? "Skip the countdown" : "End voting now";
 

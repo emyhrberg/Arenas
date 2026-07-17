@@ -5,7 +5,6 @@ Mods: {
 		Tools: {
 			ArenasManagerPanel.Title: Arenas Player Manager
 			ArenaGameManagerPanel.Title: Arenas Game Manager
-			SpawnBoxToolPanel.Title: Arenas Spawnbox Tool
 		}
 
 		Configs: {
@@ -45,6 +44,11 @@ Mods: {
 				Boss: {
 					Label: Boss
 					Tooltip: ""
+				}
+
+				ArenaGenerator: {
+					Label: Arena Generator
+					Tooltip: Selects the code-defined mirrored arena layout and terrain generator. Auto chooses from the boss NPC.
 				}
 
 				MaxHealth: {
@@ -189,6 +193,35 @@ Mods: {
 				Night: {
 					Label: Night
 					Tooltip: ""
+				}
+			}
+
+			ArenaGeneratorKind: {
+				Tooltip: ""
+
+				Auto: {
+					Label: Auto
+					Tooltip: Choose the generator from the configured boss.
+				}
+
+				KingSlimeSurface: {
+					Label: King Slime Surface
+					Tooltip: Mirrored forest terrain with a grounded central boss arena.
+				}
+
+				EyeSurface: {
+					Label: Eye Surface
+					Tooltip: Mirrored surface platforms designed for the Eye of Cthulhu.
+				}
+
+				PlanteraJungle: {
+					Label: Plantera Jungle
+					Tooltip: Mirrored underground-jungle caves with a central Plantera chamber.
+				}
+
+				GolemTemple: {
+					Label: Golem Temple
+					Tooltip: Mirrored Lihzahrd temple rooms with a central Golem chamber.
 				}
 			}
 		}

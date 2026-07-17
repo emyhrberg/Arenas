@@ -34,7 +34,7 @@ internal static class ArenaGameManagerText
 
     public static string Time(int seconds) => $"{Math.Max(0, seconds) / 60:00}:{Math.Max(0, seconds) % 60:00}";
     public static string Phase(RoundPhase phase) => phase == RoundPhase.FreezeCountdown ? "Freeze Countdown" : phase.ToString();
-    public static string Result(RoundResult result) => result switch { RoundResult.BossDefeated => "Boss Defeated", RoundResult.TimeExpired => "Time Expired", RoundResult.BossDespawned => "Boss Despawned", RoundResult.SpawnFailed => "Spawn Failed", RoundResult.AdminEnded => "Ended by Admin", _ => "" };
+    public static string Result(RoundResult result) => result switch { RoundResult.BossDefeated => "Boss Defeated", RoundResult.TimeExpired => "Time Expired", RoundResult.BossDespawned => "Boss Despawned", RoundResult.SpawnFailed => "Spawn Failed", RoundResult.GenerationFailed => "Generation Failed", RoundResult.AdminEnded => "Ended by Admin", _ => "" };
 
     public static void Panel(SpriteBatch batch, Rectangle rect, Color background, Color border)
     {
@@ -51,11 +51,20 @@ internal sealed class ArenaManagerStatusRow : UIElement
     {
         Rectangle rect = GetDimensions().ToRectangle(); ArenaGameManagerText.Panel(batch, rect, new Color(20, 20, 60) * .9f, Color.Black);
         bool active = ArenaWorldSystem.Active;
-        string status = !active ? "Outside Arenas" : ArenaRoundSystem.IsAutoStartHeld ? "Idle - automatic start held" : ArenaRoundSystem.IsTimerPaused ? $"{ArenaGameManagerText.Phase(ArenaRoundSystem.Phase)} - paused" : ArenaRoundSystem.Phase == RoundPhase.Voting && ArenaRoundSystem.Result != RoundResult.None ? $"Voting - {ArenaGameManagerText.Result(ArenaRoundSystem.Result)}" : ArenaGameManagerText.Phase(ArenaRoundSystem.Phase);
+        string status = !active ? "Outside Arenas"
+            : ArenaWorldSystem.IsClearing ? "Clearing world from Game Manager"
+            : ArenaRoundSystem.Phase == RoundPhase.Idle && ArenaWorldSystem.Layout == null ? "Idle - use Game Manager to start"
+            : ArenaRoundSystem.Phase == RoundPhase.Idle && ArenaRoundSystem.Result == RoundResult.GenerationFailed ? "Idle - generation failed"
+            : ArenaRoundSystem.IsTimerPaused ? $"{ArenaGameManagerText.Phase(ArenaRoundSystem.Phase)} - paused"
+            : ArenaRoundSystem.Phase == RoundPhase.Voting && ArenaRoundSystem.Result != RoundResult.None ? $"Voting - {ArenaGameManagerText.Result(ArenaRoundSystem.Result)}"
+            : ArenaGameManagerText.Phase(ArenaRoundSystem.Phase);
         Color color = !active ? Color.Gray : ArenaRoundSystem.IsTimerPaused ? Color.Yellow : ArenaRoundSystem.Phase == RoundPhase.Playing ? Color.LimeGreen : Color.White;
         ArenaGameManagerText.Icon(batch, Ass.IconArenas, new(rect.X + 8, rect.Y + 7, 20, 20), Color.White);
         ArenaGameManagerText.Draw(batch, $"Status: {status}", new(rect.X + 36, rect.Y + 9), color, .72f, rect.Width - 126);
-        ArenaGameManagerText.Draw(batch, $"Time: {ArenaGameManagerText.Time((int)Math.Ceiling(ArenaRoundSystem.RemainingTicks / 60f))}", new(rect.Right - 10, rect.Y + 9), Color.White, .68f, 84, 1f);
+        string value = ArenaWorldSystem.IsClearing ? $"Clear: {ArenaWorldSystem.ClearingProgress:P0}"
+            : ArenaRoundSystem.Phase == RoundPhase.Generating ? $"Build: {ArenaRoundSystem.GenerationProgress:P0}"
+            : $"Time: {ArenaGameManagerText.Time((int)Math.Ceiling(ArenaRoundSystem.RemainingTicks / 60f))}";
+        ArenaGameManagerText.Draw(batch, value, new(rect.Right - 10, rect.Y + 9), Color.White, .68f, 84, 1f);
     }
 }
 

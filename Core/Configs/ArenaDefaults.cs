@@ -12,6 +12,7 @@ internal static class ArenaDefaults
         new()
         {
             Boss = new NPCDefinition(NPCID.KingSlime),
+            ArenaGenerator = ArenaGeneratorKind.KingSlimeSurface,
             MaxHealth = 200,
             MaxMana = 100,
             RoundDurationSeconds = 300,
@@ -20,6 +21,7 @@ internal static class ArenaDefaults
         new()
         {
             Boss = new NPCDefinition(NPCID.EyeofCthulhu),
+            ArenaGenerator = ArenaGeneratorKind.EyeSurface,
             MaxHealth = 200,
             MaxMana = 100,
             RoundDurationSeconds = 300,
@@ -29,6 +31,7 @@ internal static class ArenaDefaults
         new()
         {
             Boss = new NPCDefinition(NPCID.Plantera),
+            ArenaGenerator = ArenaGeneratorKind.PlanteraJungle,
             MaxHealth = 500,
             MaxMana = 200,
             RoundDurationSeconds = 600,
@@ -37,6 +40,7 @@ internal static class ArenaDefaults
         new()
         {
             Boss = new NPCDefinition(NPCID.Golem),
+            ArenaGenerator = ArenaGeneratorKind.GolemTemple,
             MaxHealth = 500,
             MaxMana = 200,
             RoundDurationSeconds = 600,

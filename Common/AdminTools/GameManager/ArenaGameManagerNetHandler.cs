@@ -8,7 +8,7 @@ namespace Arenas.Common.AdminTools.GameManager;
 
 internal static class ArenaGameManagerNetHandler
 {
-    internal enum ActionType : byte { StartRound, SetCountdown, SetRoundTime, SetVotingTime, TogglePause, AdvancePhase, EndRound, SetIdleHold }
+    internal enum ActionType : byte { StartRound, SetCountdown, SetRoundTime, SetVotingTime, TogglePause, AdvancePhase, EndRound, ClearWorld, BalanceTeams }
 
     public static void Request(ActionType type, int first = 0, int second = 0, int third = 0)
     {
@@ -46,7 +46,8 @@ internal static class ArenaGameManagerNetHandler
             case ActionType.TogglePause: ArenaRoundSystem.AdminTogglePause(); break;
             case ActionType.AdvancePhase: ArenaRoundSystem.AdminAdvancePhase(); break;
             case ActionType.EndRound: ArenaRoundSystem.AdminEndRound(); break;
-            case ActionType.SetIdleHold: ArenaRoundSystem.AdminSetIdleHold(first != 0); break;
+            case ActionType.ClearWorld: ArenaRoundSystem.AdminClearWorld(); break;
+            case ActionType.BalanceTeams: ArenaRoundSystem.AdminBalanceTeams(); break;
         }
     }
 }

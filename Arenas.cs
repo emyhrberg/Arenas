@@ -16,7 +16,6 @@ public class Arenas : Mod
         TeamBoss,
         ArenaGameManager,
         EndScreen,
-        SpawnBox,
         PlayerStatus
     }
 
@@ -37,9 +36,6 @@ public class Arenas : Mod
                 break;
             case ArenasPacketType.EndScreen:
                 Common.EndScreen.EndScreenNetHandler.HandlePacket(reader, whoAmI);
-                break;
-            case ArenasPacketType.SpawnBox:
-                Common.Spawnbox.SpawnBoxNetHandler.HandlePacket(reader, whoAmI);
                 break;
             case ArenasPacketType.PlayerStatus:
                 ArenaPlayerStatusNetHandler.HandlePacket(reader, whoAmI);
