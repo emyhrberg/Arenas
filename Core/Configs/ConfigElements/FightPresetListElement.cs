@@ -77,11 +77,7 @@ internal sealed class FightPresetListElement : ListElement
                     if (preset == null)
                         return $"{index + 1}: Missing";
 
-                    string name = string.IsNullOrWhiteSpace(preset.Name)
-                        ? preset.Boss?.DisplayName ?? "Fight Preset"
-                        : preset.Name;
-
-                    return $"{index + 1}: {name}";
+                    return $"{index + 1}: {preset.Boss?.DisplayName ?? "Fight Preset"}";
                 };
             }
 
@@ -130,10 +126,6 @@ internal sealed class FightPresetListElement : ListElement
             }
 
             preset.Boss ??= new NPCDefinition();
-            preset.RedSpawn ??= new TilePoint { X = 107, Y = 189 };
-            preset.BlueSpawn ??= new TilePoint { X = 688, Y = 189 };
-            preset.BossSpawn ??= new TilePoint();
-            preset.BossArea ??= new TileRectangle { X = 167, Y = 458, Width = 205, Height = 63 };
             preset.Loadout ??= new Loadout();
         }
     }

@@ -10,7 +10,7 @@ Mods: {
 
 		Configs: {
 			ArenasConfig: {
-				DisplayName: Arenas Config
+				DisplayName: Arenas Fight Presets
 				Headers.FightPresets: Fight Presets
 
 				FightPresets: {
@@ -19,13 +19,28 @@ Mods: {
 				}
 			}
 
+			ArenaTimingConfig: {
+				DisplayName: Arenas Round Timing
+				Headers.RoundTiming: Round Timing
+
+				UseFreezeCountdown: {
+					Label: Use Freeze Countdown
+					Tooltip: Freeze participants briefly before each fight begins.
+				}
+
+				FreezeCountdownSeconds: {
+					Label: Freeze Countdown
+					Tooltip: Number of seconds participants remain frozen before a fight.
+				}
+
+				VotingDurationSeconds: {
+					Label: Voting Duration
+					Tooltip: Number of seconds players have to vote after a fight.
+				}
+			}
+
 			BossFightPreset: {
 				Tooltip: ""
-
-				Name: {
-					Label: Name
-					Tooltip: ""
-				}
 
 				Boss: {
 					Label: Boss
@@ -43,91 +58,23 @@ Mods: {
 				}
 
 				RoundDurationSeconds: {
-					Label: Round Duration Seconds
+					Label: Round Duration
 					Tooltip: Maximum duration of this boss fight.
-				}
-
-				FreezeCountdownSeconds: {
-					Label: Freeze Countdown Seconds
-					Tooltip: Time participants remain frozen before this fight starts.
-				}
-
-				VotingDurationSeconds: {
-					Label: Voting Duration Seconds
-					Tooltip: Voting time after this fight ends.
-				}
-
-				RedSpawn: {
-					Label: Red Team Spawn
-					Tooltip: Tile coordinates for the Red team.
-				}
-
-				BlueSpawn: {
-					Label: Blue Team Spawn
-					Tooltip: Tile coordinates for the Blue team.
-				}
-
-				BossSpawn: {
-					Label: Boss Spawn
-					Tooltip: Tile coordinates, or -1/-1 to use the center of Boss Area.
-				}
-
-				BossArea: {
-					Label: Boss Area
-					Tooltip: Tile rectangle used to contain the boss.
 				}
 
 				Loadout: {
 					Label: Loadout
 					Tooltip: Full player equipment and inventory for this fight.
 				}
-			}
 
-			TilePoint: {
-				Tooltip: Tile coordinates.
-
-				X: {
-					Label: Tile X
-					Tooltip: ""
-				}
-
-				Y: {
-					Label: Tile Y
-					Tooltip: ""
-				}
-			}
-
-			TileRectangle: {
-				Tooltip: Rectangle measured in tiles.
-
-				X: {
-					Label: X
-					Tooltip: ""
-				}
-
-				Y: {
-					Label: Y
-					Tooltip: ""
-				}
-
-				Width: {
-					Label: Width
-					Tooltip: ""
-				}
-
-				Height: {
-					Label: Height
-					Tooltip: ""
+				Time: {
+					Label: Fight Time
+					Tooltip: Optionally change the world time when this fight starts.
 				}
 			}
 
 			Loadout: {
 				Tooltip: ""
-
-				Name: {
-					Label: Name
-					Tooltip: ""
-				}
 
 				Armor: {
 					Label: Armor
@@ -222,6 +169,25 @@ Mods: {
 
 				Stack: {
 					Label: Stack
+					Tooltip: ""
+				}
+			}
+
+			FightTime: {
+				Tooltip: ""
+
+				Unchanged: {
+					Label: Unchanged
+					Tooltip: ""
+				}
+
+				Day: {
+					Label: Day
+					Tooltip: ""
+				}
+
+				Night: {
+					Label: Night
 					Tooltip: ""
 				}
 			}

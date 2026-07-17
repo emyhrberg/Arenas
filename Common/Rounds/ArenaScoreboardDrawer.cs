@@ -56,15 +56,17 @@ internal static class ArenaScoreboardDrawer
         Text($"{team} team", new(header.X + 16, header.Y + 16), Color.White, 1.2f, header.Width / 2f, 0f);
         Text($"Boss damage  {players.Sum(p => p.BossDamage)}", new(header.Right - 16, header.Y + 17), Color.White, 1.02f, header.Width / 2f, 1f);
 
-        int statsLeft = panel.X + Math.Max(112, (int)(panel.Width * .46f)), statsWidth = panel.Right - statsLeft;
-        int killsX = statsLeft + (int)(statsWidth * .08f), deathsX = statsLeft + (int)(statsWidth * .25f), damageX = statsLeft + (int)(statsWidth * .53f), bossX = statsLeft + (int)(statsWidth * .83f);
+        int statsLeft = panel.X + Math.Max(112, (int)(panel.Width * .43f)), statsWidth = panel.Right - statsLeft;
+        int killsX = statsLeft + (int)(statsWidth * .06f), deathsX = statsLeft + (int)(statsWidth * .21f), damageX = statsLeft + (int)(statsWidth * .44f);
+        int bossX = statsLeft + (int)(statsWidth * .69f), pingX = statsLeft + (int)(statsWidth * .91f);
         int columnsY = header.Bottom;
         Main.spriteBatch.Draw(TextureAssets.MagicPixel.Value, new Rectangle(panel.X + 4, columnsY, panel.Width - 8, ColumnHeight), Color.Black * .34f);
         Text("Player", new(panel.X + 66, columnsY + 8), Color.White * .9f, .92f, Math.Max(30, statsLeft - panel.X - 72), 0f);
-        Text("Kills", new(killsX, columnsY + 8), Color.White * .9f, .84f, Math.Max(22, statsWidth * .14f));
-        Text("Deaths", new(deathsX, columnsY + 8), Color.White * .9f, .78f, Math.Max(22, statsWidth * .14f));
-        Text("Damage", new(damageX, columnsY + 8), Color.White * .9f, .8f, Math.Max(46, statsWidth * .28f));
-        Text("Boss", new(bossX, columnsY + 8), Color.White * .9f, .84f, Math.Max(38, statsWidth * .24f));
+        Text("Kills", new(killsX, columnsY + 8), Color.White * .9f, .84f, Math.Max(22, statsWidth * .12f));
+        Text("Deaths", new(deathsX, columnsY + 8), Color.White * .9f, .78f, Math.Max(22, statsWidth * .18f));
+        Text("Damage", new(damageX, columnsY + 8), Color.White * .9f, .8f, Math.Max(46, statsWidth * .22f));
+        Text("Boss", new(bossX, columnsY + 8), Color.White * .9f, .84f, Math.Max(38, statsWidth * .18f));
+        Text("Ping", new(pingX, columnsY + 8), Color.White * .9f, .84f, Math.Max(32, statsWidth * .16f));
 
         if (players.Count == 0) { Text("No players", new(panel.Center.X, columnsY + ColumnHeight + 14), Color.White * .65f, .96f, panel.Width - 24); return; }
         for (int i = 0; i < players.Count; i++)
@@ -77,15 +79,64 @@ internal static class ArenaScoreboardDrawer
             int headSize = Math.Min(52, rowHeight - 8);
             Rectangle head = new(row.X - 1, row.Center.Y - headSize / 2, headSize, headSize);
             Utils.DrawInvBG(Main.spriteBatch, head, teamColor * .8f);
-            if (stats.PlayerId < Main.maxPlayers && Main.player[stats.PlayerId] is Player player)
+            ArenaPlayerStatus status = ArenaPlayerStatusSystem.GetStatus(stats.PlayerId);
+            Player player = stats.PlayerId < Main.maxPlayers ? Main.player[stats.PlayerId] : null;
+            if (SteamAvatarCache.TryGetAvatar(stats.PlayerId, out Texture2D avatar))
+                DrawSteamAvatar(avatar, head, status);
+            else if (player != null)
                 Main.MapPlayerRenderer.DrawPlayerHead(Main.Camera, player, head.Center.ToVector2() - new Vector2(4f, 0f), 1f, .6f * headSize / 26f, teamColor);
             Text(stats.Name, new(row.X + 68, row.Center.Y - 12), local ? new Color(255, 244, 170) : Color.White, 1.16f, Math.Max(30, statsLeft - row.X - 76), 0f);
-            Text(stats.Kills.ToString(), new(killsX, row.Center.Y - 12), Color.White, 1.08f, Math.Max(22, statsWidth * .14f));
-            Text(stats.Deaths.ToString(), new(deathsX, row.Center.Y - 12), Color.White, 1.08f, Math.Max(22, statsWidth * .14f));
-            Text(Compact(stats.Damage), new(damageX, row.Center.Y - 12), Color.White, 1.02f, Math.Max(46, statsWidth * .28f));
-            Text(stats.BossDamage.ToString(), new(bossX, row.Center.Y - 12), new Color(255, 228, 124), 1.02f, Math.Max(38, statsWidth * .24f));
+            Text(stats.Kills.ToString(), new(killsX, row.Center.Y - 12), Color.White, 1.08f, Math.Max(22, statsWidth * .12f));
+            Text(stats.Deaths.ToString(), new(deathsX, row.Center.Y - 12), Color.White, 1.08f, Math.Max(22, statsWidth * .18f));
+            Text(Compact(stats.Damage), new(damageX, row.Center.Y - 12), Color.White, 1.02f, Math.Max(46, statsWidth * .22f));
+            Text(stats.BossDamage.ToString(), new(bossX, row.Center.Y - 12), new Color(255, 228, 124), 1.02f, Math.Max(38, statsWidth * .18f));
+            Text(PingText(status.PingMs), new(pingX, row.Center.Y - 12), PingColor(status.PingMs), .9f, Math.Max(32, statsWidth * .16f));
         }
     }
+
+    private static void DrawSteamAvatar(Texture2D avatar, Rectangle frame, ArenaPlayerStatus status)
+    {
+        Rectangle portrait = new(frame.X + 4, frame.Y + 4, Math.Max(1, frame.Width - 8), Math.Max(1, frame.Height - 8));
+        if (!status.Dead)
+        {
+            Main.spriteBatch.Draw(avatar, portrait, Color.White);
+            return;
+        }
+
+        DrawGrayscale(avatar, portrait, Color.White * .62f);
+
+        string seconds = Math.Max(0, (int)Math.Ceiling(status.RespawnTimer / 60f)).ToString();
+        float scale = .95f;
+        float height = FontAssets.MouseText.Value.MeasureString(seconds).Y * scale;
+        Utils.DrawBorderString(Main.spriteBatch, seconds, new Vector2(portrait.Center.X, portrait.Center.Y - height / 2f), Color.White, scale, .5f);
+    }
+
+    private static void DrawGrayscale(Texture2D texture, Rectangle destination, Color color)
+    {
+        if (!EffectLoader.TryGetGrayscaleEffect(out Effect effect))
+        {
+            Main.spriteBatch.Draw(texture, destination, Color.Gray * (color.A / (float)byte.MaxValue));
+            return;
+        }
+
+        effect.Parameters["Intensity"]?.SetValue(1f);
+        Main.spriteBatch.End();
+        Main.spriteBatch.Begin(SpriteSortMode.Immediate, BlendState.AlphaBlend, SamplerState.LinearClamp, DepthStencilState.None, Main.Rasterizer, effect, Matrix.Identity);
+        Main.spriteBatch.Draw(texture, destination, color);
+        Main.spriteBatch.End();
+        Main.spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.LinearClamp, DepthStencilState.None, Main.Rasterizer, null, Matrix.Identity);
+    }
+
+    private static string PingText(int pingMs) => pingMs < 0 ? "-" : $"{pingMs} ms";
+
+    private static Color PingColor(int pingMs) => pingMs switch
+    {
+        < 0 => Color.Gray,
+        <= 60 => new Color(126, 238, 126),
+        <= 120 => new Color(255, 230, 112),
+        <= 200 => new Color(255, 173, 92),
+        _ => new Color(255, 112, 112)
+    };
 
     private static List<RoundPlayerStats> TeamPlayers(IReadOnlyList<RoundPlayerStats> players, Team team) => players.Where(p => p.Team == team)
         .OrderByDescending(p => p.PlayerId == Main.myPlayer).ThenByDescending(p => p.BossDamage).ThenByDescending(p => p.Damage).ToList();

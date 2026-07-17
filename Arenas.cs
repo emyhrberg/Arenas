@@ -16,7 +16,8 @@ public class Arenas : Mod
         TeamBoss,
         ArenaGameManager,
         EndScreen,
-        SpawnBox
+        SpawnBox,
+        PlayerStatus
     }
 
     public override void HandlePacket(BinaryReader reader, int whoAmI)
@@ -39,6 +40,9 @@ public class Arenas : Mod
                 break;
             case ArenasPacketType.SpawnBox:
                 Common.Spawnbox.SpawnBoxNetHandler.HandlePacket(reader, whoAmI);
+                break;
+            case ArenasPacketType.PlayerStatus:
+                ArenaPlayerStatusNetHandler.HandlePacket(reader, whoAmI);
                 break;
         }
     }

@@ -84,8 +84,6 @@ internal sealed class LoadoutListElement : ListElement
                     if (index < 0 || index >= list.Count || list[index] is not Loadout l || l == null)
                         return $"{index + 1}: Missing";
 
-                    string name = string.IsNullOrWhiteSpace(l.Name) ? "" : l.Name;
-
                     // Order: armor -> accessories -> hook -> mount -> inventory
                     string armor = Join(Tag(l.Armor?.Head), Tag(l.Armor?.Body), Tag(l.Armor?.Legs));
                     string acc = Join(
@@ -99,7 +97,7 @@ internal sealed class LoadoutListElement : ListElement
                     string mount = Tag(l.Equipment?.Mount);
                     string inv = InventoryTags(l);
 
-                    return Join($"{index + 1}:", name, armor, acc, hook, mount, inv);
+                    return Join($"{index + 1}:", armor, acc, hook, mount, inv);
                 };
             }
 

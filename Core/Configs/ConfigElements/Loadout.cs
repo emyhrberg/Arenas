@@ -11,17 +11,19 @@ namespace Arenas.Core.Configs.ConfigElements;
 // Class used to define a player's arena loadout.
 public class Loadout
 {
-    public string Name { get; set; } = "";
-
+    [ConfigIcon(ItemID.IronHelmet)]
     [CustomModConfigItem(typeof(LoadoutArmorElement))]
     public Armor Armor { get; set; } = new();
 
+    [ConfigIcon(ItemID.HermesBoots)]
     [CustomModConfigItem(typeof(LoadoutAccessoriesElement))]
     public Accessories Accessories { get; set; } = new();
 
+    [ConfigIcon(ItemID.GrapplingHook)]
     [CustomModConfigItem(typeof(LoadoutEquipmentElement))]
     public Equipment Equipment { get; set; } = new();
 
+    [ConfigIcon(ItemID.GoldChest)]
     [CustomModConfigItem(typeof(LoadoutInventoryListElement))]
     public List<LoadoutItem> Inventory { get; set; } = [];
 }

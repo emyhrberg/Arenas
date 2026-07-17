@@ -7,14 +7,9 @@ using Terraria.ModLoader.Config;
 
 namespace Arenas.Core.Configs;
 
-internal class ArenasConfig : ModConfig
+internal abstract class ArenasServerConfig : ModConfig
 {
     public override ConfigScope Mode => ConfigScope.ServerSide;
-
-    [Header("FightPresets")]
-    [Expand(true)]
-    [CustomModConfigItem(typeof(FightPresetListElement))]
-    public List<BossFightPreset> FightPresets { get; set; } = ArenaDefaults.CreateFightPresets();
 
     #region Hooks / methods
     public override bool AcceptClientChanges(ModConfig pendingConfig, int whoAmI, ref NetworkText message)
@@ -66,5 +61,15 @@ internal class ArenasConfig : ModConfig
         base.OnChanged();
     }
     #endregion
+}
+
+internal sealed class ArenasConfig : ArenasServerConfig
+{
+    [Header("FightPresets")]
+    [HeaderIcon(ItemID.KingSlimeBossBag)]
+    [ConfigIcon(ItemID.KingSlimeBossBag)]
+    [Expand(true)]
+    [CustomModConfigItem(typeof(FightPresetListElement))]
+    public List<BossFightPreset> FightPresets { get; set; } = ArenaDefaults.CreateFightPresets();
 }
 

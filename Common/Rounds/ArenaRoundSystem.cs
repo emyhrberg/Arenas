@@ -25,6 +25,9 @@ internal sealed class ArenaRoundSystem : ModSystem
     }
 
     public const int MaxPresets = 7;
+    private static readonly Point RedTeamSpawn = new(107, 189);
+    private static readonly Point BlueTeamSpawn = new(688, 189);
+    private static readonly Rectangle ArenaBossArea = new(167, 458, 205, 63);
     private static readonly List<RoundParticipant> participants = [];
     private static readonly List<RoundPlayerStats> scoreboard = [];
     private static readonly Dictionary<int, int> votes = [];
@@ -85,12 +88,11 @@ internal sealed class ArenaRoundSystem : ModSystem
 
     public static List<BossFightPreset> GetValidPresets() => (Config.FightPresets ?? [])
         .Where(p => p?.Boss?.Type > 0 && p.Loadout != null && p.MaxHealth > 0 && p.MaxMana >= 0
-            && p.RoundDurationSeconds > 0 && p.FreezeCountdownSeconds >= 0 && p.VotingDurationSeconds > 0
-            && p.BossArea?.Width > 0 && p.BossArea.Height > 0)
+            && p.RoundDurationSeconds > 0)
         .Take(MaxPresets)
         .ToList();
 
-    public static string PresetName(BossFightPreset preset) => string.IsNullOrWhiteSpace(preset.Name) ? preset.Boss?.DisplayName ?? "Boss" : preset.Name;
+    public static string PresetName(BossFightPreset preset) => preset?.Boss?.DisplayName ?? "Boss";
     public static bool IsParticipant(int playerId)
     {
         if (playerId < 0 || playerId >= Main.maxPlayers)
@@ -137,9 +139,7 @@ internal sealed class ArenaRoundSystem : ModSystem
 
     internal static Point TeamSpawn(Team team)
     {
-        BossFightPreset preset = GetPresetOrDefault(CurrentPresetIndex);
-        TilePoint spawn = team is Team.Blue or Team.Green ? preset?.BlueSpawn : preset?.RedSpawn;
-        return spawn?.ToPoint() ?? new Point(Main.spawnTileX, Main.spawnTileY);
+        return team is Team.Blue or Team.Green ? BlueTeamSpawn : RedTeamSpawn;
     }
 
     public static void RequestVote(int index)
@@ -207,6 +207,7 @@ internal sealed class ArenaRoundSystem : ModSystem
     }
 
     private static ArenasConfig Config => ModContent.GetInstance<ArenasConfig>();
+    private static ArenaTimingConfig TimingConfig => ModContent.GetInstance<ArenaTimingConfig>();
     private static bool IsTeam(Player p, Team team) => p?.active == true && (Team)p.team == team;
     private static bool TeamsReady()
     {
@@ -229,7 +230,8 @@ internal sealed class ArenaRoundSystem : ModSystem
 
         CleanupBoss();
         CurrentRoundToken = Guid.NewGuid().ToString("N");
-        Phase = RoundPhase.FreezeCountdown; Result = RoundResult.None; RemainingTicks = countdownTicks >= 0 ? countdownTicks : preset.FreezeCountdownSeconds * 60; CurrentPresetIndex = presetIndex; LocalVote = -1;
+        int defaultCountdownTicks = TimingConfig.UseFreezeCountdown ? Math.Max(0, TimingConfig.FreezeCountdownSeconds) * 60 : 0;
+        Phase = RoundPhase.FreezeCountdown; Result = RoundResult.None; RemainingTicks = countdownTicks >= 0 ? countdownTicks : defaultCountdownTicks; CurrentPresetIndex = presetIndex; LocalVote = -1;
         nextRoundTicks = playingTicks >= 0 ? playingTicks : preset.RoundDurationSeconds * 60; IsTimerPaused = IsAutoStartHeld = false;
         votes.Clear(); scoreboard.Clear(); participants.Clear();
         participants.AddRange(Main.player
@@ -246,6 +248,12 @@ internal sealed class ArenaRoundSystem : ModSystem
         }
 
         ResizeVotes(presets.Count);
+        if (RemainingTicks <= 0)
+        {
+            StartPlaying();
+            return;
+        }
+
         ArenaRoundNetHandler.SendStateToAll();
     }
 
@@ -261,7 +269,7 @@ internal sealed class ArenaRoundSystem : ModSystem
         if (CurrentPresetIndex < 0 || CurrentPresetIndex >= presets.Count) { SetIdle(); return; }
         BossFightPreset preset = presets[CurrentPresetIndex];
         ApplyFightTime(preset.Time);
-        TilePoint spawn = ResolveBossSpawn(preset);
+        Point spawn = ResolveBossSpawn();
         bossType = preset.Boss.Type;
         bossIndex = NPC.NewNPC(new EntitySource_Misc("ArenasRound"), spawn.X * 16 + 8, spawn.Y * 16, bossType);
         if (bossIndex < 0 || bossIndex >= Main.maxNPCs || !Main.npc[bossIndex].active) { EndRound(RoundResult.SpawnFailed); return; }
@@ -300,7 +308,7 @@ internal sealed class ArenaRoundSystem : ModSystem
         Result = result;
         scoreboard.Clear(); scoreboard.AddRange(LiveStats());
         CleanupBoss(); votes.Clear(); ResizeVotes(GetValidPresets().Count);
-        int votingSeconds = Math.Max(1, GetPresetOrDefault(CurrentPresetIndex)?.VotingDurationSeconds ?? 30);
+        int votingSeconds = Math.Max(1, TimingConfig.VotingDurationSeconds);
         Phase = RoundPhase.Voting; RemainingTicks = votingSeconds * 60; LocalVote = -1; IsTimerPaused = false;
         EndScreen.EndScreenSystem.SendMatchEndSnapshots();
         ArenaRoundNetHandler.SendStateToAll();
@@ -355,14 +363,7 @@ internal sealed class ArenaRoundSystem : ModSystem
 
     private static int DefaultRoundTicks() => Math.Max(1, GetPresetOrDefault(0)?.RoundDurationSeconds ?? 600) * 60;
 
-    private static TilePoint ResolveBossSpawn(BossFightPreset preset)
-    {
-        if (preset.BossSpawn?.X >= 0 && preset.BossSpawn.Y >= 0)
-            return preset.BossSpawn;
-
-        Rectangle area = preset.BossArea.ToRectangle();
-        return new TilePoint { X = area.Center.X, Y = area.Center.Y };
-    }
+    private static Point ResolveBossSpawn() => ArenaBossArea.Center;
 
     private static void Teleport(Player player, Point tile)
     {
@@ -373,9 +374,7 @@ internal sealed class ArenaRoundSystem : ModSystem
 
     private static void ConstrainBosses()
     {
-        if (!TryGetCurrentPreset(out BossFightPreset preset)) return;
-        Rectangle tiles = preset.BossArea.ToRectangle();
-        Rectangle area = new(tiles.X * 16, tiles.Y * 16, tiles.Width * 16, tiles.Height * 16);
+        Rectangle area = new(ArenaBossArea.X * 16, ArenaBossArea.Y * 16, ArenaBossArea.Width * 16, ArenaBossArea.Height * 16);
         for (int i = 0; i < Main.maxNPCs; i++)
         {
             NPC npc = Main.npc[i];

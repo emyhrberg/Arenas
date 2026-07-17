@@ -4,7 +4,7 @@ float Intensity = 1.0f;
 
 float4 PixelShaderFunction(float4 sampleColor : COLOR0, float2 coords : TEXCOORD0) : COLOR0
 {
-    float4 col = tex2D(image0, coords);
+    float4 col = tex2D(image0, coords) * sampleColor;
     float gray = dot(col.rgb, float3(0.299, 0.587, 0.114));
     float3 g3 = float3(gray, gray, gray);
     
