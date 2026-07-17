@@ -3,4 +3,3 @@ author = Erky
 version = 0.1
 side = both
 buildIgnore = *.csproj, *.user, *.md, obj\*, bin\*, .vs\*, Assets\Old\*, Assets\Workshop\*, *.psd
-modReferences = SubworldLibrary

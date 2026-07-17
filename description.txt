@@ -1,1 +1,1 @@
-Arenas-only subworld and loadout tools for Terraria multiplayer.
+Custom boss-fight arenas, round voting, loadouts, and scoreboards for Terraria multiplayer.

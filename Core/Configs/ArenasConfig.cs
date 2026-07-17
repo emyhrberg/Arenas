@@ -1,10 +1,8 @@
 using Arenas.Core.Configs.ConfigElements;
-using Arenas.Core.Configs.ConfigElements.LoadoutItems;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using Terraria.ID;
 using Terraria.Localization;
+using Terraria.ID;
 using Terraria.ModLoader.Config;
 
 namespace Arenas.Core.Configs;
@@ -13,61 +11,10 @@ internal class ArenasConfig : ModConfig
 {
     public override ConfigScope Mode => ConfigScope.ServerSide;
 
-    [Header("Arenas")]
-    [BackgroundColor(90, 40, 110)]
-    [DefaultValue(true)]
-    public bool IsArenasEnabled { get; set; } = true;
-
-    [BackgroundColor(90, 40, 110)]
-    [Slider]
-    [Increment(20)]
-    [Range(100, 500)]
-    [DefaultValue(500)]
-    public int MaxHealth { get; set; } = 500;
-
-    [BackgroundColor(90, 40, 110)]
-    [Slider]
-    [Increment(20)]
-    [Range(20, 200)]
-    [DefaultValue(200)]
-    public int MaxMana { get; set; } = 200;
-
-    [BackgroundColor(90, 40, 110)]
-    [DefaultValue(false)]
-    public bool RevealMap { get; set; } = false;
-
-    [Header("Respawn")]
-    [BackgroundColor(90, 40, 110)]
-    [DefaultValue(false)]
-    public bool EnableCustomRespawnTimer { get; set; } = false;
-
-    [BackgroundColor(90, 40, 110)]
-    [Range(1, 60)]
-    [DefaultValue(5)]
-    public int RespawnTimeSeconds { get; set; } = 5;
-
-    [Header("Rounds")]
-    [Range(60, 3600)]
-    [DefaultValue(600)]
-    public int RoundDurationSeconds { get; set; } = 600;
-
-    [Range(5, 300)]
-    [DefaultValue(30)]
-    public int VotingDurationSeconds { get; set; } = 30;
-
-    [Range(1, 30)]
-    [DefaultValue(10)]
-    public int FreezeCountdownSeconds { get; set; } = 10;
-
-    public TilePoint BossSpawn { get; set; } = new();
-
     [Header("FightPresets")]
+    [Expand(true)]
+    [CustomModConfigItem(typeof(FightPresetListElement))]
     public List<BossFightPreset> FightPresets { get; set; } = ArenaDefaults.CreateFightPresets();
-
-    [Header("Loadouts")]
-    [BackgroundColor(90, 40, 110)]
-    [CustomModConfigItem(typeof(LoadoutListElement))]
-    public List<Loadout> ArenaLoadouts { get; set; } = ArenaDefaults.CreateLoadouts();
 
     #region Hooks / methods
     public override bool AcceptClientChanges(ModConfig pendingConfig, int whoAmI, ref NetworkText message)

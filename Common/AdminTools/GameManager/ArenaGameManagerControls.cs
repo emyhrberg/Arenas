@@ -2,7 +2,6 @@ using Arenas.Common.Rounds;
 using Arenas.Core;
 using Microsoft.Xna.Framework.Graphics;
 using ReLogic.Content;
-using SubworldLibrary;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -51,7 +50,7 @@ internal sealed class ArenaManagerStatusRow : UIElement
     protected override void DrawSelf(SpriteBatch batch)
     {
         Rectangle rect = GetDimensions().ToRectangle(); ArenaGameManagerText.Panel(batch, rect, new Color(20, 20, 60) * .9f, Color.Black);
-        bool active = SubworldSystem.IsActive<ArenasSubworld>();
+        bool active = ArenaWorldSystem.Active;
         string status = !active ? "Outside Arenas" : ArenaRoundSystem.IsAutoStartHeld ? "Idle - automatic start held" : ArenaRoundSystem.IsTimerPaused ? $"{ArenaGameManagerText.Phase(ArenaRoundSystem.Phase)} - paused" : ArenaRoundSystem.Phase == RoundPhase.Voting && ArenaRoundSystem.Result != RoundResult.None ? $"Voting - {ArenaGameManagerText.Result(ArenaRoundSystem.Result)}" : ArenaGameManagerText.Phase(ArenaRoundSystem.Phase);
         Color color = !active ? Color.Gray : ArenaRoundSystem.IsTimerPaused ? Color.Yellow : ArenaRoundSystem.Phase == RoundPhase.Playing ? Color.LimeGreen : Color.White;
         ArenaGameManagerText.Icon(batch, Ass.IconArenas, new(rect.X + 8, rect.Y + 7, 20, 20), Color.White);

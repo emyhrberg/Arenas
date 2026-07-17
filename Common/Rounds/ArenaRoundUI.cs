@@ -1,7 +1,6 @@
 using Arenas.Core;
 using Arenas.Core.Configs;
 using Arenas.Common.EndScreen;
-using SubworldLibrary;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -29,7 +28,7 @@ internal sealed class ArenaRoundUI : ModSystem
 
     private static bool Draw()
     {
-        if (!SubworldSystem.IsActive<ArenasSubworld>()) return true;
+        if (!ArenaWorldSystem.Active) return true;
         if (ArenaRoundSystem.Phase == RoundPhase.Voting)
         {
             if (!ModContent.GetInstance<EndScreenSystem>().IsVisible) ArenaBossVoteDrawer.Draw(260);
@@ -42,7 +41,9 @@ internal sealed class ArenaRoundUI : ModSystem
 
     private static void DrawTimer()
     {
-        int ticks = ArenaRoundSystem.Phase == RoundPhase.Idle ? ModContent.GetInstance<ArenasConfig>().RoundDurationSeconds * 60 : ArenaRoundSystem.RemainingTicks;
+        int ticks = ArenaRoundSystem.Phase == RoundPhase.Idle
+            ? Math.Max(1, ArenaRoundSystem.GetPresetOrDefault(ArenaRoundSystem.CurrentPresetIndex)?.RoundDurationSeconds ?? 600) * 60
+            : ArenaRoundSystem.RemainingTicks;
         int seconds = Math.Max(0, (int)Math.Ceiling(ticks / 60f));
         var presets = ArenaRoundSystem.GetValidPresets(); int index = ArenaRoundSystem.CurrentPresetIndex;
         string presetName = index >= 0 && index < presets.Count ? ArenaRoundSystem.PresetName(presets[index]) : "No active fight";

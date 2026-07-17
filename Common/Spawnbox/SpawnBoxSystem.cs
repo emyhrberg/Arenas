@@ -1,6 +1,5 @@
 using Microsoft.Xna.Framework;
 using Arenas.Common.Rounds;
-using SubworldLibrary;
 using System;
 using System.IO;
 using Terraria;
@@ -19,7 +18,7 @@ public sealed class SpawnBoxSystem : ModSystem
 
     public SpawnBoxSettings RedSettings { get; private set; } = SpawnBoxSettings.Default;
     public SpawnBoxSettings GreenSettings { get; private set; } = SpawnBoxSettings.Default;
-    public bool Active => SubworldSystem.IsActive<ArenasSubworld>();
+    public bool Active => ArenaWorldSystem.Active;
     public bool CanEnter => false;
     public bool CanExit => Active && ArenaRoundSystem.Phase == RoundPhase.Playing;
 
@@ -28,7 +27,7 @@ public sealed class SpawnBoxSystem : ModSystem
 
     public Rectangle GetTileArea(Team team)
     {
-        SpawnBoxSettings s = GetSettings(team); Point center = ArenaGeometry.TeamSpawn(team);
+        SpawnBoxSettings s = GetSettings(team); Point center = ArenaRoundSystem.TeamSpawn(team);
         int x = center.X - s.Width / 2 + s.XOffset, y = center.Y - s.Height / 2 + s.YOffset;
         if (Main.maxTilesX > 0 && Main.maxTilesY > 0)
         {

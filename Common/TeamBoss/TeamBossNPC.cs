@@ -1,7 +1,6 @@
 ﻿using Arenas.Common.Statistics;
 using Arenas.Common.Rounds;
 using System;
-using SubworldLibrary;
 using System.Collections.Generic;
 using System.IO;
 using Terraria;
@@ -375,7 +374,7 @@ public sealed class TeamBossNPC : GlobalNPC
         return IsTeamBoss(owner);
     }
 
-    private static bool IsTeamBoss(NPC owner) => owner?.active == true && owner.boss && SubworldSystem.IsActive<ArenasSubworld>();
+    private static bool IsTeamBoss(NPC owner) => owner?.active == true && owner.boss && ArenaWorldSystem.Active;
 
     private static void SetPendingStrikeTeam(NPC npc, NPC owner, Team team, int itemType = ItemID.None)
     {

@@ -1,0 +1,230 @@
+Mods: {
+	Arenas: {
+		Keybinds.Scoreboard.DisplayName: Scoreboard
+
+		Tools: {
+			ArenasManagerPanel.Title: Arenas Player Manager
+			ArenaGameManagerPanel.Title: Arenas Game Manager
+			SpawnBoxToolPanel.Title: Arenas Spawnbox Tool
+		}
+
+		Configs: {
+			ArenasConfig: {
+				DisplayName: Arenas Config
+				Headers.FightPresets: Fight Presets
+
+				FightPresets: {
+					Label: Fight Presets
+					Tooltip: Every boss fight setting and loadout is configured inside its preset.
+				}
+			}
+
+			BossFightPreset: {
+				Tooltip: ""
+
+				Name: {
+					Label: Name
+					Tooltip: ""
+				}
+
+				Boss: {
+					Label: Boss
+					Tooltip: ""
+				}
+
+				MaxHealth: {
+					Label: Player Max Health
+					Tooltip: Maximum health applied to every participant in this fight.
+				}
+
+				MaxMana: {
+					Label: Player Max Mana
+					Tooltip: Maximum mana applied to every participant in this fight.
+				}
+
+				RoundDurationSeconds: {
+					Label: Round Duration Seconds
+					Tooltip: Maximum duration of this boss fight.
+				}
+
+				FreezeCountdownSeconds: {
+					Label: Freeze Countdown Seconds
+					Tooltip: Time participants remain frozen before this fight starts.
+				}
+
+				VotingDurationSeconds: {
+					Label: Voting Duration Seconds
+					Tooltip: Voting time after this fight ends.
+				}
+
+				RedSpawn: {
+					Label: Red Team Spawn
+					Tooltip: Tile coordinates for the Red team.
+				}
+
+				BlueSpawn: {
+					Label: Blue Team Spawn
+					Tooltip: Tile coordinates for the Blue team.
+				}
+
+				BossSpawn: {
+					Label: Boss Spawn
+					Tooltip: Tile coordinates, or -1/-1 to use the center of Boss Area.
+				}
+
+				BossArea: {
+					Label: Boss Area
+					Tooltip: Tile rectangle used to contain the boss.
+				}
+
+				Loadout: {
+					Label: Loadout
+					Tooltip: Full player equipment and inventory for this fight.
+				}
+			}
+
+			TilePoint: {
+				Tooltip: Tile coordinates.
+
+				X: {
+					Label: Tile X
+					Tooltip: ""
+				}
+
+				Y: {
+					Label: Tile Y
+					Tooltip: ""
+				}
+			}
+
+			TileRectangle: {
+				Tooltip: Rectangle measured in tiles.
+
+				X: {
+					Label: X
+					Tooltip: ""
+				}
+
+				Y: {
+					Label: Y
+					Tooltip: ""
+				}
+
+				Width: {
+					Label: Width
+					Tooltip: ""
+				}
+
+				Height: {
+					Label: Height
+					Tooltip: ""
+				}
+			}
+
+			Loadout: {
+				Tooltip: ""
+
+				Name: {
+					Label: Name
+					Tooltip: ""
+				}
+
+				Armor: {
+					Label: Armor
+					Tooltip: ""
+				}
+
+				Accessories: {
+					Label: Accessories
+					Tooltip: ""
+				}
+
+				Equipment: {
+					Label: Equipment
+					Tooltip: ""
+				}
+
+				Inventory: {
+					Label: Inventory
+					Tooltip: ""
+				}
+			}
+
+			Armor: {
+				Tooltip: ""
+
+				Head: {
+					Label: Head
+					Tooltip: ""
+				}
+
+				Body: {
+					Label: Body
+					Tooltip: ""
+				}
+
+				Legs: {
+					Label: Legs
+					Tooltip: ""
+				}
+			}
+
+			Accessories: {
+				Tooltip: ""
+
+				Accessory1: {
+					Label: Accessory1
+					Tooltip: ""
+				}
+
+				Accessory2: {
+					Label: Accessory2
+					Tooltip: ""
+				}
+
+				Accessory3: {
+					Label: Accessory3
+					Tooltip: ""
+				}
+
+				Accessory4: {
+					Label: Accessory4
+					Tooltip: ""
+				}
+
+				Accessory5: {
+					Label: Accessory5
+					Tooltip: ""
+				}
+			}
+
+			Equipment: {
+				Tooltip: ""
+
+				GrapplingHook: {
+					Label: Grappling Hook
+					Tooltip: ""
+				}
+
+				Mount: {
+					Label: Mount
+					Tooltip: ""
+				}
+			}
+
+			LoadoutItem: {
+				Tooltip: ""
+
+				Item: {
+					Label: Item
+					Tooltip: ""
+				}
+
+				Stack: {
+					Label: Stack
+					Tooltip: ""
+				}
+			}
+		}
+	}
+}

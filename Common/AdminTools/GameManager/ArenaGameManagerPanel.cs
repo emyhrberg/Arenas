@@ -2,7 +2,7 @@ using Arenas.Common.Rounds;
 using Arenas.Common.UI;
 using Arenas.Core;
 using Arenas.Core.Configs;
-using SubworldLibrary;
+using Arenas.Core.Configs.ConfigElements;
 using System;
 using System.Linq;
 using Terraria.Enums;
@@ -25,12 +25,12 @@ internal sealed class ArenaGameManagerPanel : UIDraggablePanel
     public ArenaGameManagerPanel() : base(Language.GetTextValue("Mods.Arenas.Tools.ArenaGameManagerPanel.Title"))
     {
         Width.Set(420, 0); Height.Set(500, 0); HAlign = .5f; VAlign = 0f; Top.Set(200, 0); ContentPanel.SetPadding(6);
-        ArenasConfig config = ModContent.GetInstance<ArenasConfig>();
+        BossFightPreset selected = ArenaRoundSystem.GetPresetOrDefault(ArenaRoundSystem.CurrentPresetIndex);
         Add(new ArenaManagerStatusRow(), 0); Add(new ArenaManagerPlayerRow(), 40);
-        preset = new(() => selectionTouched = true); Add(preset, 80);
-        countdown = Slider("Freeze", 300, config.FreezeCountdownSeconds, value => $"{value:0}s", RoundPhase.FreezeCountdown, ArenaGameManagerNetHandler.ActionType.SetCountdown); Add(countdown, 136);
-        roundTime = Slider("Round", 3600, config.RoundDurationSeconds, value => ArenaGameManagerText.Time((int)value), RoundPhase.Playing, ArenaGameManagerNetHandler.ActionType.SetRoundTime); Add(roundTime, 174);
-        votingTime = Slider("Vote", 300, config.VotingDurationSeconds, value => $"{value:0}s", RoundPhase.Voting, ArenaGameManagerNetHandler.ActionType.SetVotingTime); Add(votingTime, 212);
+        preset = new(() => { selectionTouched = true; RefreshPresetDefaults(); }); Add(preset, 80);
+        countdown = Slider("Freeze", 300, selected?.FreezeCountdownSeconds ?? 10, value => $"{value:0}s", RoundPhase.FreezeCountdown, ArenaGameManagerNetHandler.ActionType.SetCountdown); Add(countdown, 136);
+        roundTime = Slider("Round", 3600, selected?.RoundDurationSeconds ?? 600, value => ArenaGameManagerText.Time((int)value), RoundPhase.Playing, ArenaGameManagerNetHandler.ActionType.SetRoundTime); Add(roundTime, 174);
+        votingTime = Slider("Vote", 300, selected?.VotingDurationSeconds ?? 30, value => $"{value:0}s", RoundPhase.Voting, ArenaGameManagerNetHandler.ActionType.SetVotingTime); Add(votingTime, 212);
         AddButtons(); RefreshValues();
     }
 
@@ -67,7 +67,7 @@ internal sealed class ArenaGameManagerPanel : UIDraggablePanel
     private void ToggleIdleHold() => ArenaGameManagerNetHandler.Request(ArenaGameManagerNetHandler.ActionType.SetIdleHold, ArenaRoundSystem.IsAutoStartHeld ? 0 : 1);
     private static void Request(ArenaGameManagerNetHandler.ActionType type) => ArenaGameManagerNetHandler.Request(type);
     private static int SecondsLeft() => Math.Max(0, (int)Math.Ceiling(ArenaRoundSystem.RemainingTicks / 60f));
-    private static bool InArena() => SubworldSystem.IsActive<ArenasSubworld>();
+    private static bool InArena() => ArenaWorldSystem.Active;
     private static bool TeamsReady() => Main.netMode == Terraria.ID.NetmodeID.SinglePlayer ? Main.LocalPlayer?.active == true : Main.player.Any(p => p?.active == true && (Team)p.team == Team.Red) && Main.player.Any(p => p?.active == true && (Team)p.team == Team.Blue);
     private bool CanStart() => InArena() && ArenaRoundSystem.GetValidPresets().Count > 0 && TeamsReady();
     private string StartReason() => !InArena() ? "Enter Arenas first" : ArenaRoundSystem.GetValidPresets().Count == 0 ? "Add a valid boss fight preset" : !TeamsReady() ? "Red and Blue both need a player" : "Start this boss fight";
@@ -76,10 +76,20 @@ internal sealed class ArenaGameManagerPanel : UIDraggablePanel
 
     private void RefreshValues()
     {
-        ArenasConfig config = ModContent.GetInstance<ArenasConfig>(); preset.SetIndex(ArenaRoundSystem.CurrentPresetIndex);
-        countdown.SetValue(ArenaRoundSystem.Phase == RoundPhase.FreezeCountdown ? SecondsLeft() : config.FreezeCountdownSeconds);
-        roundTime.SetValue(ArenaRoundSystem.Phase == RoundPhase.Playing ? SecondsLeft() : config.RoundDurationSeconds);
-        votingTime.SetValue(ArenaRoundSystem.Phase == RoundPhase.Voting ? SecondsLeft() : config.VotingDurationSeconds);
+        preset.SetIndex(ArenaRoundSystem.CurrentPresetIndex);
+        BossFightPreset selected = ArenaRoundSystem.GetPresetOrDefault(preset.Index);
+        countdown.SetValue(ArenaRoundSystem.Phase == RoundPhase.FreezeCountdown ? SecondsLeft() : selected?.FreezeCountdownSeconds ?? 10);
+        roundTime.SetValue(ArenaRoundSystem.Phase == RoundPhase.Playing ? SecondsLeft() : selected?.RoundDurationSeconds ?? 600);
+        votingTime.SetValue(ArenaRoundSystem.Phase == RoundPhase.Voting ? SecondsLeft() : selected?.VotingDurationSeconds ?? 30);
+    }
+
+    private void RefreshPresetDefaults()
+    {
+        BossFightPreset selected = ArenaRoundSystem.GetPresetOrDefault(preset.Index);
+        if (selected == null) return;
+        if (ArenaRoundSystem.Phase != RoundPhase.FreezeCountdown) countdown.SetValue(selected.FreezeCountdownSeconds);
+        if (ArenaRoundSystem.Phase != RoundPhase.Playing) roundTime.SetValue(selected.RoundDurationSeconds);
+        if (ArenaRoundSystem.Phase != RoundPhase.Voting) votingTime.SetValue(selected.VotingDurationSeconds);
     }
 
     private void Add(UIElement element, float top) { element.Top.Set(top, 0); ContentPanel.Append(element); }

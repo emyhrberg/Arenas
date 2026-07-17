@@ -1,13 +1,17 @@
-using System;
 using System.IO;
+using Arenas.Common.Rounds;
+using Terraria;
+using Terraria.ModLoader.IO;
 
 namespace Arenas;
 
 public class Arenas : Mod
 {
+    private const string ImportSscStatsCall = "ErkySSC.ImportStats";
+    private const string ExportSscStatsCall = "ErkySSC.ExportStats";
+
     public enum ArenasPacketType
     {
-        ArenasManager,
         ArenaRound,
         TeamBoss,
         ArenaGameManager,
@@ -21,9 +25,6 @@ public class Arenas : Mod
 
         switch (type)
         {
-            case ArenasPacketType.ArenasManager:
-                Common.AdminTools.ArenasManager.ArenasManagerNetHandler.HandlePacket(reader, whoAmI);
-                break;
             case ArenasPacketType.ArenaRound:
                 Common.Rounds.ArenaRoundNetHandler.HandlePacket(reader, whoAmI);
                 break;
@@ -44,13 +45,20 @@ public class Arenas : Mod
 
     public override object Call(params object[] args)
     {
-        if (args.Length > 0
-            && args[0] is string command
-            && string.Equals(command, "OwnsRespawnTimer", StringComparison.Ordinal))
-        {
-            return Common.RespawnTimer.RespawnTimerPlayer.OwnsRespawnTimer;
-        }
+        if (args.Length < 4 || args[0] is not string operation ||
+            args[1] is not int whoAmI || args[2] is not string characterKey ||
+            args[3] is not TagCompound root || whoAmI is < 0 or >= Main.maxPlayers)
+            return false;
 
-        return base.Call(args);
+        Player player = Main.player[whoAmI];
+        if (player == null)
+            return false;
+
+        return operation switch
+        {
+            ImportSscStatsCall => ArenaRoundPlayer.ImportSscStats(player, characterKey, root),
+            ExportSscStatsCall => ArenaRoundPlayer.ExportSscStats(player, characterKey, root),
+            _ => false
+        };
     }
 }

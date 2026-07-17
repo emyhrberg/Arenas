@@ -18,6 +18,7 @@ namespace Arenas.Core;
 public static class Ass
 {
     // Assets
+    public static Asset<Texture2D> IconLock;
     public static Asset<Texture2D> IconEndGame;
     public static Asset<Texture2D> IconStartGame;
     public static Asset<Texture2D> IconRefresh;

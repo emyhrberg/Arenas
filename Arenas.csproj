@@ -8,16 +8,6 @@
 		
 	</PropertyGroup>
 
-	<!-- References -->
-	<ItemGroup>
-	
-		<!-- Add subworld library for subworld arenas-->
-		<Reference Include="SubworldLibrary">
-			<HintPath>lib\SubworldLibrary.dll</HintPath>
-		</Reference>
-
-	</ItemGroup>
-
 	<!-- Makes use of Krafs Publicizer when compiling tModLoader.dll, making all access modifiers public -->
 	<ItemGroup>
 		<PackageReference Include="Krafs.Publicizer" PrivateAssets="true" Version="2.2.1" />
