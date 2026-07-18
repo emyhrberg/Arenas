@@ -1,10 +1,12 @@
 using Arenas.Common.Rounds;
+using Arenas.Core.Utilities;
 using Microsoft.Xna.Framework.Graphics;
 using System;
 using System.Collections.Generic;
 using Terraria.Enums;
 using Terraria.GameContent;
 using Terraria.ID;
+using Terraria.Map;
 using Terraria.UI;
 
 namespace Arenas.Common.Generation;
@@ -69,6 +71,8 @@ internal sealed class ArenaBoundaryPlayer : ModPlayer
 [Autoload(Side = ModSide.Client)]
 internal sealed class ArenaBoundaryDrawSystem : ModSystem
 {
+    internal const int BoundaryWidthTiles = 3;
+
     public override void ModifyInterfaceLayers(List<GameInterfaceLayer> layers)
     {
         int index = layers.FindIndex(layer => layer.Name == "Vanilla: Interface Logic 1");
@@ -81,20 +85,94 @@ internal sealed class ArenaBoundaryDrawSystem : ModSystem
         {
             ArenaLayout layout = ArenaWorldSystem.Layout;
             if (layout == null || ArenaRoundSystem.Phase is not (RoundPhase.FreezeCountdown or RoundPhase.Playing)
-                || !ArenaRoundSystem.TryGetParticipantTeam(Main.myPlayer, out Team team))
+                || !TryGetLocalBarrier(layout, out int tileX, out bool redOnLeft))
                 return true;
 
-            int tileX;
-            Color color;
-            if (team == Team.Red) { tileX = layout.BossArea.Right; color = Main.teamColor[(int)Team.Blue]; }
-            else if (team == Team.Blue) { tileX = layout.BossArea.Left; color = Main.teamColor[(int)Team.Red]; }
-            else return true;
-
-            int screenX = (int)MathF.Round(tileX * 16f - Main.screenPosition.X);
+            int boundaryWidth = BoundaryWidthTiles * 16;
+            int screenX = (int)MathF.Round(tileX * 16f - Main.screenPosition.X) - boundaryWidth / 2;
             int screenY = (int)MathF.Round(layout.ArenaArea.Top * 16f - Main.screenPosition.Y);
             int height = layout.ArenaArea.Height * 16;
-            Main.spriteBatch.Draw(TextureAssets.MagicPixel.Value, new Rectangle(screenX, screenY, 1, height), color * .9f);
+            float pulse = .86f + MathF.Sin((float)Main.timeForVisualEffects * .045f) * .08f;
+            DrawGradient(Main.spriteBatch, new Rectangle(screenX, screenY, boundaryWidth, height), redOnLeft, pulse);
             return true;
         }
+    }
+
+    internal static bool TryGetLocalBarrier(ArenaLayout layout, out int tileX, out bool redOnLeft)
+    {
+        if (ArenaRoundSystem.TryGetParticipantTeam(Main.myPlayer, out Team team) && team == Team.Red)
+        {
+            tileX = layout.BossArea.Right;
+            redOnLeft = true;
+            return true;
+        }
+        if (team == Team.Blue)
+        {
+            tileX = layout.BossArea.Left;
+            redOnLeft = false;
+            return true;
+        }
+        tileX = 0;
+        redOnLeft = true;
+        return false;
+    }
+
+    internal static void DrawGradient(SpriteBatch batch, Rectangle area, bool redOnLeft, float opacity)
+    {
+        if (area.Width <= 0 || area.Height <= 0) return;
+        Texture2D pixel = TextureAssets.MagicPixel.Value;
+        if (EffectLoader.TryGetSpawnBoxBorderEffect(out Effect effect))
+        {
+            effect.Parameters["globalTime"]?.SetValue((float)Main.timeForVisualEffects);
+            effect.Parameters["borderColor"]?.SetValue(new Color(255, 35, 45).ToVector3());
+            effect.Parameters["passableColor"]?.SetValue(new Color(35, 235, 95).ToVector3());
+            effect.Parameters["opacity"]?.SetValue(opacity);
+            effect.Parameters["flipGradient"]?.SetValue(redOnLeft ? 0f : 1f);
+            effect.Parameters["pulseStrength"]?.SetValue(.10f);
+            effect.Parameters["shimmerStrength"]?.SetValue(.08f);
+            effect.Parameters["shimmerScale"]?.SetValue(16f);
+            effect.Parameters["shimmerSpeed"]?.SetValue(.06f);
+
+            batch.End();
+            batch.Begin(SpriteSortMode.Immediate, BlendState.AlphaBlend, SamplerState.LinearClamp,
+                DepthStencilState.None, Main.Rasterizer, effect, Matrix.Identity);
+            batch.Draw(pixel, area, Color.White);
+            batch.End();
+            batch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.LinearClamp,
+                DepthStencilState.None, Main.Rasterizer, null, Matrix.Identity);
+            return;
+        }
+
+        for (int x = 0; x < area.Width; x++)
+        {
+            float amount = area.Width == 1 ? .5f : x / (float)(area.Width - 1);
+            if (!redOnLeft) amount = 1f - amount;
+            Color color = Color.Lerp(new Color(255, 35, 45), new Color(35, 235, 95), amount) * opacity;
+            batch.Draw(pixel, new Rectangle(area.X + x, area.Y, 1, area.Height), color);
+        }
+    }
+}
+
+[Autoload(Side = ModSide.Client)]
+internal sealed class ArenaBoundaryMapLayer : ModMapLayer
+{
+    public override void Draw(ref MapOverlayDrawContext context, ref string text)
+    {
+        ArenaLayout layout = ArenaWorldSystem.Layout;
+        if (layout == null || ArenaRoundSystem.Phase is not (RoundPhase.FreezeCountdown or RoundPhase.Playing)
+            || !ArenaBoundaryDrawSystem.TryGetLocalBarrier(layout, out int tileX, out bool redOnLeft))
+            return;
+
+        float widthTiles = ArenaBoundaryDrawSystem.BoundaryWidthTiles;
+        Vector2 topLeft = (new Vector2(tileX - widthTiles / 2f, layout.ArenaArea.Top) - context.MapPosition) * context.MapScale + context.MapOffset;
+        int width = Math.Max(2, (int)MathF.Ceiling(context.MapScale * widthTiles));
+        Rectangle line = new((int)MathF.Round(topLeft.X), (int)MathF.Round(topLeft.Y), width,
+            Math.Max(1, (int)MathF.Round(layout.ArenaArea.Height * context.MapScale)));
+        if (!Main.mapFullscreen && Main.mapStyle == 1)
+        {
+            line = Rectangle.Intersect(line, new Rectangle(Main.miniMapX, Main.miniMapY, Main.miniMapWidth, Main.miniMapHeight));
+            if (line.Width <= 0 || line.Height <= 0) return;
+        }
+        ArenaBoundaryDrawSystem.DrawGradient(Main.spriteBatch, line, redOnLeft, .9f);
     }
 }

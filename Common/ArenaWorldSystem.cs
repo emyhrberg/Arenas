@@ -131,6 +131,15 @@ internal sealed class ArenaWorldSystem : ModSystem
         WorldReady = layout != null;
     }
 
+    internal static void CancelGeneration()
+    {
+        clearJob = null;
+        Layout = null;
+        WorldReady = true;
+        if (Main.netMode != NetmodeID.MultiplayerClient)
+            ArenaWorldClearJob.PrepareWorldSpawn();
+    }
+
     internal static void ApplyNetworkLayout(ArenaLayout layout)
     {
         Layout = layout;

@@ -77,8 +77,7 @@ internal static class ArenaRoundNetHandler
             lastMappedGenerationId = generationId;
             Main.QueueMainThreadAction(() =>
             {
-                Main.Map.Clear();
-                Main.sectionManager.SetAllFramedSectionsAsNeedingRefresh();
+                ArenaMapReveal.Reveal(layout);
             });
         }
     }

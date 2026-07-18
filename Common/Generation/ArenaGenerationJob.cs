@@ -9,7 +9,7 @@ using Terraria.ID;
 
 namespace Arenas.Common.Generation;
 
-internal enum ArenaGenerationStage : byte { Clearing, Terrain, Structures, Framing, Validating, Complete, Failed }
+internal enum ArenaGenerationStage : byte { Terrain, VanillaGeneration, Mirroring, Structures, Framing, Validating, Complete, Failed }
 
 internal sealed class ArenaGenerationJob
 {
@@ -18,22 +18,22 @@ internal sealed class ArenaGenerationJob
     private readonly IArenaGenerator generator;
     private readonly List<Point> structurePoints = [];
     private int cursor;
-    private int redJungleTiles, blueJungleTiles;
     private bool initialized;
 
     public ArenaLayout Layout { get; }
-    public ArenaGenerationStage Stage { get; private set; } = ArenaGenerationStage.Clearing;
+    public ArenaGenerationStage Stage { get; private set; } = ArenaGenerationStage.Terrain;
     public ArenaGenerationStage FailedStage { get; private set; }
     public Exception Error { get; private set; }
     public bool IsComplete => Stage == ArenaGenerationStage.Complete;
     public bool HasFailed => Stage == ArenaGenerationStage.Failed;
     public float Progress => Stage switch
     {
-        ArenaGenerationStage.Clearing => cursor / (float)Math.Max(1, Main.maxTilesX * Main.maxTilesY) * .4f,
-        ArenaGenerationStage.Terrain => .4f + cursor / (float)Math.Max(1, 425 * Main.maxTilesY) * .35f,
-        ArenaGenerationStage.Structures => .75f + cursor / (float)Math.Max(1, structurePoints.Count) * .1f,
-        ArenaGenerationStage.Framing => .85f + cursor / (float)Math.Max(1, FramingArea.Width * FramingArea.Height) * .1f,
-        ArenaGenerationStage.Validating => .95f + cursor / (float)Math.Max(1, 425 * Main.maxTilesY) * .05f,
+        ArenaGenerationStage.Terrain => cursor / (float)Math.Max(1, LeftHalfArea.Width * LeftHalfArea.Height) * .45f,
+        ArenaGenerationStage.VanillaGeneration => .45f,
+        ArenaGenerationStage.Mirroring => .50f + cursor / (float)Math.Max(1, LeftHalfArea.Width * LeftHalfArea.Height) * .18f,
+        ArenaGenerationStage.Structures => .68f + cursor / (float)Math.Max(1, structurePoints.Count) * .12f,
+        ArenaGenerationStage.Framing => .80f + cursor / (float)Math.Max(1, FramingArea.Width * FramingArea.Height) * .18f,
+        ArenaGenerationStage.Validating => .98f,
         ArenaGenerationStage.Complete => 1f,
         _ => 0f
     };
@@ -59,8 +59,9 @@ internal sealed class ArenaGenerationJob
             {
                 switch (Stage)
                 {
-                    case ArenaGenerationStage.Clearing: mutations += ClearNext(); break;
                     case ArenaGenerationStage.Terrain: mutations += GenerateNext(); break;
+                    case ArenaGenerationStage.VanillaGeneration: mutations += GenerateVanilla(); break;
+                    case ArenaGenerationStage.Mirroring: mutations += MirrorNext(); break;
                     case ArenaGenerationStage.Structures: mutations += StructureNext(); break;
                     case ArenaGenerationStage.Framing: mutations += FrameNext(); break;
                     case ArenaGenerationStage.Validating: mutations += ValidateNext(); break;
@@ -75,21 +76,16 @@ internal sealed class ArenaGenerationJob
         }
     }
 
-    private int ClearNext()
-    {
-        int total = Main.maxTilesX * Main.maxTilesY;
-        if (cursor >= total) { Advance(ArenaGenerationStage.Terrain); return 0; }
-        int x = cursor % Main.maxTilesX, y = cursor / Main.maxTilesX; cursor++;
-        Main.tile[x, y].ClearEverything();
-        return 1;
-    }
-
     private int GenerateNext()
     {
-        int total = 425 * Main.maxTilesY;
-        if (cursor >= total) { Advance(ArenaGenerationStage.Structures); return 0; }
-        int x = cursor % 425, y = cursor / 425; cursor++;
-        if (x < Layout.ArenaArea.Left || y < Layout.ArenaArea.Top || y >= Layout.ArenaArea.Bottom) return 1;
+        Rectangle area = LeftHalfArea;
+        int total = area.Width * area.Height;
+        if (cursor >= total)
+        {
+            Advance(generator.UsesVanillaGeneration ? ArenaGenerationStage.VanillaGeneration : ArenaGenerationStage.Structures);
+            return 0;
+        }
+        int x = area.Left + cursor % area.Width, y = area.Top + cursor / area.Width; cursor++;
         Apply(Main.tile[x, y], generator.GetTile(Layout, x, y));
         int mirror = ArenaLayout.MirrorRight - x;
         if (mirror >= 0 && mirror < Main.maxTilesX)
@@ -101,19 +97,48 @@ internal sealed class ArenaGenerationJob
         return 2;
     }
 
+    private int GenerateVanilla()
+    {
+        generator.GenerateVanilla(Layout);
+        Advance(ArenaGenerationStage.Mirroring);
+        return 1;
+    }
+
+    private int MirrorNext()
+    {
+        Rectangle area = LeftHalfArea;
+        int total = area.Width * area.Height;
+        if (cursor >= total) { Advance(ArenaGenerationStage.Structures); return 0; }
+        int x = area.Left + cursor % area.Width, y = area.Top + cursor / area.Width; cursor++;
+        int mirror = ArenaLayout.MirrorRight - x;
+        Tile mirroredTile = Main.tile[mirror, y];
+        mirroredTile.CopyFrom(Main.tile[x, y]);
+        mirroredTile.Slope = Mirror(mirroredTile.Slope);
+        return 2;
+    }
+
     private int StructureNext()
     {
         int total = structurePoints.Count;
-        if (cursor >= total) { Advance(ArenaGenerationStage.Framing); return 0; }
+        if (cursor >= total)
+        {
+            generator.PlaceCombatStructures(Layout);
+            Advance(ArenaGenerationStage.Framing);
+            return 0;
+        }
         Point p = structurePoints[cursor++];
         int x = p.X, y = p.Y;
 
         if (IsOuterFrame(p))
             Apply(Main.tile[x, y], ArenaTileData.Solid(TileID.LihzahrdBrick));
-        else if (IsBossFrame(p))
-            Apply(Main.tile[x, y], ArenaTileData.Solid(TileID.Dirt));
-        else if (Layout.RedSpawnClearance.Contains(p) || Layout.BlueSpawnClearance.Contains(p))
-            Main.tile[x, y].ClearTile();
+        else if (Layout.BossArea.Contains(p) || Layout.RedSpawnClearance.Contains(p) || Layout.BlueSpawnClearance.Contains(p))
+        {
+            Tile tile = Main.tile[x, y];
+            tile.ClearTile();
+            tile.LiquidAmount = 0;
+            tile.RedWire = tile.BlueWire = tile.GreenWire = tile.YellowWire = false;
+            tile.HasActuator = tile.IsActuated = false;
+        }
         return 1;
     }
 
@@ -133,19 +158,6 @@ internal sealed class ArenaGenerationJob
                 structurePoints.Add(new Point(arena.Left - layer, y));
                 structurePoints.Add(new Point(arena.Right + layer - 1, y));
             }
-
-        Rectangle boss = Layout.BossArea;
-        for (int x = boss.Left - 1; x <= boss.Right; x++)
-        {
-            structurePoints.Add(new Point(x, boss.Top - 1));
-            structurePoints.Add(new Point(x, boss.Bottom));
-        }
-        for (int y = boss.Top; y < boss.Bottom; y++)
-        {
-            Point left = new(boss.Left - 1, y), right = new(boss.Right, y);
-            if (!Layout.LeftBossEntrance.Contains(left)) structurePoints.Add(left);
-            if (!Layout.RightBossEntrance.Contains(right)) structurePoints.Add(right);
-        }
 
         AddArea(Layout.RedSpawnClearance);
         AddArea(Layout.BlueSpawnClearance);
@@ -171,12 +183,19 @@ internal sealed class ArenaGenerationJob
         if (WorldGen.InWorld(x, y, 2))
         {
             Tile tile = Main.tile[x, y];
-            if (!tile.HasTile && tile.WallType == WallID.None) return 0;
-            WorldGen.SquareTileFrame(x, y, true);
-            WorldGen.SquareWallFrame(x, y, true);
+            bool frameTile = tile.HasTile && (Main.tileFrameImportant[tile.TileType] || HasTileEdge(x, y, tile.TileType));
+            bool frameWall = tile.WallType != WallID.None && !tile.HasTile;
+            if (!frameTile && !frameWall) return 0;
+            if (frameTile) WorldGen.SquareTileFrame(x, y, true);
+            if (frameWall) WorldGen.SquareWallFrame(x, y, true);
         }
         return 1;
     }
+
+    private static bool HasTileEdge(int x, int y, ushort type) => !Main.tile[x - 1, y].HasTile || !Main.tile[x + 1, y].HasTile
+        || !Main.tile[x, y - 1].HasTile || !Main.tile[x, y + 1].HasTile
+        || Main.tile[x - 1, y].TileType != type || Main.tile[x + 1, y].TileType != type
+        || Main.tile[x, y - 1].TileType != type || Main.tile[x, y + 1].TileType != type;
 
     private Rectangle FramingArea
     {
@@ -188,48 +207,30 @@ internal sealed class ArenaGenerationJob
         }
     }
 
+    private Rectangle LeftHalfArea => new(Layout.ArenaArea.Left, Layout.ArenaArea.Top,
+        425 - Layout.ArenaArea.Left, Layout.ArenaArea.Height);
+
     private int ValidateNext()
     {
-        int total = 425 * Main.maxTilesY;
-        if (cursor >= total)
-        {
-            ValidateOpenSpawn(Layout.RedSpawn, "red team");
-            ValidateOpenSpawn(Layout.BlueSpawn, "blue team");
-            ValidateOpenSpawn(Layout.BossSpawn, "boss");
-            if (Layout.Generator == ArenaGeneratorKind.PlanteraJungle && (redJungleTiles < 140 || blueJungleTiles < 140))
-                throw new InvalidOperationException($"Plantera arena jungle density is too low near a team spawn ({redJungleTiles}/{blueJungleTiles}).");
-            FinalizeWorld();
-            Stage = ArenaGenerationStage.Complete;
-            return 0;
-        }
+        if (cursor++ > 0) return 0;
+        foreach (Point point in structurePoints)
+            if (IsOuterFrame(point) && (!Main.tile[point.X, point.Y].HasTile || Main.tile[point.X, point.Y].TileType != TileID.LihzahrdBrick))
+                throw new InvalidOperationException($"Outer arena frame is incomplete at ({point.X},{point.Y}).");
 
-        int x = cursor % 425, y = cursor / 425; cursor++;
-        int mirror = ArenaLayout.MirrorRight - x;
-        if (mirror < 0 || mirror >= Main.maxTilesX) throw new InvalidOperationException("The fixed mirror axis is outside the loaded world.");
-        Tile left = Main.tile[x, y], right = Main.tile[mirror, y];
-        if (!TilesMirror(left, right)) throw new InvalidOperationException($"Arena mirror validation failed at ({x},{y}) and ({mirror},{y}).");
-        ValidateStructuralTile(x, y, left);
-        ValidateStructuralTile(mirror, y, right);
-
+        ValidateClearance(Layout.RedSpawnClearance, "red team");
+        ValidateClearance(Layout.BlueSpawnClearance, "blue team");
+        ValidateOpenSpawn(Layout.BossSpawn, "boss");
+        ValidateMirrorSamples();
         if (Layout.Generator == ArenaGeneratorKind.PlanteraJungle)
         {
-            if (left.HasTile && left.TileType == TileID.JungleGrass && Near(Layout.RedSpawn, x, y)) redJungleTiles++;
-            if (right.HasTile && right.TileType == TileID.JungleGrass && Near(Layout.BlueSpawn, mirror, y)) blueJungleTiles++;
+            int red = CountJungle(Layout.RedSpawn), blue = CountJungle(Layout.BlueSpawn);
+            if (red < 140 || blue < 140)
+                throw new InvalidOperationException($"Plantera arena jungle density is too low near a team spawn ({red}/{blue}).");
         }
-        return 0;
-    }
 
-    private void ValidateStructuralTile(int x, int y, Tile tile)
-    {
-        Point point = new(x, y);
-        if (IsOuterFrame(point) && (!tile.HasTile || tile.TileType != TileID.LihzahrdBrick))
-            throw new InvalidOperationException($"Outer arena frame is incomplete at ({x},{y}).");
-        if (IsBossFrame(point) && (!tile.HasTile || tile.TileType != TileID.Dirt))
-            throw new InvalidOperationException($"Boss-area frame is incomplete at ({x},{y}).");
-        if (Layout.RedSpawnClearance.Contains(point) || Layout.BlueSpawnClearance.Contains(point))
-        {
-            if (tile.HasTile) throw new InvalidOperationException($"Team spawn room is obstructed at ({x},{y}).");
-        }
+        FinalizeWorld();
+        Stage = ArenaGenerationStage.Complete;
+        return 1;
     }
 
     private static bool TilesMirror(Tile left, Tile right) => left.HasTile == right.HasTile
@@ -240,7 +241,32 @@ internal sealed class ArenaGenerationJob
         && left.HasActuator == right.HasActuator && left.IsActuated == right.IsActuated && left.IsHalfBlock == right.IsHalfBlock
         && right.Slope == Mirror(left.Slope);
 
-    private static bool Near(Point point, int x, int y) => Math.Abs(x - point.X) <= 85 && Math.Abs(y - point.Y) <= 65;
+    private void ValidateMirrorSamples()
+    {
+        for (int x = Layout.ArenaArea.Left; x < 425; x += 23)
+            for (int y = Layout.ArenaArea.Top; y < Layout.ArenaArea.Bottom; y += 23)
+            {
+                int mirror = ArenaLayout.MirrorRight - x;
+                if (!TilesMirror(Main.tile[x, y], Main.tile[mirror, y]))
+                    throw new InvalidOperationException($"Arena mirror validation failed at ({x},{y}) and ({mirror},{y}).");
+            }
+    }
+
+    private static int CountJungle(Point spawn)
+    {
+        int count = 0;
+        for (int x = Math.Max(1, spawn.X - 85); x <= Math.Min(Main.maxTilesX - 2, spawn.X + 85); x++)
+            for (int y = Math.Max(1, spawn.Y - 65); y <= Math.Min(Main.maxTilesY - 2, spawn.Y + 65); y++)
+                if (Main.tile[x, y].HasTile && Main.tile[x, y].TileType is TileID.JungleGrass or TileID.Hive or TileID.LihzahrdBrick) count++;
+        return count;
+    }
+
+    private static void ValidateClearance(Rectangle area, string name)
+    {
+        for (int x = area.Left; x < area.Right; x++)
+            for (int y = area.Top; y < area.Bottom; y++)
+                if (Main.tile[x, y].HasTile) throw new InvalidOperationException($"The {name} spawn clearance is obstructed at ({x},{y}).");
+    }
 
     private static void ValidateOpenSpawn(Point spawn, string name)
     {
@@ -267,13 +293,6 @@ internal sealed class ArenaGenerationJob
     {
         Rectangle outer = Layout.ArenaArea; outer.Inflate(ArenaGeneratorRegistry.OuterBorderThickness, ArenaGeneratorRegistry.OuterBorderThickness);
         return outer.Contains(point) && !Layout.ArenaArea.Contains(point);
-    }
-
-    private bool IsBossFrame(Point point)
-    {
-        Rectangle outer = Layout.BossArea; outer.Inflate(1, 1);
-        return outer.Contains(point) && !Layout.BossArea.Contains(point)
-            && !Layout.LeftBossEntrance.Contains(point) && !Layout.RightBossEntrance.Contains(point);
     }
 
     private void Advance(ArenaGenerationStage stage) { Stage = stage; cursor = 0; }

@@ -20,10 +20,6 @@ public sealed class ArenaLayout
     public Point BlueSpawn { get; init; }
     public Point BossSpawn { get; init; }
     public Rectangle StagingLobby { get; init; } = ArenaGeneratorRegistry.StagingLobby;
-    public Rectangle LeftBossEntrance { get; init; }
-    public Rectangle RightBossEntrance { get; init; }
-
-    public IReadOnlyList<Rectangle> EntranceGaps => [LeftBossEntrance, RightBossEntrance];
     public IReadOnlyList<Rectangle> StructuralRegions
     {
         get
@@ -34,13 +30,7 @@ public sealed class ArenaLayout
                 new Rectangle(ArenaArea.Left - outer, ArenaArea.Top - outer, ArenaArea.Width + outer * 2, outer),
                 new Rectangle(ArenaArea.Left - outer, ArenaArea.Bottom, ArenaArea.Width + outer * 2, outer),
                 new Rectangle(ArenaArea.Left - outer, ArenaArea.Top, outer, ArenaArea.Height),
-                new Rectangle(ArenaArea.Right, ArenaArea.Top, outer, ArenaArea.Height),
-                new Rectangle(BossArea.Left - 1, BossArea.Top - 1, BossArea.Width + 2, 1),
-                new Rectangle(BossArea.Left - 1, BossArea.Bottom, BossArea.Width + 2, 1),
-                new Rectangle(BossArea.Left - 1, BossArea.Top, 1, LeftBossEntrance.Top - BossArea.Top),
-                new Rectangle(BossArea.Left - 1, LeftBossEntrance.Bottom, 1, BossArea.Bottom - LeftBossEntrance.Bottom),
-                new Rectangle(BossArea.Right, BossArea.Top, 1, RightBossEntrance.Top - BossArea.Top),
-                new Rectangle(BossArea.Right, RightBossEntrance.Bottom, 1, BossArea.Bottom - RightBossEntrance.Bottom)
+                new Rectangle(ArenaArea.Right, ArenaArea.Top, outer, ArenaArea.Height)
             ];
         }
     }
@@ -55,10 +45,7 @@ public sealed class ArenaLayout
         if (outer.Contains(point) && !ArenaArea.Contains(point))
             return true;
 
-        Rectangle bossOuter = BossArea;
-        bossOuter.Inflate(ArenaGeneratorRegistry.BossBorderThickness, ArenaGeneratorRegistry.BossBorderThickness);
-        return bossOuter.Contains(point) && !BossArea.Contains(point)
-            && !LeftBossEntrance.Contains(point) && !RightBossEntrance.Contains(point);
+        return false;
     }
 
     public void Validate(int worldWidth, int worldHeight)
@@ -75,11 +62,6 @@ public sealed class ArenaLayout
             || BossArea.Left != MirrorRight + 1 - BossArea.Right || ArenaArea.Left != MirrorRight + 1 - ArenaArea.Right
             || StagingLobby.Left != MirrorRight + 1 - StagingLobby.Right)
             throw new InvalidOperationException("Arena geometry must use the fixed mirror axis between columns 424 and 425.");
-        if (LeftBossEntrance.Width != 1 || RightBossEntrance.Width != 1 || LeftBossEntrance.Height != 40 || RightBossEntrance.Height != 40
-            || LeftBossEntrance.X != BossArea.Left - 1 || RightBossEntrance.X != BossArea.Right
-            || RightBossEntrance.X != MirrorRight - LeftBossEntrance.X || LeftBossEntrance.Y != RightBossEntrance.Y
-            || LeftBossEntrance.Top < BossArea.Top || LeftBossEntrance.Bottom > BossArea.Bottom)
-            throw new InvalidOperationException("Boss-area entrances are invalid.");
     }
 
     private static bool Contains(Rectangle outer, Rectangle inner) => inner.Left >= outer.Left && inner.Top >= outer.Top && inner.Right <= outer.Right && inner.Bottom <= outer.Bottom;
@@ -90,7 +72,6 @@ public sealed class ArenaLayout
         writer.Write(Seed);
         Write(writer, ArenaArea); Write(writer, BossArea); Write(writer, RedSpawnClearance); Write(writer, BlueSpawnClearance);
         Write(writer, RedSpawn); Write(writer, BlueSpawn); Write(writer, BossSpawn); Write(writer, StagingLobby);
-        Write(writer, LeftBossEntrance); Write(writer, RightBossEntrance);
     }
 
     public static ArenaLayout Read(BinaryReader reader) => new()
@@ -100,7 +81,7 @@ public sealed class ArenaLayout
         ArenaArea = ReadRectangle(reader), BossArea = ReadRectangle(reader),
         RedSpawnClearance = ReadRectangle(reader), BlueSpawnClearance = ReadRectangle(reader),
         RedSpawn = ReadPoint(reader), BlueSpawn = ReadPoint(reader), BossSpawn = ReadPoint(reader),
-        StagingLobby = ReadRectangle(reader), LeftBossEntrance = ReadRectangle(reader), RightBossEntrance = ReadRectangle(reader)
+        StagingLobby = ReadRectangle(reader)
     };
 
     private static void Write(BinaryWriter writer, Rectangle value) { writer.Write(value.X); writer.Write(value.Y); writer.Write(value.Width); writer.Write(value.Height); }

@@ -43,6 +43,17 @@ internal sealed class ArenaRoundPlayer : ModPlayer
         Player.controlUseItem = Player.controlUseTile = Player.controlThrow = false;
     }
 
+    public override void PostUpdate()
+    {
+        if (Player.whoAmI != Main.myPlayer || !ArenaWorldSystem.Active) return;
+        Point spawn = ArenaGeneratorRegistry.WorldSpawn;
+        if (ArenaRoundSystem.Phase is RoundPhase.FreezeCountdown or RoundPhase.Playing
+            && ArenaRoundSystem.TryGetParticipantTeam(Player.whoAmI, out Terraria.Enums.Team team))
+            spawn = ArenaRoundSystem.TeamSpawn(team);
+        Main.spawnTileX = spawn.X;
+        Main.spawnTileY = spawn.Y;
+    }
+
     public override void OnRespawn()
     {
         if (!ArenaWorldSystem.Active) return;

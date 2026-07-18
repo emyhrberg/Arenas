@@ -37,6 +37,12 @@ public static class Ass
     public static Asset<Texture2D> SliderHighlight;
     public static Asset<Texture2D> Slider;
 
+    // Score
+    public static Asset<Texture2D> Attack;
+    public static Asset<Texture2D> Defense;
+    public static Asset<Texture2D> Knock;
+    public static Asset<Texture2D> Ping;
+
     // Flag
     public static bool Initialized { get; set; }
 

@@ -37,7 +37,7 @@ internal sealed class ArenaRoundUI : ModSystem
         {
             if (!ModContent.GetInstance<EndScreenSystem>().IsVisible) ArenaBossVoteDrawer.Draw(260);
         }
-        else if (ArenaRoundSystem.Phase != RoundPhase.Idle) DrawTimer();
+        DrawTopScoreboard();
         if (ArenaRoundSystem.Phase == RoundPhase.FreezeCountdown) DrawCountdown();
         if (ScoreboardVisible) DrawScoreboard();
         return true;
@@ -64,18 +64,11 @@ internal sealed class ArenaRoundUI : ModSystem
         Utils.DrawBorderString(Main.spriteBatch, $"{progress:P0}", new Vector2(panel.Center.X, panel.Y + 57), Color.White, .85f, .5f, .5f);
     }
 
-    private static void DrawTimer()
+    private static void DrawTopScoreboard()
     {
-        int ticks = ArenaRoundSystem.Phase == RoundPhase.Idle
-            ? Math.Max(1, ArenaRoundSystem.GetPresetOrDefault(ArenaRoundSystem.CurrentPresetIndex)?.RoundDurationSeconds ?? 600) * 60
-            : ArenaRoundSystem.RemainingTicks;
-        int seconds = Math.Max(0, (int)Math.Ceiling(ticks / 60f));
         var presets = ArenaRoundSystem.GetValidPresets(); int index = ArenaRoundSystem.CurrentPresetIndex;
-        string presetName = index >= 0 && index < presets.Count ? ArenaRoundSystem.PresetName(presets[index]) : "No active fight";
         int bossType = index >= 0 && index < presets.Count ? presets[index].Boss.Type : 0;
-        const int timerMinWidth = 172, timerHeight = 52, damageWidth = 88, damageHeight = 30, iconSize = 44; const float nameScale = .72f;
-        int desiredWidth = (int)Math.Ceiling(FontAssets.MouseText.Value.MeasureString(presetName).X * nameScale) + iconSize + 24;
-        int timerWidth = Math.Min(Math.Max(timerMinWidth, desiredWidth), Math.Max(1, Main.screenWidth - damageWidth * 2 - 16));
+        const int timerWidth = 184, timerHeight = 52, damageWidth = 88, damageHeight = 30, iconSize = 50;
         Rectangle timer = new(Main.screenWidth / 2 - timerWidth / 2, 0, timerWidth, timerHeight);
         Rectangle red = new(timer.X - damageWidth, timer.Y, damageWidth, damageHeight), blue = new(timer.Right, timer.Y, damageWidth, damageHeight);
         Rectangle bounds = Rectangle.Union(red, blue); bounds.Inflate(16, 16);
@@ -85,16 +78,35 @@ internal sealed class ArenaRoundUI : ModSystem
         Utils.DrawInvBG(Main.spriteBatch, red, Main.teamColor[(int)Terraria.Enums.Team.Red] * .7f * scorelineOpacity);
         Utils.DrawInvBG(Main.spriteBatch, blue, Main.teamColor[(int)Terraria.Enums.Team.Blue] * .7f * scorelineOpacity);
         DrawDamage(TeamBossDamage(Terraria.Enums.Team.Red).ToString(), red);
-        Rectangle bossIcon = new(timer.X + 4, timer.Center.Y - iconSize / 2, iconSize, iconSize);
-        ArenaBossVoteDrawer.DrawBossHead(bossType, bossIcon, scorelineOpacity);
-        int lineHeight = (int)Math.Ceiling(FontAssets.MouseText.Value.MeasureString(presetName).Y * nameScale), nameY = timer.Y + 5, timerY = timer.Y + 1 + lineHeight;
-        ArenaScoreboardDrawer.Text(presetName, new Vector2((bossIcon.Right + timer.Right) / 2f, nameY), Color.White * scorelineOpacity, nameScale, timer.Right - bossIcon.Right - 8);
-        ArenaScoreboardDrawer.Text($"{seconds / 60:00}:{seconds % 60:00}", new Vector2(timer.Center.X, timerY), Color.White * scorelineOpacity, 1f, timer.Width - 16);
+        Rectangle bossIcon = new(timer.Center.X - iconSize / 2, timer.Center.Y - iconSize / 2, iconSize, iconSize);
+        ArenaBossVoteDrawer.DrawBossHead(bossType, bossIcon, .34f * scorelineOpacity);
+        ArenaScoreboardDrawer.Text(TopStatus(), new Vector2(timer.Center.X, timer.Center.Y - 11),
+            Color.White * scorelineOpacity, 1.15f, timer.Width - 18);
         DrawDamage(TeamBossDamage(Terraria.Enums.Team.Blue).ToString(), blue);
 
-        if (timer.Contains(Main.MouseScreen.ToPoint())) { Main.LocalPlayer.mouseInterface = true; Main.instance.MouseText("Time left"); }
+        if (timer.Contains(Main.MouseScreen.ToPoint())) { Main.LocalPlayer.mouseInterface = true; Main.instance.MouseText("Round status"); }
         else if (red.Contains(Main.MouseScreen.ToPoint())) { Main.LocalPlayer.mouseInterface = true; Main.instance.MouseText("Red team boss damage"); }
         else if (blue.Contains(Main.MouseScreen.ToPoint())) { Main.LocalPlayer.mouseInterface = true; Main.instance.MouseText("Blue team boss damage"); }
+    }
+
+    private static string TopStatus()
+    {
+        if (ArenaWorldSystem.IsClearing) return "Clearing";
+        return ArenaRoundSystem.Phase switch
+        {
+            RoundPhase.Idle => "Waiting for host",
+            RoundPhase.Generating => "Generating",
+            RoundPhase.Voting => "Voting",
+            RoundPhase.FreezeCountdown => Math.Max(1, (int)Math.Ceiling(ArenaRoundSystem.RemainingTicks / 60f)).ToString(),
+            RoundPhase.Playing => FormatTime(ArenaRoundSystem.RemainingTicks),
+            _ => "Waiting for host"
+        };
+    }
+
+    private static string FormatTime(int ticks)
+    {
+        int seconds = Math.Max(0, (int)Math.Ceiling(ticks / 60f));
+        return $"{seconds / 60}:{seconds % 60:00}";
     }
 
     private static void DrawCountdown()

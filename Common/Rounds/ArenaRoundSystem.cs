@@ -270,7 +270,8 @@ internal sealed class ArenaRoundSystem : ModSystem
         if (Phase == RoundPhase.Generating)
         {
             SetIdle(RoundResult.AdminEnded);
-            ArenaWorldSystem.BeginClearWorld();
+            ArenaWorldSystem.CancelGeneration();
+            OnWorldClearCompleted();
         }
         else if (Phase is RoundPhase.FreezeCountdown or RoundPhase.Playing) EndRound(RoundResult.AdminEnded);
     }
@@ -370,7 +371,7 @@ internal sealed class ArenaRoundSystem : ModSystem
             if (generationJob?.IsComplete != true) return;
             ArenaWorldSystem.CompleteGeneration(generationJob.Layout);
             generationSynced = true; remoteGenerationProgress = 1f;
-            if (!Main.dedServ) { Main.Map.Clear(); Main.sectionManager.SetAllFramedSectionsAsNeedingRefresh(); }
+            if (!Main.dedServ) ArenaMapReveal.Reveal(generationJob.Layout);
             SyncGeneratedWorld();
             ArenaRoundNetHandler.SendStateToAll();
             FinishGeneration();
@@ -420,7 +421,6 @@ internal sealed class ArenaRoundSystem : ModSystem
     private static void SyncGeneratedWorld()
     {
         if (Main.netMode != NetmodeID.Server) return;
-        Netplay.ResetSections();
         IEnumerable<int> targets = Enumerable.Range(0, Main.maxPlayers).Where(i => Main.player[i]?.active == true);
         int sectionsX = Netplay.GetSectionX(Main.maxTilesX - 1) + 1, sectionsY = Netplay.GetSectionY(Main.maxTilesY - 1) + 1;
         foreach (int client in targets)

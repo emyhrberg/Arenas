@@ -1,8 +1,14 @@
 using Arenas.Core.Configs.ConfigElements;
+using Newtonsoft.Json.Linq;
+using ReLogic.Utilities;
 using System;
 using System.Collections.Generic;
+using Terraria.GameContent.Biomes;
 using Terraria.Enums;
 using Terraria.ID;
+using Terraria.IO;
+using Terraria.Utilities;
+using Terraria.WorldBuilding;
 
 namespace Arenas.Common.Generation;
 
@@ -20,12 +26,14 @@ internal interface IArenaGenerator
     ArenaTileData GetTile(ArenaLayout layout, int x, int y);
     double WorldSurface { get; }
     double RockLayer { get; }
+    bool UsesVanillaGeneration => false;
+    void GenerateVanilla(ArenaLayout layout) { }
+    void PlaceCombatStructures(ArenaLayout layout) { }
 }
 
 internal static class ArenaGeneratorRegistry
 {
     public const int OuterBorderThickness = 3;
-    public const int BossBorderThickness = 1;
     public static readonly Point WorldSpawn = new(425, 300);
     public static readonly Rectangle StagingLobby = new(390, 270, 70, 60);
     public static readonly Rectangle ArenaArea = new(28, 48, 794, 524);
@@ -63,15 +71,13 @@ internal static class ArenaGeneratorRegistry
         };
     }
 
-    internal static ArenaLayout Layout(ArenaGeneratorKind kind, int seed, Rectangle boss, Rectangle redClearance, Rectangle blueClearance, Point red, Point blue, Point bossSpawn, int entranceTop)
+    internal static ArenaLayout Layout(ArenaGeneratorKind kind, int seed, Rectangle boss, Rectangle redClearance, Rectangle blueClearance, Point red, Point blue, Point bossSpawn)
     {
         return new ArenaLayout
         {
             Generator = kind, Seed = seed, ArenaArea = ArenaArea, BossArea = boss,
             RedSpawnClearance = redClearance, BlueSpawnClearance = blueClearance, RedSpawn = red, BlueSpawn = blue, BossSpawn = bossSpawn,
-            StagingLobby = StagingLobby,
-            LeftBossEntrance = new Rectangle(boss.Left - 1, entranceTop, 1, 40),
-            RightBossEntrance = new Rectangle(boss.Right, entranceTop, 1, 40)
+            StagingLobby = StagingLobby
         };
     }
 }
@@ -85,7 +91,7 @@ internal sealed class EmergencyFlatArenaGenerator : IArenaGenerator
     public ArenaLayout CreateLayout(int seed) => ArenaGeneratorRegistry.Layout(Kind, seed,
         new Rectangle(325, 240, 200, 260),
         new Rectangle(118, 452, 65, 48), new Rectangle(667, 452, 65, 48),
-        new Point(150, 499), new Point(699, 499), new Point(425, 450), 460);
+        new Point(150, 499), new Point(699, 499), new Point(425, 450));
 
     public void Prepare(ArenaLayout layout) { }
 
@@ -108,21 +114,17 @@ internal sealed class SurfaceArenaGenerator(ArenaGeneratorKind kind) : IArenaGen
     public ArenaGeneratorKind Kind => kind;
     public double WorldSurface => 520;
     public double RockLayer => 550;
+    public bool UsesVanillaGeneration => true;
 
     public ArenaLayout CreateLayout(int seed) => kind == ArenaGeneratorKind.EyeSurface
-        ? ArenaGeneratorRegistry.Layout(kind, seed, new Rectangle(285, 140, 280, 360), new Rectangle(118, 452, 65, 48), new Rectangle(667, 452, 65, 48), new Point(150, 499), new Point(699, 499), new Point(425, 270), 460)
-        : ArenaGeneratorRegistry.Layout(kind, seed, new Rectangle(325, 240, 200, 260), new Rectangle(118, 452, 65, 48), new Rectangle(667, 452, 65, 48), new Point(150, 499), new Point(699, 499), new Point(425, 450), 460);
+        ? ArenaGeneratorRegistry.Layout(kind, seed, new Rectangle(285, 140, 280, 360), new Rectangle(118, 452, 65, 48), new Rectangle(667, 452, 65, 48), new Point(150, 499), new Point(699, 499), new Point(425, 270))
+        : ArenaGeneratorRegistry.Layout(kind, seed, new Rectangle(325, 240, 200, 260), new Rectangle(118, 452, 65, 48), new Rectangle(667, 452, 65, 48), new Point(150, 499), new Point(699, 499), new Point(425, 450));
 
     public void Prepare(ArenaLayout layout)
     {
-        Random random = new(layout.Seed);
-        int height = 500;
-        for (int x = 0; x < heights.Length; x++)
-        {
-            if (kind == ArenaGeneratorKind.KingSlimeSurface && x % 7 == 0)
-                height = Math.Clamp(height + random.Next(-2, 3), 488, 506);
-            heights[x] = kind == ArenaGeneratorKind.EyeSurface ? 500 : height;
-        }
+        int[] vanillaProfile = VanillaArenaPasses.CreateSurfaceProfile(layout.Seed, kind == ArenaGeneratorKind.EyeSurface);
+        Array.Copy(vanillaProfile, heights, heights.Length);
+        Random random = new(layout.Seed ^ 0x5A17C9);
         for (int i = 0; i < platformShifts.Length; i++) platformShifts[i] = random.Next(-20, 21);
     }
 
@@ -134,7 +136,35 @@ internal sealed class SurfaceArenaGenerator(ArenaGeneratorKind kind) : IArenaGen
         if (IsPlatform(x, y)) return ArenaTileData.Solid(TileID.Platforms);
         int surface = heights[Math.Clamp(x, 0, heights.Length - 1)];
         if (y < surface) return ArenaTileData.Air();
-        return ArenaTileData.Solid(y == surface ? TileID.Grass : TileID.Dirt);
+        return ArenaTileData.Solid(y < 545 ? TileID.Dirt : TileID.Stone);
+    }
+
+    public void GenerateVanilla(ArenaLayout layout)
+    {
+        UnifiedRandom previousRandom = WorldGen.genRand;
+        bool previousGenerating = WorldGen.gen;
+        double previousSurface = Main.worldSurface, previousRockLayer = Main.rockLayer;
+        double previousGenSurface = GenVars.worldSurface, previousGenSurfaceLow = GenVars.worldSurfaceLow;
+        double previousGenSurfaceHigh = GenVars.worldSurfaceHigh, previousGenRock = GenVars.rockLayer;
+        WorldGen._genRand = new UnifiedRandom(layout.Seed ^ 0x314159);
+        WorldGen.gen = true;
+        try
+        {
+            Main.worldSurface = GenVars.worldSurface = 520;
+            GenVars.worldSurfaceLow = 488; GenVars.worldSurfaceHigh = 506;
+            Main.rockLayer = GenVars.rockLayer = 550;
+            VanillaArenaPasses.SmoothWorld(layout.ArenaArea);
+            VanillaArenaPasses.SpreadingGrass(layout.ArenaArea);
+            ClearLeftArea(layout.BossArea);
+        }
+        finally
+        {
+            Main.worldSurface = previousSurface; Main.rockLayer = previousRockLayer;
+            GenVars.worldSurface = previousGenSurface; GenVars.worldSurfaceLow = previousGenSurfaceLow;
+            GenVars.worldSurfaceHigh = previousGenSurfaceHigh; GenVars.rockLayer = previousGenRock;
+            WorldGen.gen = previousGenerating;
+            WorldGen._genRand = previousRandom;
+        }
     }
 
     private bool IsPlatform(int x, int y)
@@ -145,91 +175,211 @@ internal sealed class SurfaceArenaGenerator(ArenaGeneratorKind kind) : IArenaGen
             || (y == 330 && x >= 190 + platformShifts[1] && x <= 365 + platformShifts[1])
             || (y == 250 && x >= 80 + platformShifts[2] && x <= 230 + platformShifts[2]);
     }
+
+    private static void ClearLeftArea(Rectangle area)
+    {
+        for (int x = area.Left; x < Math.Min(425, area.Right); x++)
+            for (int y = area.Top; y < area.Bottom; y++)
+            {
+                Tile tile = Main.tile[x, y];
+                tile.ClearTile();
+                tile.LiquidAmount = 0;
+            }
+    }
 }
 
 internal sealed class PlanteraArenaGenerator : IArenaGenerator
 {
-    private readonly List<(Point Center, int RadiusX, int RadiusY)> caves = [];
     public ArenaGeneratorKind Kind => ArenaGeneratorKind.PlanteraJungle;
     public double WorldSurface => 110;
     public double RockLayer => 170;
+    public bool UsesVanillaGeneration => true;
 
-    public ArenaLayout CreateLayout(int seed) => ArenaGeneratorRegistry.Layout(Kind, seed, new Rectangle(285, 150, 280, 320), new Rectangle(118, 282, 65, 48), new Rectangle(667, 282, 65, 48), new Point(150, 329), new Point(699, 329), new Point(425, 300), 290);
+    public ArenaLayout CreateLayout(int seed) => ArenaGeneratorRegistry.Layout(Kind, seed, new Rectangle(285, 150, 280, 320), new Rectangle(118, 282, 65, 48), new Rectangle(667, 282, 65, 48), new Point(150, 329), new Point(699, 329), new Point(425, 300));
 
-    public void Prepare(ArenaLayout layout)
-    {
-        caves.Clear();
-        Random random = new(layout.Seed);
-        for (int i = 0; i < 18; i++)
-            caves.Add((new Point(random.Next(55, 280), random.Next(85, 540)), random.Next(22, 55), random.Next(16, 38)));
-    }
+    public void Prepare(ArenaLayout layout) { }
 
     public ArenaTileData GetTile(ArenaLayout layout, int x, int y)
     {
         if (!layout.ArenaArea.Contains(x, y)) return ArenaTileData.Air();
-        if (layout.BossArea.Contains(x, y) && ((y == 245 && x is >= 320 and <= 390) || (y == 355 && x is >= 300 and <= 370)))
-            return ArenaTileData.Solid(TileID.JungleGrass, WallID.JungleUnsafe);
-        Rectangle spawnAnchor = layout.RedSpawnClearance;
-        spawnAnchor.Inflate(8, 3);
-        if (spawnAnchor.Contains(x, y) && !layout.RedSpawnClearance.Contains(x, y)
-            && (y < layout.RedSpawnClearance.Top || y >= layout.RedSpawnClearance.Bottom))
-            return ArenaTileData.Solid(TileID.JungleGrass, WallID.JungleUnsafe);
-        bool carved = IsCarved(layout, x, y);
-        if (carved)
-        {
-            if ((y == 330 || y == 395) && x is >= 90 and <= 400 && !layout.RedSpawnClearance.Contains(x, y))
-                return ArenaTileData.Solid(TileID.Platforms, WallID.JungleUnsafe);
-            return ArenaTileData.Air(WallID.JungleUnsafe);
-        }
-
-        bool exposed = IsCarved(layout, x - 1, y) || IsCarved(layout, x + 1, y) || IsCarved(layout, x, y - 1) || IsCarved(layout, x, y + 1);
-        return ArenaTileData.Solid(exposed ? TileID.JungleGrass : TileID.Mud, WallID.JungleUnsafe);
+        if (y < 120) return ArenaTileData.Air();
+        return ArenaTileData.Solid(y < 170 ? TileID.Dirt : TileID.Stone);
     }
 
-    private bool IsCarved(ArenaLayout layout, int x, int y)
+    public void GenerateVanilla(ArenaLayout layout)
     {
-        if (layout.BossArea.Contains(x, y) || layout.RedSpawnClearance.Contains(x, y)) return true;
-        if (x is >= 180 and <= 325 && y is >= 290 and < 330) return true;
-        foreach ((Point center, int rx, int ry) in caves)
+        UnifiedRandom previousRandom = WorldGen.genRand;
+        bool previousGenerating = WorldGen.gen;
+        WorldGen._genRand = new UnifiedRandom(layout.Seed);
+        WorldGen.gen = true;
+        double previousSurface = Main.worldSurface, previousRockLayer = Main.rockLayer;
+        int previousJungleOrigin = GenVars.jungleOriginX, previousLeftBeach = GenVars.leftBeachEnd;
+        int previousRightBeach = GenVars.rightBeachStart, previousDungeonSide = GenVars.dungeonSide;
+        int previousWaterLine = GenVars.waterLine, previousLavaLine = GenVars.lavaLine;
+        double previousGenSurface = GenVars.worldSurface, previousGenSurfaceLow = GenVars.worldSurfaceLow;
+        double previousGenSurfaceHigh = GenVars.worldSurfaceHigh, previousGenRock = GenVars.rockLayer;
+        double previousGenRockLow = GenVars.rockLayerLow, previousGenRockHigh = GenVars.rockLayerHigh;
+        int previousWorldWidth = Main.maxTilesX;
+        try
         {
-            double dx = (x - center.X) / (double)rx, dy = (y - center.Y) / (double)ry;
-            if (dx * dx + dy * dy <= 1d) return true;
+            Main.worldSurface = GenVars.worldSurface = 110;
+            GenVars.worldSurfaceLow = 100; GenVars.worldSurfaceHigh = 120;
+            Main.rockLayer = GenVars.rockLayer = 170;
+            GenVars.rockLayerLow = 155; GenVars.rockLayerHigh = 185;
+            GenVars.jungleOriginX = 225;
+            GenVars.leftBeachEnd = 20;
+            GenVars.rightBeachStart = 424;
+            GenVars.dungeonSide = (layout.Seed & 1) == 0 ? 1 : -1;
+            GenVars.waterLine = 320;
+            GenVars.lavaLine = 400;
+
+            // Run Terraria's actual Jungle generation pass as a 425-tile source world. This makes every
+            // internal vanilla search/range stay on the generated half before it is mirrored.
+            Main.maxTilesX = 425;
+            new JunglePass().Apply(new GenerationProgress(), new GameConfiguration(new JObject()));
+            Main.maxTilesX = previousWorldWidth;
+
+            VanillaArenaPasses.MudCavesToGrass(layout.ArenaArea);
+            VanillaArenaPasses.SmoothWorld(layout.ArenaArea);
+            VanillaArenaPasses.SpreadingGrass(layout.ArenaArea);
+            VanillaArenaPasses.MudWallsInJungle(layout.ArenaArea);
+            ClearLeftLiquids(layout.ArenaArea);
+
+            ClearLeftArea(layout.RedSpawnClearance);
+            ClearLeftArea(layout.BossArea);
         }
-        return false;
+        finally
+        {
+            Main.maxTilesX = previousWorldWidth;
+            Main.worldSurface = previousSurface; Main.rockLayer = previousRockLayer;
+            GenVars.jungleOriginX = previousJungleOrigin; GenVars.leftBeachEnd = previousLeftBeach;
+            GenVars.rightBeachStart = previousRightBeach; GenVars.dungeonSide = previousDungeonSide;
+            GenVars.waterLine = previousWaterLine; GenVars.lavaLine = previousLavaLine;
+            GenVars.worldSurface = previousGenSurface; GenVars.worldSurfaceLow = previousGenSurfaceLow;
+            GenVars.worldSurfaceHigh = previousGenSurfaceHigh; GenVars.rockLayer = previousGenRock;
+            GenVars.rockLayerLow = previousGenRockLow; GenVars.rockLayerHigh = previousGenRockHigh;
+            WorldGen.gen = previousGenerating;
+            WorldGen._genRand = previousRandom;
+        }
+    }
+
+    public void PlaceCombatStructures(ArenaLayout layout)
+    {
+        PlaceMirroredPlatform(92, 255, 395);
+        PlaceMirroredPlatform(190, 360, 330);
+        PlaceMirroredPlatform(305, 400, 245);
+    }
+
+    private static void ClearLeftArea(Rectangle area)
+    {
+        for (int x = area.Left; x < Math.Min(425, area.Right); x++)
+            for (int y = area.Top; y < area.Bottom; y++)
+            {
+                Main.tile[x, y].ClearTile();
+                Main.tile[x, y].LiquidAmount = 0;
+            }
+    }
+
+    private static void ClearLeftLiquids(Rectangle area)
+    {
+        for (int x = area.Left; x < Math.Min(425, area.Right); x++)
+            for (int y = area.Top; y < area.Bottom; y++)
+                Main.tile[x, y].LiquidAmount = 0;
+    }
+
+    private static void PlaceMirroredPlatform(int startX, int endX, int y)
+    {
+        for (int x = startX; x <= endX; x++)
+        {
+            SetPlatform(x, y);
+            SetPlatform(ArenaLayout.MirrorRight - x, y);
+        }
+    }
+
+    private static void SetPlatform(int x, int y)
+    {
+        Tile tile = Main.tile[x, y];
+        tile.ClearTile();
+        tile.HasTile = true;
+        tile.TileType = TileID.Platforms;
     }
 }
 
 internal sealed class GolemArenaGenerator : IArenaGenerator
 {
-    private readonly List<Rectangle> randomRooms = [];
     public ArenaGeneratorKind Kind => ArenaGeneratorKind.GolemTemple;
     public double WorldSurface => 110;
     public double RockLayer => 170;
+    public bool UsesVanillaGeneration => true;
 
-    public ArenaLayout CreateLayout(int seed) => ArenaGeneratorRegistry.Layout(Kind, seed, new Rectangle(305, 270, 240, 230), new Rectangle(118, 452, 65, 48), new Rectangle(667, 452, 65, 48), new Point(150, 499), new Point(699, 499), new Point(425, 440), 460);
-    public void Prepare(ArenaLayout layout)
-    {
-        randomRooms.Clear();
-        Random random = new(layout.Seed);
-        for (int i = 0; i < 5; i++)
-            randomRooms.Add(new Rectangle(random.Next(60, 230), random.Next(70, 420), random.Next(45, 90), random.Next(28, 55)));
-    }
+    public ArenaLayout CreateLayout(int seed) => ArenaGeneratorRegistry.Layout(Kind, seed, new Rectangle(305, 270, 240, 230), new Rectangle(118, 452, 65, 48), new Rectangle(667, 452, 65, 48), new Point(150, 499), new Point(699, 499), new Point(425, 440));
+    public void Prepare(ArenaLayout layout) { }
 
     public ArenaTileData GetTile(ArenaLayout layout, int x, int y)
     {
         if (!layout.ArenaArea.Contains(x, y)) return ArenaTileData.Air();
-        bool room = layout.BossArea.Contains(x, y) || layout.RedSpawnClearance.Contains(x, y)
-            || (x is >= 180 and <= 325 && y is >= 452 and < 500)
-            || (x is >= 70 and <= 280 && y is >= 330 and < 390)
-            || (x is >= 90 and <= 250 && y is >= 190 and < 245)
-            || randomRooms.Exists(room => room.Contains(x, y));
-
-        if (room)
-        {
-            if ((y == 390 && x is >= 85 and <= 280) || (y == 245 && x is >= 110 and <= 250))
-                return ArenaTileData.Solid(TileID.Platforms, WallID.LihzahrdBrickUnsafe);
-            return ArenaTileData.Air(WallID.LihzahrdBrickUnsafe);
-        }
         return ArenaTileData.Solid(TileID.LihzahrdBrick, WallID.LihzahrdBrickUnsafe);
+    }
+
+    public void GenerateVanilla(ArenaLayout layout)
+    {
+        UnifiedRandom previousRandom = WorldGen.genRand;
+        bool previousGenerating = WorldGen.gen;
+        WorldGen._genRand = new UnifiedRandom(layout.Seed);
+        WorldGen.gen = true;
+        try
+        {
+            WorldGen.makeTemple(205, 155);
+            Vector2D path = new(layout.RedSpawn.X, layout.RedSpawn.Y - 10);
+            int destinationX = layout.BossArea.Left + 28;
+            int destinationY = layout.BossArea.Center.Y;
+            for (int guard = 0; guard < 80 && ((int)path.X != destinationX || (int)path.Y != destinationY); guard++)
+                path = WorldGen.templePather(path, destinationX, destinationY);
+
+            VanillaArenaPasses.SmoothWorld(layout.ArenaArea);
+
+            for (int x = layout.ArenaArea.Left; x < 425; x++)
+                for (int y = layout.ArenaArea.Top; y < layout.ArenaArea.Bottom; y++)
+                {
+                    Tile tile = Main.tile[x, y];
+                    if (tile.HasTile && tile.TileType is TileID.LihzahrdAltar or TileID.WoodenSpikes or TileID.ClosedDoor or TileID.OpenDoor)
+                        tile.ClearTile();
+                    tile.LiquidAmount = 0;
+                    tile.RedWire = tile.BlueWire = tile.GreenWire = tile.YellowWire = false;
+                    tile.HasActuator = tile.IsActuated = false;
+                }
+            ClearLeftArea(layout.BossArea);
+        }
+        finally
+        {
+            WorldGen.gen = previousGenerating;
+            WorldGen._genRand = previousRandom;
+        }
+    }
+
+    public void PlaceCombatStructures(ArenaLayout layout)
+    {
+        int y = layout.BossArea.Bottom - 1;
+        for (int x = layout.BossArea.Left; x < layout.BossArea.Right; x++)
+        {
+            Tile tile = Main.tile[x, y];
+            tile.ClearTile();
+            tile.HasTile = true;
+            tile.TileType = TileID.LihzahrdBrick;
+            tile.WallType = WallID.LihzahrdBrickUnsafe;
+        }
+    }
+
+    private static void ClearLeftArea(Rectangle area)
+    {
+        for (int x = area.Left; x < Math.Min(425, area.Right); x++)
+            for (int y = area.Top; y < area.Bottom; y++)
+            {
+                Tile tile = Main.tile[x, y];
+                tile.ClearTile();
+                tile.LiquidAmount = 0;
+                tile.RedWire = tile.BlueWire = tile.GreenWire = tile.YellowWire = false;
+                tile.HasActuator = tile.IsActuated = false;
+            }
     }
 }
