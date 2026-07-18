@@ -22,7 +22,7 @@ namespace Arenas.Common.EndScreen;
 internal readonly record struct GlassPanelStyle(Color Primary, Color Secondary, Color Border, float Opacity, float BlurRadius, float Refraction, float Gloss, float BorderStrength);
 
 /// <summary>Draws the blurred world backdrop and sharp stars behind the summary.</summary>
-public class EndScreenBackdropLayer : GameInterfaceLayer
+internal sealed class EndScreenBackdropLayer : GameInterfaceLayer
 {
     private static readonly GlassPanelStyle HeavyBlur = new(new Color(10, 4, 28), new Color(92, 38, 162), new Color(150, 88, 230), 0.92f, 26f, 3.1f, 0.45f, 0.8f);
     private readonly EndScreenSystem system;
@@ -81,7 +81,7 @@ public class EndScreenBackdropLayer : GameInterfaceLayer
 }
 
 /// <summary>Draws the post-match team end screen.</summary>
-public class EndScreenLayer : GameInterfaceLayer
+internal sealed class EndScreenLayer : GameInterfaceLayer
 {
     private const int CardGap = 20;
     private const int MaxCardsPerPage = 5;
@@ -90,13 +90,10 @@ public class EndScreenLayer : GameInterfaceLayer
     private const int ScoreHeight = 35;
     private const int TitleScoreGap = 10;
     private const int ScoreCardsGap = 26;
-    private const int RewardHeight = 52;
-    private const int RewardGap = 14;
     private const int BackButtonGap = 16;
     private const int LayoutMargin = 28;
     private const int BackButtonWidth = 240;
     private const int BackButtonHeight = 42;
-    private const bool DebugGemRewardLayout = true;
 
     // The big "death" font measures tall (lots of trailing space), so geometric centring sits high;
     // these push the title + scoreline down to read as visually centred.
@@ -118,7 +115,6 @@ public class EndScreenLayer : GameInterfaceLayer
     private static int ViewH => Main.screenHeight;
     private static Texture2D PanelBackground => Main.Assets.Request<Texture2D>("Images/UI/PanelBackground").Value;
     private static Texture2D PanelBorder => Main.Assets.Request<Texture2D>("Images/UI/PanelBorder").Value;
-    private static readonly RasterizerState ScissorRasterizer = new() { CullMode = CullMode.None, ScissorTestEnable = true };
 
     // --- Synchronized player animation (walk -> jump -> wave, looping) ---
     private const int FrameHeight = 56;     // player body/leg sheet frame height
@@ -130,15 +126,12 @@ public class EndScreenLayer : GameInterfaceLayer
     // --- Purple "liquid glass" chrome, to match the purple admin tools + amethyst gems ---
     internal static readonly GlassPanelStyle PurpleHeader = new(new Color(58, 30, 110), new Color(120, 86, 200), new Color(184, 146, 255), 0.99f, 12.0f, 2.10f, 0.84f, 0.96f);
     internal static readonly GlassPanelStyle PurpleInset = new(new Color(38, 20, 80), new Color(96, 70, 168), new Color(156, 120, 240), 0.99f, 11.0f, 1.85f, 0.58f, 0.76f);
-    internal static readonly GlassPanelStyle PurpleBadge = new(new Color(126, 72, 224), new Color(184, 142, 255), new Color(238, 216, 255), 0.99f, 10.5f, 2.22f, 1.00f, 1.70f);
 
     private readonly EndScreenSystem system;
     private readonly EndScreenBackButton backButton;
     private readonly UserInterface backInterface;
     private readonly UIState backState;
     private Team selectedTeam = Team.None;
-    private int soundPresentationId = -1;
-    private bool playedGemSound;
 
     public EndScreenLayer(EndScreenSystem system)
         : base("Arenas: End Screen", InterfaceScaleType.None)
@@ -161,7 +154,6 @@ public class EndScreenLayer : GameInterfaceLayer
 
         EndScreenSnapshot snapshot = system.CurrentSnapshot;
         EnsureSelectedTeam(snapshot);
-        EnsureSoundState();
         float opacity = system.Opacity;
         SpriteBatch spriteBatch = Main.spriteBatch;
         IReadOnlyList<EndScreenPlayerStats> players = GetVisiblePlayers(snapshot);
@@ -170,9 +162,6 @@ public class EndScreenLayer : GameInterfaceLayer
 
         DrawHeader(spriteBatch, snapshot, opacity, layout, showOwnTeamPanels);
         DrawCards(spriteBatch, players, opacity, layout);
-
-        if (showOwnTeamPanels)
-            DrawReward(spriteBatch, snapshot, opacity, layout.RewardBox, selectedTeam); // reward follows cards
 
         DrawBackButton(spriteBatch, opacity, layout.BackButtonBox);
 
@@ -253,35 +242,6 @@ public class EndScreenLayer : GameInterfaceLayer
         DrawStatRow(spriteBatch, player.Team, card, ref y, "Damage", Short(player.DamageDealt), opacity);
     }
 
-    private void DrawReward(SpriteBatch spriteBatch, EndScreenSnapshot snapshot, float opacity, Rectangle rewardBox, Team teamTint)
-    {
-        DrawGlassPanel(spriteBatch, rewardBox, opacity, TeamStyle(PurpleInset, teamTint));
-
-        float progress = Smooth((system.AgeFrames - 45) / 85f);
-        uint gems = (uint)Math.Round(snapshot.LocalPlayerReward * progress);
-        if (!playedGemSound && snapshot.LocalPlayerReward > 0 && progress > 0f)
-        {
-            playedGemSound = true;
-            SoundEngine.PlaySound(SoundID.CoinPickup with { Volume = 0.45f });
-        }
-
-        const float textScale = 1.15f;
-        string text = $"You earned {gems} Gems!";
-        const float iconSize = 32f; // 0.75-ish of the old 42px icon
-        const float iconGap = 14f;
-        Vector2 textSize = FontAssets.MouseText.Value.MeasureString(text) * textScale;
-        float blockWidth = iconSize + iconGap + textSize.X; // gem icon + text centered together
-        Vector2 iconCenter = new(rewardBox.Center.X - blockWidth / 2f + iconSize / 2f, rewardBox.Center.Y);
-        Vector2 textPosition = new(iconCenter.X + iconSize / 2f + iconGap, rewardBox.Center.Y - textSize.Y / 2f + 4f);
-
-        float sparkle = progress;
-        // if (DebugGemRewardLayout)
-        //     DrawRewardDebug(spriteBatch, rewardBox, opacity);
-        DrawGemRewardEffects(spriteBatch, rewardBox, iconCenter, opacity, sparkle); // clipped UI glow/sparkles above panel
-        DrawCenteredTexture(spriteBatch, Ass.IconGem.Value, iconCenter, iconSize, Color.White * opacity);
-        DrawText(spriteBatch, text, textPosition, Color.White * opacity, textScale);
-    }
-
     private void DrawBackButton(SpriteBatch spriteBatch, float opacity, Rectangle button)
     {
         if (system.AgeFrames < EndScreenSystem.BackButtonDelayFrames)
@@ -317,41 +277,6 @@ public class EndScreenLayer : GameInterfaceLayer
         system.Hide(); // close summary early
     }
 
-    private static void DrawRewardDebug(SpriteBatch spriteBatch, Rectangle box, float opacity)
-    {
-        Rectangle red = box;
-        Rectangle blue = ScaleRect(box, 0.75f);
-        Rectangle green = ScaleRect(box, 0.5f);
-
-        DrawDebugBox(spriteBatch, red, Color.Red * (0.42f * opacity), "1f", 1f, opacity);
-        DrawDebugBox(spriteBatch, blue, Color.Blue * (0.50f * opacity), "0.75f", 0.75f, opacity);
-        DrawDebugBox(spriteBatch, green, Color.Green * (0.58f * opacity), "0.5f", 0.5f, opacity);
-    }
-
-    private static Rectangle ScaleRect(Rectangle rect, float scale)
-    {
-        int width = (int)(rect.Width * scale);
-        int height = (int)(rect.Height * scale);
-        return new Rectangle(rect.Center.X - width / 2, rect.Center.Y - height / 2, width, height);
-    }
-
-    private static void DrawDebugBox(SpriteBatch spriteBatch, Rectangle rect, Color fill, string text, float scale, float opacity)
-    {
-        Texture2D pixel = TextureAssets.MagicPixel.Value;
-        spriteBatch.Draw(pixel, rect, fill);
-        DrawRect(spriteBatch, rect, Color.Black * opacity, 2);
-        DrawText(spriteBatch, text, CenterText(text, rect, scale), Color.White * opacity, scale);
-    }
-
-    private static void DrawRect(SpriteBatch spriteBatch, Rectangle rect, Color color, int thickness)
-    {
-        Texture2D pixel = TextureAssets.MagicPixel.Value;
-        spriteBatch.Draw(pixel, new Rectangle(rect.X, rect.Y, rect.Width, thickness), color);
-        spriteBatch.Draw(pixel, new Rectangle(rect.X, rect.Bottom - thickness, rect.Width, thickness), color);
-        spriteBatch.Draw(pixel, new Rectangle(rect.X, rect.Y, thickness, rect.Height), color);
-        spriteBatch.Draw(pixel, new Rectangle(rect.Right - thickness, rect.Y, thickness, rect.Height), color);
-    }
-
     private static void DrawPlayerName(SpriteBatch spriteBatch, Team team, string name, Rectangle card, int y, float opacity)
     {
         string fitted = Fit(name, card.Width - 28, PlayerNameScale);
@@ -373,112 +298,6 @@ public class EndScreenLayer : GameInterfaceLayer
         DrawText(spriteBatch, title, CenterText(title, titleArea, RoleTitleScale), new Color(255, 232, 130) * opacity, RoleTitleScale);
         DrawText(spriteBatch, value, CenterText(value, valueArea, RoleValueScale), new Color(255, 244, 188) * opacity, RoleValueScale);
     }
-
-    /// <summary>
-    /// Intense amethyst reward VFX: a diffuse purple haze, a central bloom, two hero star flares,
-    /// a dense twinkling field of <see cref="Main.DrawPrettyStarSparkle"/> crosses plus fine
-    /// <see cref="TextureAssets.Star"/> dots, and rising motes — all additive. Sparkle positions are
-    /// stable (golden-ratio scatter); only their brightness/flare twinkles.
-    /// </summary>
-    private static void DrawGemRewardEffects(SpriteBatch spriteBatch, Rectangle box, Vector2 gemCenter, float opacity, float intensity)
-    {
-        if (opacity <= 0f || intensity <= 0f)
-            return;
-
-        GraphicsDevice device = spriteBatch.GraphicsDevice;
-        Rectangle oldScissor = device.ScissorRectangle;
-        RasterizerState oldRasterizer = device.RasterizerState;
-        Rectangle clip = Rectangle.Intersect(box, new Rectangle(0, 0, Main.screenWidth, Main.screenHeight));
-        if (clip.Width <= 0 || clip.Height <= 0)
-            return;
-
-        float time = Main.GlobalTimeWrappedHourly;
-        float a = opacity * intensity;
-        Texture2D pixel = TextureAssets.MagicPixel.Value;
-
-        Color violet = new(140, 70, 240);
-        Color amethyst = new(178, 96, 255);
-        Color magenta = new(226, 104, 255);
-
-        spriteBatch.End();
-        device.ScissorRectangle = clip;
-        spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.Additive, SamplerState.AnisotropicClamp, DepthStencilState.None, ScissorRasterizer, null, Matrix.Identity);
-
-        // 0) Diffuse purple haze lifting the whole bar (wide wash + brighter core band).
-        spriteBatch.Draw(pixel, box, new Color(96, 40, 184) * (0.10f * a));
-        Rectangle core = box;
-        core.Inflate(-box.Width / 5, 2);
-        spriteBatch.Draw(pixel, core, new Color(150, 70, 240) * (0.09f * a));
-
-        // 1) Central bloom on the gem — huge fatness, tiny rays = round glow.
-        float bloomPulse = 0.72f + 0.28f * MathF.Sin(time * 2.4f);
-        Main.DrawPrettyStarSparkle(opacity, SpriteEffects.None, gemCenter,
-            new Color(255, 255, 255, 0) * (intensity * bloomPulse), amethyst, 0.5f,
-            0f, 0.5f, 0.5f, 1f, time * 0.2f,
-            new Vector2(0f, 0.6f) * intensity, Vector2.One * (3.4f * intensity));
-
-        // 2) Two hero 4-point flares on the gem, counter-rotating.
-        float flare = 0.5f + 0.5f * MathF.Sin(time * 3f);
-        Main.DrawPrettyStarSparkle(opacity, SpriteEffects.None, gemCenter,
-            new Color(255, 255, 255, 0) * (0.55f * intensity), amethyst, flare,
-            0f, 0.5f, 0.5f, 1f, MathHelper.PiOver4 + time * 0.35f,
-            new Vector2(0f, 1.8f) * intensity, Vector2.One * (0.9f * intensity));
-        Main.DrawPrettyStarSparkle(opacity, SpriteEffects.None, gemCenter,
-            new Color(255, 255, 255, 0) * (0.8f * intensity), magenta, 1f - flare,
-            0f, 0.5f, 0.5f, 1f, -time * 0.5f,
-            new Vector2(0f, 2.8f) * intensity, Vector2.One * (1.1f * intensity));
-
-        // 3) Dense field of crisp twinkling cross-sparkles. flareCounter (0..1) drives fade in/out.
-        for (int i = 0; i < 34; i++)
-        {
-            Vector2 pos = new(box.X + Frac(i * 0.61803398f + 0.11f) * box.Width,
-                              box.Y + Frac(i * 0.75487766f + 0.39f) * box.Height);
-            float phase = Frac(time * (0.18f + 0.05f * (i % 4)) + i * 0.137f);
-            bool feature = i % 7 == 0;
-            float size = (feature ? 1.4f : 0.7f) * intensity;
-            Color shine = (i % 3) switch { 0 => magenta, 1 => amethyst, _ => Color.White };
-            Main.DrawPrettyStarSparkle(opacity, SpriteEffects.None, pos,
-                new Color(255, 255, 255, 0) * (intensity * (feature ? 0.9f : 0.6f)), shine, phase,
-                0f, 0.5f, 0.5f, 1f, i * 0.7f,
-                new Vector2(0f, feature ? 3.0f : 1.8f) * size, Vector2.One * size);
-        }
-
-        // 4) Fine twinkling dots for grain.
-        for (int i = 0; i < 40; i++)
-        {
-            Vector2 pos = new(box.X + Frac(i * 0.41421356f + 0.27f) * box.Width,
-                              box.Y + Frac(i * 0.30277563f + 0.53f) * box.Height);
-            float tw = 0.5f + 0.5f * MathF.Sin(time * (4f + i % 5) + i * 1.7f);
-            if (tw < 0.18f)
-                continue;
-
-            Texture2D star = TextureAssets.Star[i % 4].Value;
-            float s = (0.045f + 0.085f * tw) * intensity;
-            Color col = Color.Lerp(violet, i % 3 == 0 ? Color.White : magenta, tw) * (tw * a);
-            col.A = 0;
-            spriteBatch.Draw(star, pos, null, col, i, star.Size() * 0.5f, s, SpriteEffects.None, 0f);
-        }
-
-        // 5) Purple motes rising and fading across the bar.
-        for (int i = 0; i < 16; i++)
-        {
-            float phase = Frac(time * (0.10f + 0.04f * (i % 3)) + i * 0.167f); // 0 bottom -> 1 top
-            float x = box.X + Frac(i * 0.61803398f + 0.07f) * box.Width + MathF.Sin(time * 2f + i) * 5f;
-            float y = box.Bottom - phase * (box.Height + 14f);
-            float fade = MathF.Sin(phase * MathF.PI); // ease in/out over the climb
-
-            Texture2D star = TextureAssets.Star[i % 4].Value;
-            Color col = Color.Lerp(amethyst, magenta, i % 2) * (fade * a * 0.9f);
-            col.A = 0;
-            spriteBatch.Draw(star, new Vector2(x, y), null, col, time + i, star.Size() * 0.5f, 0.07f * intensity, SpriteEffects.None, 0f);
-        }
-
-        spriteBatch.End();
-        device.ScissorRectangle = oldScissor;
-        spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.AnisotropicClamp, DepthStencilState.None, oldRasterizer, null, Matrix.Identity);
-    }
-
-    private static float Frac(float value) => value - MathF.Floor(value);
 
     private static void DrawStatRow(SpriteBatch spriteBatch, Team team, Rectangle card, ref int y, string label, string value, float opacity)
     {
@@ -531,8 +350,8 @@ public class EndScreenLayer : GameInterfaceLayer
     }
 
     /// <summary>
-    /// Drives every preview through one shared looping routine — walk in place, a synchronized hop,
-    /// then a rippling wave down the line — by setting body/leg frames and the composite front arm.
+    /// Drives every preview through one shared looping routine â€” walk in place, a synchronized hop,
+    /// then a rippling wave down the line â€” by setting body/leg frames and the composite front arm.
     /// Returns an upward hop offset (in player-space pixels) used during the jump phase.
     /// </summary>
     private static float ApplyPlayerAnimation(Player player, int clock, int cardIndex)
@@ -651,15 +470,6 @@ public class EndScreenLayer : GameInterfaceLayer
         selectedTeam = DefaultSelectedTeam(snapshot);
     }
 
-    private void EnsureSoundState()
-    {
-        if (soundPresentationId == system.PresentationId)
-            return;
-
-        soundPresentationId = system.PresentationId;
-        playedGemSound = false;
-    }
-
     private bool IsOwnTeamSelected(EndScreenSnapshot snapshot) => selectedTeam == OwnTeam(snapshot);
 
     private static Team DefaultSelectedTeam(EndScreenSnapshot snapshot)
@@ -747,12 +557,6 @@ public class EndScreenLayer : GameInterfaceLayer
         Utils.DrawSplicedPanel(spriteBatch, PanelBorder, rect.X, rect.Y, rect.Width, rect.Height, 10, 10, 10, 10, border);
     }
 
-    private static void DrawCenteredTexture(SpriteBatch spriteBatch, Texture2D texture, Vector2 center, float size, Color color)
-    {
-        float scale = size / Math.Max(texture.Width, texture.Height);
-        spriteBatch.Draw(texture, center, null, color, 0f, texture.Size() * 0.5f, scale, SpriteEffects.None, 0f);
-    }
-
     private static void Restart(SpriteBatch spriteBatch, BlendState blendState, Effect effect = null, SpriteSortMode sortMode = SpriteSortMode.Deferred)
     {
         spriteBatch.End();
@@ -793,24 +597,20 @@ public class EndScreenLayer : GameInterfaceLayer
         int cardHeight = GetCardHeight();
         int cardsWidth = cardWidth * count + CardGap * (count - 1);
         int headerHeight = showOwnTeamPanels ? TitleHeight + TitleScoreGap + ScoreHeight : ScoreHeight;
-        int rewardHeight = showOwnTeamPanels ? RewardGap + RewardHeight : 0;
-        int totalHeight = headerHeight + ScoreCardsGap + cardHeight + rewardHeight + BackButtonGap + BackButtonHeight;
+        int totalHeight = headerHeight + ScoreCardsGap + cardHeight + BackButtonGap + BackButtonHeight;
         int top = totalHeight <= ViewH - LayoutMargin * 2 ? Math.Max(LayoutMargin, (ViewH - totalHeight) / 2) : LayoutMargin;
 
         int titleWidth = Math.Min(430, Math.Max(280, ViewW - 80));
         int scoreMaxWidth = Math.Max(255, ViewW - 80);
         int scoreWidth = Math.Clamp((int)ScorelineWidth(snapshot, scoreScale) + 64, 255, scoreMaxWidth);
-        int rewardWidth = Math.Min(560, Math.Max(260, ViewW - 180));
-
         Rectangle title = showOwnTeamPanels ? CenteredBox(titleWidth, TitleHeight, top) : Rectangle.Empty;
         int scoreY = showOwnTeamPanels ? title.Bottom + TitleScoreGap : top;
         Rectangle score = CenteredBox(scoreWidth, ScoreHeight, scoreY);
         Rectangle cards = new(ViewX + (ViewW - cardsWidth) / 2, score.Bottom + ScoreCardsGap, cardsWidth, cardHeight);
-        Rectangle reward = showOwnTeamPanels ? CenteredBox(rewardWidth, RewardHeight, cards.Bottom + RewardGap) : Rectangle.Empty;
-        int backY = (showOwnTeamPanels ? reward.Bottom : cards.Bottom) + BackButtonGap;
+        int backY = cards.Bottom + BackButtonGap;
         Rectangle backButton = CenteredBox(BackButtonWidth, BackButtonHeight, backY);
 
-        return new EndScreenLayout(title, score, cards, reward, backButton, cardWidth, cardHeight);
+        return new EndScreenLayout(title, score, cards, backButton, cardWidth, cardHeight);
     }
 
     private static int GetCardWidth(int count)
@@ -821,12 +621,12 @@ public class EndScreenLayer : GameInterfaceLayer
     private static int GetCardHeight()
     {
         // Sized to its content: the card ends just below the Damage stat row (no trailing empty space).
-        int fixedHeight = TitleHeight + TitleScoreGap + ScoreHeight + ScoreCardsGap + RewardGap + RewardHeight + BackButtonGap + BackButtonHeight + LayoutMargin * 2 + 28;
+        int fixedHeight = TitleHeight + TitleScoreGap + ScoreHeight + ScoreCardsGap + BackButtonGap + BackButtonHeight + LayoutMargin * 2 + 28;
         int available = ViewH - fixedHeight;
         return Math.Clamp(available, 280, 380);
     }
 
-    private readonly record struct EndScreenLayout(Rectangle TitleBox, Rectangle ScoreBox, Rectangle CardsBox, Rectangle RewardBox, Rectangle BackButtonBox, int CardWidth, int CardHeight);
+    private readonly record struct EndScreenLayout(Rectangle TitleBox, Rectangle ScoreBox, Rectangle CardsBox, Rectangle BackButtonBox, int CardWidth, int CardHeight);
 
     private static void DrawBigText(SpriteBatch spriteBatch, string text, Rectangle area, Color color, float scale, float yOffset = 0f)
     {
@@ -882,7 +682,7 @@ public class EndScreenLayer : GameInterfaceLayer
 }
 
 /// <summary>Glass Back button for closing the end screen.</summary>
-public class EndScreenBackButton : UIAutoScaleTextTextPanel<string>
+internal sealed class EndScreenBackButton : UIAutoScaleTextTextPanel<string>
 {
     public bool Hovered;
     public float Opacity = 1f;
@@ -907,7 +707,7 @@ public class EndScreenBackButton : UIAutoScaleTextTextPanel<string>
 }
 
 /// <summary>Forces player previews to render bright.</summary>
-public class EndScreenPlayerDrawPlayer : ModPlayer
+internal sealed class EndScreenPlayerDrawPlayer : ModPlayer
 {
     public static bool ForceFullBright;
 

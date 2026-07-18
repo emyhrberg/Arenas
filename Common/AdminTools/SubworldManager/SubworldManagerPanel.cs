@@ -1,278 +1,127 @@
 using Arenas.Common.UI;
 using Arenas.Core;
-using Microsoft.Xna.Framework;
-using Terraria;
+using System;
+using System.Linq;
 using Terraria.GameContent.UI.Elements;
-using Terraria.ID;
 using Terraria.Localization;
-using Terraria.ModLoader;
 using Terraria.UI;
 
 namespace Arenas.Common.AdminTools.SubworldManager;
 
-/// <summary>
-/// Sends players to worlds with the ArenaSubworld, and provides some basic info about the subworld.
-/// </summary>
 internal sealed class SubworldManagerPanel : UIDraggablePanel
 {
-    private readonly UITextPanel<string> sendToMainWorldButton;
-    private readonly UITextPanel<string> sendToArenasButton;
-
-    private UIList playerList;
-    private UIScrollbar playerScrollbar;
-
-    private readonly bool[] lastActive = new bool[Main.maxPlayers];
-    private readonly int[] lastWhoAmI = new int[Main.maxPlayers];
-    private bool needsRebuild = true;
+    private readonly UIList players;
+    private string roster = "";
 
     protected override float MinResizeW => 320f;
     protected override float MinResizeH => 260f;
 
-    protected override void OnClosePanelLeftClick()
+    public SubworldManagerPanel() : base(Language.GetTextValue("Mods.Arenas.Tools.SubworldManagerPanel.Title"))
     {
-        ModContent.GetInstance<SubworldManagerUISystem>().Toggle();
+        Width.Set(560f, 0f);
+        Height.Set(420f, 0f);
+        HAlign = .5f;
+        VAlign = .7f;
+        Content.SetPadding(6f);
+
+        Content.Append(ActionButton("Send all to main world", 0f,
+            () => Request(SubworldManagerNetHandler.Action.SendAllToMainWorld)));
+        Content.Append(ActionButton("Send all to arenas", .5f,
+            () => Request(SubworldManagerNetHandler.Action.SendAllToArenas)));
+        Content.Append(new UIText("Players", .9f) { Left = { Pixels = 4f }, Top = { Pixels = 66f } });
+
+        players = new UIList
+        {
+            Top = { Pixels = 88f },
+            Width = { Pixels = -24f, Percent = 1f },
+            Height = { Pixels = -96f, Percent = 1f },
+            ListPadding = 6f
+        };
+        players.SetPadding(0f);
+        UIScrollbar scrollbar = new()
+        {
+            Top = { Pixels = 88f },
+            Left = { Pixels = -20f, Percent = 1f },
+            Width = { Pixels = 20f },
+            Height = { Pixels = -96f, Percent = 1f }
+        };
+        players.SetScrollbar(scrollbar);
+        Content.Append(players);
+        Content.Append(scrollbar);
+        RebuildPlayers();
     }
 
-    public SubworldManagerPanel()
-        : base(Language.GetTextValue("Mods.Arenas.Tools.SubworldManagerPanel.Title"))
-    {
-        Width.Set(560, 0);
-        Height.Set(420, 0);
-        HAlign = 0.5f;
-        VAlign = 0.7f;
-        ContentPanel.SetPadding(6f);
-
-        const float buttonsTop = 8f;
-        const float buttonHeight = 44f;
-        const float buttonGap = 12f;
-
-        // Button 1 (top-left)
-        sendToMainWorldButton = new UITextPanel<string>("Send all to main world")
-        {
-            Width = { Percent = 0.5f, Pixels = -(buttonGap * 0.5f) },
-            Height = { Pixels = buttonHeight },
-            Top = { Pixels = buttonsTop },
-            Left = { Percent = 0f, Pixels = 0f }
-        };
-        sendToMainWorldButton.OnMouseOver += (_, _) => sendToMainWorldButton.BorderColor = Color.Yellow;
-        sendToMainWorldButton.OnMouseOut += (_, _) => sendToMainWorldButton.BorderColor = Color.Black;
-        sendToMainWorldButton.OnLeftClick += (_, _) =>
-        {
-            SubworldManagerNetHandler.Request(SubworldManagerNetHandler.SubworldManagerPacketType.SendAllToMainWorld);
-        };
-
-        // Button 2 (top-right)
-        sendToArenasButton = new UITextPanel<string>("Send all to arenas")
-        {
-            Width = { Percent = 0.5f, Pixels = -(buttonGap * 0.5f) },
-            Height = { Pixels = buttonHeight },
-            Top = { Pixels = buttonsTop },
-            Left = { Percent = 0.5f, Pixels = (buttonGap * 0.5f) }
-        };
-        sendToArenasButton.OnMouseOver += (_, _) => sendToArenasButton.BorderColor = Color.Yellow;
-        sendToArenasButton.OnMouseOut += (_, _) => sendToArenasButton.BorderColor = Color.Black;
-        sendToArenasButton.OnLeftClick += (_, _) =>
-        {
-            SubworldManagerNetHandler.Request(SubworldManagerNetHandler.SubworldManagerPacketType.SendAllToArenas);
-        };
-
-        ContentPanel.Append(sendToMainWorldButton);
-        ContentPanel.Append(sendToArenasButton);
-
-        // Players header
-        float headerTop = buttonsTop + buttonHeight + 14f;
-
-        var header = new UIText("Players", textScale: 0.9f)
-        {
-            Top = { Pixels = headerTop },
-            Left = { Pixels = 4f }
-        };
-        ContentPanel.Append(header);
-
-        BuildPlayerListUI(topPixels: headerTop + 22f);
-
-        needsRebuild = true;
-    }
+    protected override void OnClosePanelLeftClick() => ModContent.GetInstance<SubworldManagerUISystem>().Toggle();
 
     public override void Update(GameTime gameTime)
     {
         base.Update(gameTime);
-
-        // always for now
-        needsRebuild = true;
-
-        bool changed = false;
-
-        for (int i = 0; i < Main.maxPlayers; i++)
-        {
-            Player p = Main.player[i];
-            bool isActive = p != null && p.active;
-
-            if (lastActive[i] != isActive)
-            {
-                lastActive[i] = isActive;
-                changed = true;
-            }
-
-            int who = isActive ? p.whoAmI : -1;
-            if (lastWhoAmI[i] != who)
-            {
-                lastWhoAmI[i] = who;
-                changed = true;
-            }
-        }
-
-        if (changed)
-            needsRebuild = true;
-
-        if (needsRebuild)
-        {
-            needsRebuild = false;
-            RebuildPlayerList();
-        }
+        if (Main.GameUpdateCount % 30 == 0 && CurrentRoster() != roster)
+            RebuildPlayers();
     }
 
-    private void BuildPlayerListUI(float topPixels)
+    private void RebuildPlayers()
     {
-        playerList = new UIList
-        {
-            Top = { Pixels = topPixels },
-            Width = { Pixels = -24f, Percent = 1f },
-            Height = { Pixels = -topPixels - 8f, Percent = 1f }
-        };
-        playerList.SetPadding(0f);
-        playerList.ListPadding = 6f;
-
-        playerScrollbar = new UIScrollbar
-        {
-            Top = { Pixels = topPixels },
-            Height = { Pixels = -topPixels - 8f, Percent = 1f },
-            Width = { Pixels = 20f },
-            Left = { Pixels = -20f, Percent = 1f }
-        };
-
-        playerList.SetScrollbar(playerScrollbar);
-
-        ContentPanel.Append(playerList);
-        ContentPanel.Append(playerScrollbar);
+        roster = CurrentRoster();
+        players.Clear();
+        foreach (Player player in Main.player.Where(player => player?.active == true))
+            players.Add(PlayerRow(player));
+        players.Recalculate();
     }
 
-    private void RebuildPlayerList()
+    private static UIElement PlayerRow(Player player)
     {
-        playerList.Clear();
-
-        for (int i = 0; i < Main.maxPlayers; i++)
-        {
-            Player p = Main.player[i];
-            if (p == null || !p.active)
-                continue;
-
-            playerList.Add(CreatePlayerRow(p));
-        }
-
-        playerList.Recalculate();
-    }
-
-    private UIElement CreatePlayerRow(Player player)
-    {
-        var row = new UIPanel
+        UIPanel row = new()
         {
             Width = { Percent = 1f },
             Height = { Pixels = 40f },
-            BackgroundColor = new Color(10, 10, 10) * 0.65f,
+            BackgroundColor = new Color(10, 10, 10) * .65f,
             BorderColor = Color.Black
         };
-        row.SetPadding(0f);
-        row.PaddingLeft = 6f;
-
+        row.SetPadding(6f);
         row.OnMouseOver += (_, _) => row.BorderColor = Color.Yellow;
         row.OnMouseOut += (_, _) => row.BorderColor = Color.Black;
+        row.Append(new UIText(player == Main.LocalPlayer ? $"{player.name} (you)" : player.name, .9f) { VAlign = .5f });
 
-        string name = player == Main.LocalPlayer ? player.name + " (you)" : player.name;
-
-        var nameText = new UIText(name, textScale: 0.9f)
-        {
-            VAlign = 0.5f
-        };
-        row.Append(nameText);
-
-        int playerIndex = player.whoAmI;
-
-        const float iconSize = 40f;
-        const float iconSpacing = 0f;
-        const float rightPadding = 12f;
-
-
-        var arenasIcon = new UIImage(Ass.IconArenas.Value)
-        {
-            ImageScale = 0.7f,
-            Width = { Pixels = iconSize },
-            Height = { Pixels = iconSize },
-            Left = { Pixels = -rightPadding - iconSize, Percent = 1f },
-            VAlign = 0f,
-            HAlign = 0f,
-            Top = StyleDimension.FromPixels(-6)
-        };
-
-        arenasIcon.OnMouseOver += (_, _) =>
-        {
-            Main.instance.MouseText($"Send {Main.player[player.whoAmI].name} to arenas");
-            arenasIcon.Width.Set(iconSize, 0f);
-            arenasIcon.Height.Set(iconSize, 0f);
-            arenasIcon.Left.Set(-rightPadding - iconSize, 1f);
-            arenasIcon.Recalculate();
-        };
-
-        arenasIcon.OnMouseOut += (_, _) =>
-        {
-            arenasIcon.Width.Set(iconSize, 0f);
-            arenasIcon.Height.Set(iconSize, 0f);
-            arenasIcon.Left.Set(-rightPadding - iconSize, 1f);
-            arenasIcon.Recalculate();
-        };
-
-        arenasIcon.OnLeftClick += (_, _) =>
-        {
-            SubworldManagerNetHandler.Request(SubworldManagerNetHandler.SubworldManagerPacketType.SendPlayerToArenas, playerIndex);
-        };
-
-        row.Append(arenasIcon);
-
-        var playIcon = new UIImage(Ass.IconStartGame.Value)
-        {
-            ImageScale = 0.9f,
-            Width = { Pixels = iconSize },
-            Height = { Pixels = iconSize },
-            Left = { Pixels = -rightPadding - iconSize - iconSpacing - iconSize, Percent = 1f },
-            VAlign = 0f,
-            HAlign = 0f,
-            Top = StyleDimension.FromPixels(2)
-        };
-
-        playIcon.OnMouseOver += (_, _) =>
-        {
-            Main.instance.MouseText($"Send {Main.player[player.whoAmI].name} to main world");
-            playIcon.Width.Set(iconSize, 0f);
-            playIcon.Height.Set(iconSize, 0f);
-            playIcon.Left.Set(-rightPadding - iconSize - iconSpacing - iconSize, 1f);
-            playIcon.Recalculate();
-        };
-
-        playIcon.OnMouseOut += (_, _) =>
-        {
-            playIcon.Width.Set(iconSize, 0f);
-            playIcon.Height.Set(iconSize, 0f);
-            playIcon.Left.Set(-rightPadding - iconSize - iconSpacing - iconSize, 1f);
-            playIcon.Recalculate();
-        };
-
-        playIcon.OnLeftClick += (_, _) =>
-        {
-            SubworldManagerNetHandler.Request(SubworldManagerNetHandler.SubworldManagerPacketType.SendPlayerToMainWorld, playerIndex);
-        };
-
-        row.Append(playIcon);
-
+        int id = player.whoAmI;
+        row.Append(Icon(Ass.IconStartGame.Value, -92f, () => $"Send {PlayerName(id)} to main world",
+            () => Request(SubworldManagerNetHandler.Action.SendPlayerToMainWorld, id)));
+        row.Append(Icon(Ass.IconArenas.Value, -52f, () => $"Send {PlayerName(id)} to arenas",
+            () => Request(SubworldManagerNetHandler.Action.SendPlayerToArenas, id)));
         return row;
     }
+
+    private static UIImage Icon(Texture2D texture, float left, Func<string> tooltip, Action action)
+    {
+        UIImage icon = new(texture)
+        {
+            ImageScale = .7f,
+            Left = { Pixels = left, Percent = 1f },
+            Top = { Pixels = -6f },
+            Width = { Pixels = 40f },
+            Height = { Pixels = 40f }
+        };
+        icon.OnMouseOver += (_, _) => Main.instance.MouseText(tooltip());
+        icon.OnLeftClick += (_, _) => action();
+        return icon;
+    }
+
+    private static UITextPanel<string> ActionButton(string text, float left, Action action)
+    {
+        UITextPanel<string> button = new(text)
+        {
+            Left = { Percent = left, Pixels = left == 0f ? 0f : 6f },
+            Top = { Pixels = 8f },
+            Width = { Percent = .5f, Pixels = -6f },
+            Height = { Pixels = 44f }
+        };
+        button.OnMouseOver += (_, _) => button.BorderColor = Color.Yellow;
+        button.OnMouseOut += (_, _) => button.BorderColor = Color.Black;
+        button.OnLeftClick += (_, _) => action();
+        return button;
+    }
+
+    private static string CurrentRoster() => string.Join('|', Main.player.Where(player => player?.active == true).Select(player => $"{player.whoAmI}:{player.name}"));
+    private static string PlayerName(int id) => id >= 0 && id < Main.maxPlayers && Main.player[id]?.active == true ? Main.player[id].name : "player";
+    private static void Request(SubworldManagerNetHandler.Action action, int player = -1) => SubworldManagerNetHandler.Request(action, player);
 }

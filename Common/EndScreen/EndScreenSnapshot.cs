@@ -6,7 +6,7 @@ using Terraria.Enums;
 namespace Arenas.Common.EndScreen;
 
 /// <summary>Match outcome for this team.</summary>
-public enum EndScreenResult : byte
+internal enum EndScreenResult : byte
 {
     Victory,
     Defeat,
@@ -14,16 +14,13 @@ public enum EndScreenResult : byte
 }
 
 /// <summary>One active team's running score for the clickable end-screen scoreline.</summary>
-public readonly record struct TeamScoreEntry(Team Team, int Score);
+internal readonly record struct TeamScoreEntry(Team Team, int Score);
 
 /// <summary>Serializable end screen data for one team.</summary>
-public class EndScreenSnapshot
+internal sealed class EndScreenSnapshot
 {
     public Team Team;
     public EndScreenResult Result;
-    public int TeamScore;
-    public int OpponentScore;
-    public uint LocalPlayerReward;
     public List<EndScreenPlayerStats> Players = [];
 
     /// <summary>Every team's points (including teams with no players), in team order — drawn as e.g. 7-5-5-5.</summary>
@@ -34,10 +31,7 @@ public class EndScreenSnapshot
         EndScreenSnapshot snapshot = new()
         {
             Team = (Team)reader.ReadByte(),
-            Result = (EndScreenResult)reader.ReadByte(),
-            TeamScore = reader.ReadInt32(),
-            OpponentScore = reader.ReadInt32(),
-            LocalPlayerReward = reader.ReadUInt32()
+            Result = (EndScreenResult)reader.ReadByte()
         };
 
         int scoreCount = reader.ReadInt32();
@@ -55,9 +49,6 @@ public class EndScreenSnapshot
     {
         writer.Write((byte)Team);
         writer.Write((byte)Result);
-        writer.Write(TeamScore);
-        writer.Write(OpponentScore);
-        writer.Write(LocalPlayerReward);
 
         writer.Write(AllScores.Count);
         foreach (TeamScoreEntry entry in AllScores)
@@ -73,23 +64,14 @@ public class EndScreenSnapshot
 }
 
 /// <summary>Serializable end screen data for one player.</summary>
-public record EndScreenPlayerStats(
+internal sealed record EndScreenPlayerStats(
     byte PlayerIndex,
     Team Team,
     string Name,
     int Kills,
     int Deaths,
     uint DamageDealt,
-    uint DamageTaken,
-    uint TilesMined,
-    uint TilesPlaced,
-    uint ConsumablesUsed,
-    uint LavaDeaths,
-    uint FoodEaten,
     uint BossDamageDealt,
-    uint PortalKills,
-    uint DifferentWeaponsUsed,
-    uint LostHoney,
     string RoleTitle = "",
     string RoleValue = "")
 {
@@ -101,15 +83,6 @@ public record EndScreenPlayerStats(
             reader.ReadString(),
             reader.ReadInt32(),
             reader.ReadInt32(),
-            reader.ReadUInt32(),
-            reader.ReadUInt32(),
-            reader.ReadUInt32(),
-            reader.ReadUInt32(),
-            reader.ReadUInt32(),
-            reader.ReadUInt32(),
-            reader.ReadUInt32(),
-            reader.ReadUInt32(),
-            reader.ReadUInt32(),
             reader.ReadUInt32(),
             reader.ReadUInt32(),
             reader.ReadString(),
@@ -124,16 +97,7 @@ public record EndScreenPlayerStats(
         writer.Write(Kills);
         writer.Write(Deaths);
         writer.Write(DamageDealt);
-        writer.Write(DamageTaken);
-        writer.Write(TilesMined);
-        writer.Write(TilesPlaced);
-        writer.Write(ConsumablesUsed);
-        writer.Write(LavaDeaths);
-        writer.Write(FoodEaten);
         writer.Write(BossDamageDealt);
-        writer.Write(PortalKills);
-        writer.Write(DifferentWeaponsUsed);
-        writer.Write(LostHoney);
         writer.Write(RoleTitle ?? "");
         writer.Write(RoleValue ?? "");
     }

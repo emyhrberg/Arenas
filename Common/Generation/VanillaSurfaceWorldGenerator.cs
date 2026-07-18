@@ -85,7 +85,7 @@ internal static class VanillaSurfaceWorldGenerator
             Run("Weeds", seed);
             // Vanilla Flowers assumes normal-world padding while scanning its 30x30 patches and can
             // index outside a compact Tilemap. It is purely decorative; every terrain/biome pass stays exact.
-            Log.Chat("[WorldGen2.Surface] SKIP Flowers: vanilla patch scan is not compact-world safe");
+            Log.Debug("[WorldGen2.Surface] SKIP Flowers: vanilla patch scan is not compact-world safe");
             Run("Mushrooms", seed);
             ArenaGenerationDiagnostics.LogSnapshot("Finished surface world", layout);
             return (generatedSurface, generatedRock);
@@ -127,7 +127,7 @@ internal static class VanillaSurfaceWorldGenerator
         GenVars.snowMaxX = new int[Main.maxTilesY];
         GenVars.snowTop = 0;
         GenVars.snowBottom = 0;
-        Log.Chat($"[WorldGen2.Surface] Compact biome plan seed={seed}: desert={(desertOnLeft ? "left" : "right")}, snow={GenVars.snowOriginLeft}..{GenVars.snowOriginRight}, coasts=0..{coastEnd}/{Main.maxTilesX - coastEnd}..{Main.maxTilesX}");
+        Log.Debug($"[WorldGen2.Surface] Compact biome plan seed={seed}: desert={(desertOnLeft ? "left" : "right")}, snow={GenVars.snowOriginLeft}..{GenVars.snowOriginRight}, coasts=0..{coastEnd}/{Main.maxTilesX - coastEnd}..{Main.maxTilesX}");
     }
 
     /// <summary>
@@ -145,7 +145,7 @@ internal static class VanillaSurfaceWorldGenerator
         int bottom = Math.Min(Main.maxTilesY - 1, GenVars.lavaLine);
         int left = GenVars.snowOriginLeft, right = GenVars.snowOriginRight, fringeDepth = 10;
         int clippedColumns = 0, minEdge = left, maxEdge = right;
-        Log.Chat($"[WorldGen2.Surface] START compact-safe vanilla GenPass 'Generate Ice Biome' seed={seed}");
+        Log.Debug($"[WorldGen2.Surface] START compact-safe vanilla GenPass 'Generate Ice Biome' seed={seed}");
 
         for (int y = 0; y <= bottom - 140; y++)
         {
@@ -199,7 +199,7 @@ internal static class VanillaSurfaceWorldGenerator
             GenVars.snowBottom = Math.Max(GenVars.snowBottom, y);
         }
 
-        Log.Chat($"[WorldGen2.Surface] END compact-safe vanilla GenPass 'Generate Ice Biome' rawEdges={minEdge}..{maxEdge} clippedColumns={clippedColumns}");
+        Log.Debug($"[WorldGen2.Surface] END compact-safe vanilla GenPass 'Generate Ice Biome' rawEdges={minEdge}..{maxEdge} clippedColumns={clippedColumns}");
     }
 
     private static void RunCompactDesert(int seed)
@@ -217,7 +217,7 @@ internal static class VanillaSurfaceWorldGenerator
         // The vanilla Chambers entrance selects center +/-40, but a compact world's scaled
         // SurfaceMap is only about 64 tiles wide. Keep the complete biome and omit only that unsafe entrance.
         desert.ChanceOfEntrance = 0;
-        Log.Chat($"[WorldGen2.Surface] START compact-safe vanilla DesertBiome seed={seed} initialX={x} side={side}");
+        Log.Debug($"[WorldGen2.Surface] START compact-safe vanilla DesertBiome seed={seed} initialX={x} side={side}");
         while (!desert.Place(new Point(x, (int)GenVars.worldSurfaceHigh + 25), GenVars.structures))
         {
             offset = random.Next(halfWidth) / 2 + halfWidth / 8 + random.Next(attemptsOnSide / 12);
@@ -235,7 +235,7 @@ internal static class VanillaSurfaceWorldGenerator
             if (attempts > 50_000)
                 throw new InvalidOperationException($"Vanilla DesertBiome rejected 50000 compact placements; lastX={x}, side={side}, flips={sideFlips}, surfaceHigh={GenVars.worldSurfaceHigh:F1}");
         }
-        Log.Chat($"[WorldGen2.Surface] END compact-safe vanilla DesertBiome x={x} attempts={attempts} area={GenVars.UndergroundDesertLocation}");
+        Log.Debug($"[WorldGen2.Surface] END compact-safe vanilla DesertBiome x={x} attempts={attempts} area={GenVars.UndergroundDesertLocation}");
     }
 
     private static void ConvertToIce(int x, int y)
@@ -264,10 +264,10 @@ internal static class VanillaSurfaceWorldGenerator
         int y = Math.Clamp((int)GenVars.worldSurfaceLow - 25, layout.ArenaArea.Top + 18, layout.ArenaArea.Top + 37);
         int leftX = layout.ArenaArea.Left + layout.ArenaArea.Width * 30 / 100;
         int rightX = layout.ArenaArea.Left + layout.ArenaArea.Width * 70 / 100;
-        Log.Chat($"[WorldGen2.Surface] START vanilla FloatingIsland structures at ({leftX},{y}) and ({rightX},{y + 5})");
+        Log.Debug($"[WorldGen2.Surface] START vanilla FloatingIsland structures at ({leftX},{y}) and ({rightX},{y + 5})");
         WorldGen.FloatingIsland(leftX, y);
         WorldGen.FloatingIsland(rightX, y + 5);
-        Log.Chat("[WorldGen2.Surface] END vanilla FloatingIsland structures");
+        Log.Debug("[WorldGen2.Surface] END vanilla FloatingIsland structures");
     }
 
     private static void ResolveCombatAnchors(ArenaLayout layout, ArenaGeneratorKind kind)
@@ -288,7 +288,7 @@ internal static class VanillaSurfaceWorldGenerator
             int verticalOffset = kind == ArenaGeneratorKind.EyeSurface ? 65 : 35;
             layout.BossSpawn = new Point(layout.BossSpawn.X, Math.Clamp(bossGround - verticalOffset, layout.BossArea.Top + 8, layout.BossArea.Bottom - 8));
         }
-        Log.Chat($"[WorldGen2.Surface] Resolved anchors red={layout.RedSpawn} blue={layout.BlueSpawn} boss={layout.BossSpawn} ground={redGround}/{blueGround}/{bossGround} autoTeams={layout.AutoPlaceTeamSpawns} autoBoss={layout.AutoPlaceBossSpawn}");
+        Log.Debug($"[WorldGen2.Surface] Resolved anchors red={layout.RedSpawn} blue={layout.BlueSpawn} boss={layout.BossSpawn} ground={redGround}/{blueGround}/{bossGround} autoTeams={layout.AutoPlaceTeamSpawns} autoBoss={layout.AutoPlaceBossSpawn}");
     }
 
     private static Rectangle SpawnRoom(Point spawn, Point size) => ArenaGeneratorRegistry.SpawnRoom(spawn, size.X, size.Y);

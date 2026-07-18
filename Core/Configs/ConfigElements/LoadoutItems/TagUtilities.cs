@@ -3,36 +3,8 @@ using Terraria.ModLoader.Config;
 
 namespace Arenas.Core.Configs.ConfigElements.LoadoutItems;
 
-public static class TagUtilities
+internal static class TagUtilities
 {
-    /// <summary>
-    /// Converts an ItemDefinition to a tag string like "[i:1234]"
-    /// </summary>
-    public static string Tag(ItemDefinition d)
-    {
-        int type = d?.Type ?? 0;
-        return type > 0 ? $"[i:{type}]" : "";
-    }
-
-    /// <summary>
-    /// Concatenates the specified strings with spaces between each item.
-    /// </summary>
-    public static string Join(params string[] parts)
-    {
-        //string result = "";
-        //for (int i = 0; i < parts.Length; i++)
-        //{
-        //    string p = parts[i];
-        //    if (string.IsNullOrWhiteSpace(p))
-        //        continue;
-
-        //    if (result.Length > 0)
-        //        result += " ";
-
-        //    result += p;
-        //}
-        //return result;
-
-        return string.Join(" ", parts.Where(p => !string.IsNullOrWhiteSpace(p)));
-    }
+    internal static string Tag(ItemDefinition definition) => definition?.Type > 0 ? $"[i:{definition.Type}]" : "";
+    internal static string Join(params string[] parts) => string.Join(" ", parts.Where(part => !string.IsNullOrWhiteSpace(part)));
 }

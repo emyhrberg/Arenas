@@ -12,7 +12,7 @@ namespace Arenas.Common.AdminTools.GameManager;
 
 internal static class ArenaGameManagerNetHandler
 {
-    internal enum ActionType : byte { StartRound, SetCountdown, SetRoundTime, SetVotingTime, TogglePause, AdvancePhase, EndRound, ClearWorld, BalanceTeams, SaveGeometry, SyncGeometry }
+    internal enum ActionType : byte { PrepareArena, StartFight, SetCountdown, SetRoundTime, SetVotingTime, TogglePause, AdvancePhase, EndRound, BalanceTeams, SaveGeometry, SyncGeometry }
     internal static int GeometryRevision { get; private set; }
 
     public static void Request(ActionType type, int first = 0, int second = 0, int third = 0)
@@ -68,16 +68,11 @@ internal static class ArenaGameManagerNetHandler
 
     private static bool Authorized(int fromWho)
     {
-        if (fromWho < 0 || fromWho >= Main.maxPlayers) return false;
-        try
+        if (!ErkySSCCompat.IsAdmin(fromWho, out string reason))
         {
-            if (!ErkySSCCompat.IsPlayerAdmin(Main.player[fromWho], out string reason))
-            {
-                Log.Warn($"Rejected Arenas Game Manager action from player {fromWho}: {reason}");
-                return false;
-            }
+            Log.Warn($"Rejected Arenas Game Manager action from player {fromWho}: {reason}");
+            return false;
         }
-        catch (Exception e) { Log.Warn($"Rejected Arenas Game Manager action because the admin check failed: {e.Message}"); return false; }
         return true;
     }
 
@@ -128,14 +123,14 @@ internal static class ArenaGameManagerNetHandler
     {
         switch (type)
         {
-            case ActionType.StartRound: ArenaRoundSystem.AdminStartRound(first, second, third); break;
+            case ActionType.PrepareArena: ArenaRoundSystem.AdminPrepareArena(first); break;
+            case ActionType.StartFight: ArenaRoundSystem.AdminStartFight(first, second, third); break;
             case ActionType.SetCountdown: ArenaRoundSystem.AdminSetCountdown(first); break;
             case ActionType.SetRoundTime: ArenaRoundSystem.AdminSetRoundTime(first); break;
             case ActionType.SetVotingTime: ArenaRoundSystem.AdminSetVotingTime(first); break;
             case ActionType.TogglePause: ArenaRoundSystem.AdminTogglePause(); break;
             case ActionType.AdvancePhase: ArenaRoundSystem.AdminAdvancePhase(); break;
             case ActionType.EndRound: ArenaRoundSystem.AdminEndRound(); break;
-            case ActionType.ClearWorld: ArenaRoundSystem.AdminClearWorld(); break;
             case ActionType.BalanceTeams: ArenaRoundSystem.AdminBalanceTeams(); break;
         }
     }

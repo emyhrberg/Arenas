@@ -6,7 +6,7 @@ using Terraria.ModLoader;
 namespace Arenas.Common.EndScreen;
 
 /// <summary>Sends end screen snapshots to team clients.</summary>
-public static class EndScreenNetHandler
+internal static class EndScreenNetHandler
 {
     public static void HandlePacket(BinaryReader reader, int whoAmI)
     {

@@ -1,14 +1,13 @@
 using Arenas.Common.Rounds;
-using Arenas.Core.Compat;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using Terraria.DataStructures;
 using Terraria.ID;
 
-namespace Arenas.Common.UI;
+namespace Arenas.Common.Sandbox;
 
-internal static class SandboxAdminNetHandler
+internal static class SandboxNetHandler
 {
     private enum ActionType : byte { EquipPreset, SpawnItem }
 
@@ -48,23 +47,6 @@ internal static class SandboxAdminNetHandler
             return;
         }
 
-        bool admin;
-        string reason;
-        try
-        {
-            admin = ErkySSCCompat.IsPlayerAdmin(Main.player[fromWho], out reason);
-        }
-        catch (Exception exception)
-        {
-            admin = false;
-            reason = $"ErkySSC admin check failed: {exception.Message}";
-        }
-        if (!admin)
-        {
-            Log.Warn($"Rejected sandbox admin action {action} from player {fromWho}: {reason}");
-            return;
-        }
-
         if (action == ActionType.EquipPreset)
             EquipPreset(fromWho, first);
         else if (action == ActionType.SpawnItem)
@@ -84,7 +66,7 @@ internal static class SandboxAdminNetHandler
         if (player?.active != true)
             return;
 
-        player.GetModPlayer<ArenasPlayer>().SandboxLoadoutPresetIndex = presetIndex;
+        player.GetModPlayer<ArenaPlayer>().SandboxLoadoutPresetIndex = presetIndex;
         LoadoutService.Apply(player, presets[presetIndex]);
         if (Main.netMode == NetmodeID.Server)
             ArenaRoundNetHandler.SendApplyKit(playerId, presetIndex);
@@ -112,7 +94,7 @@ internal static class SandboxAdminNetHandler
             return;
 
         ModPacket packet = ModContent.GetInstance<Arenas>().GetPacket();
-        packet.Write((byte)Arenas.ArenasPacketType.SandboxAdmin);
+        packet.Write((byte)Arenas.ArenasPacketType.Sandbox);
         packet.Write((byte)action);
         packet.Write(first);
         packet.Write(second);

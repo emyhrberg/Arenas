@@ -1,67 +1,19 @@
-﻿using System;
+using System;
 
 namespace Arenas.Core.Configs;
 
-public enum ConfigIconPlacement
+[AttributeUsage(AttributeTargets.Field | AttributeTargets.Property)]
+internal sealed class ConfigIconAttribute : Attribute
 {
-    Inside,
-    Cut
-}
+    internal int ItemId { get; } = -1;
+    internal string AssetName { get; }
+    internal string OffAssetName { get; }
 
-[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field, AllowMultiple = false)]
-public class ConfigIconAttribute : Attribute
-{
-    public string AssFieldName { get; } // nameof(Ass.Icon_XYZ)
-    public int ItemId { get; } = -1;
-    public ConfigIconPlacement Placement { get; }
-    public string OffAssFieldName { get; }
-    public bool GrayWhenOff { get; }
-
-    public ConfigIconAttribute(int itemId, ConfigIconPlacement placement = ConfigIconPlacement.Inside)
+    public ConfigIconAttribute(int itemId) => ItemId = itemId;
+    public ConfigIconAttribute(string assetName) => AssetName = assetName;
+    public ConfigIconAttribute(string assetName, string offAssetName)
     {
-        ItemId = itemId;
-        Placement = placement;
-    }
-
-    public ConfigIconAttribute(string assFieldName, ConfigIconPlacement placement = ConfigIconPlacement.Inside)
-    {
-        AssFieldName = assFieldName;
-        Placement = placement;
-    }
-
-    public ConfigIconAttribute(string assFieldName, string offAssFieldName, ConfigIconPlacement placement = ConfigIconPlacement.Inside, bool grayWhenOff = false)
-    {
-        AssFieldName = assFieldName;
-        OffAssFieldName = offAssFieldName;
-        Placement = placement;
-        GrayWhenOff = grayWhenOff;
-    }
-}
-
-[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field, AllowMultiple = false)]
-public class HeaderIconAttribute : Attribute
-{
-    public string AssFieldName { get; }
-    public int ItemId { get; } = -1;
-
-    public HeaderIconAttribute(string assFieldName)
-    {
-        AssFieldName = assFieldName;
-    }
-
-    public HeaderIconAttribute(int itemId)
-    {
-        ItemId = itemId;
-    }
-}
-
-[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field, AllowMultiple = true)]
-public class RequiresFieldAttribute : Attribute
-{
-    public string FieldName { get; }
-
-    public RequiresFieldAttribute(string fieldName)
-    {
-        FieldName = fieldName;
+        AssetName = assetName;
+        OffAssetName = offAssetName;
     }
 }

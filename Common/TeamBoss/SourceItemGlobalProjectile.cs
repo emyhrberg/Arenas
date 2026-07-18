@@ -1,12 +1,10 @@
-﻿using Terraria.DataStructures;
+using Terraria.DataStructures;
 
 namespace Arenas.Common.TeamBoss;
 
-internal class StatisticsProjectile : GlobalProjectile
+internal sealed class SourceItemGlobalProjectile : GlobalProjectile
 {
     private Item sourceItem;
-
-    public Item SourceItem => sourceItem;
 
     public override bool InstancePerEntity => true;
 
@@ -29,12 +27,12 @@ internal class StatisticsProjectile : GlobalProjectile
             EntitySource_ItemUse sourceItemUse => sourceItemUse.Item,
             EntitySource_Parent sourceParent when sourceParent.Entity is Projectile parentProjectile &&
                                                   parentProjectile.whoAmI != projectile.whoAmI => parentProjectile
-                .GetGlobalProjectile<StatisticsProjectile>()
+                .GetGlobalProjectile<SourceItemGlobalProjectile>()
                 .sourceItem,
             _ => null
         };
 
-        projectile.GetGlobalProjectile<StatisticsProjectile>().sourceItem = item;
+        sourceItem = item;
     }
 
     private PlayerDeathReason OnPlayerDeathReasonByProjectile(On_PlayerDeathReason.orig_ByProjectile orig,
@@ -42,7 +40,7 @@ internal class StatisticsProjectile : GlobalProjectile
     {
         var self = orig(playerindex, projectileindex);
 
-        self.SourceItem = Main.projectile[projectileindex].GetGlobalProjectile<StatisticsProjectile>().sourceItem;
+        self.SourceItem = Main.projectile[projectileindex].GetGlobalProjectile<SourceItemGlobalProjectile>().sourceItem;
 
         return self;
     }

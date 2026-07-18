@@ -39,13 +39,13 @@ internal sealed class ArenaGenerationSelfTestSystem : ModSystem
             ArenaGeneratorKind.GolemTemple
         ];
 
-        Log.Chat($"[WorldGenSelfTest] START kinds={kinds.Length} samplesPerKind={samples}");
+        Log.Debug($"[WorldGenSelfTest] START kinds={kinds.Length} samplesPerKind={samples}");
         try
         {
             if (!string.IsNullOrWhiteSpace(dumpDirectory))
             {
                 Directory.CreateDirectory(dumpDirectory);
-                Log.Chat($"[WorldGenSelfTest] Writing diagnostic map samples to {dumpDirectory}");
+                Log.Debug($"[WorldGenSelfTest] Writing diagnostic map samples to {dumpDirectory}");
             }
             foreach (ArenaGeneratorKind kind in kinds)
                 for (int sample = 0; sample < samples; sample++)
@@ -57,11 +57,11 @@ internal sealed class ArenaGenerationSelfTestSystem : ModSystem
             if (string.Equals(Environment.GetEnvironmentVariable("ARENAS_WORLDGEN_SELFTEST_CUSTOM"), "1", StringComparison.Ordinal))
                 foreach (ArenaGeneratorKind kind in kinds)
                     RunSample(kind, unchecked(0x5F3759DF ^ (int)kind * 7919), CreateResizedGeometry(kind), dumpDirectory, "resized");
-            Log.Chat("[WorldGenSelfTest] ALL SAMPLES PASSED");
+            Log.Debug("[WorldGenSelfTest] ALL SAMPLES PASSED");
         }
         catch (Exception exception)
         {
-            Log.Chat($"[WorldGenSelfTest/FAIL] {exception}");
+            Log.Debug($"[WorldGenSelfTest/FAIL] {exception}");
             throw;
         }
         finally
@@ -95,7 +95,7 @@ internal sealed class ArenaGenerationSelfTestSystem : ModSystem
         timer.Stop();
         if (!string.IsNullOrWhiteSpace(dumpDirectory))
             WriteMapDump(dumpDirectory, kind, seed, job.Layout);
-        Log.Chat($"[WorldGenSelfTest/PASS] kind={kind} variant={variant} world={geometry.WorldWidth}x{geometry.WorldHeight} seed={seed} elapsed={timer.Elapsed.TotalSeconds:F2}s ticks={ticks} boss={job.Layout.BossSpawn} red={job.Layout.RedSpawn} blue={job.Layout.BlueSpawn}");
+        Log.Debug($"[WorldGenSelfTest/PASS] kind={kind} variant={variant} world={geometry.WorldWidth}x{geometry.WorldHeight} seed={seed} elapsed={timer.Elapsed.TotalSeconds:F2}s ticks={ticks} boss={job.Layout.BossSpawn} red={job.Layout.RedSpawn} blue={job.Layout.BlueSpawn}");
     }
 
     private static ArenaGeometryConfig RoundTrip(ArenaGeometryConfig geometry)
@@ -139,7 +139,7 @@ internal sealed class ArenaGenerationSelfTestSystem : ModSystem
                 stream.WriteByte(g);
                 stream.WriteByte(b);
             }
-        Log.Chat($"[WorldGenSelfTest] WROTE map sample {path}");
+        Log.Debug($"[WorldGenSelfTest] WROTE map sample {path}");
     }
 
     private static (byte R, byte G, byte B) MapColor(Tile tile, int y, ArenaLayout layout, int x)

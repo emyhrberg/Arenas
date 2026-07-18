@@ -8,7 +8,7 @@ using Terraria.Utilities;
 namespace Arenas.Common.EndScreen;
 
 /// <summary>ZensSky-style generated star state for the end screen.</summary>
-public static class EndScreenStarSystem
+internal static class EndScreenStarSystem
 {
     private const float CircularRadius = 2400f;
     private const float GameDayRateDivisor = 70000f;
@@ -49,7 +49,7 @@ public static class EndScreenStarSystem
 }
 
 /// <summary>Draws ZensSky-style rotating stars for the end screen backdrop.</summary>
-public static class EndScreenStarRendering
+internal static class EndScreenStarRendering
 {
     public static void DrawStarsToSky(SpriteBatch spriteBatch, float alpha, Rectangle area)
     {
@@ -90,7 +90,7 @@ public static class EndScreenStarRendering
 }
 
 /// <summary>One generated end-screen star.</summary>
-public struct EndScreenStar
+internal struct EndScreenStar
 {
     public Vector2 Position;
     public Color Color;
@@ -156,7 +156,7 @@ public struct EndScreenStar
 }
 
 /// <summary>Star visual variants copied from the ZensSky renderer shape.</summary>
-public enum EndScreenStarVisual
+internal enum EndScreenStarVisual
 {
     Vanilla,
     Diamond,

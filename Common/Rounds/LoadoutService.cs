@@ -14,9 +14,9 @@ internal static class LoadoutService
         foreach (Item item in player.armor) item.TurnToAir();
         foreach (Item item in player.miscEquips) item.TurnToAir();
 
-        Armor armor = loadout.Armor ?? new();
-        Accessories accessories = loadout.Accessories ?? new();
-        Equipment equipment = loadout.Equipment ?? new();
+        LoadoutArmor armor = loadout.Armor ?? new();
+        LoadoutAccessories accessories = loadout.Accessories ?? new();
+        LoadoutEquipment equipment = loadout.Equipment ?? new();
         ItemDefinition[] equipped = [armor.Head, armor.Body, armor.Legs, accessories.Accessory1, accessories.Accessory2, accessories.Accessory3, accessories.Accessory4, accessories.Accessory5];
         for (int i = 0; i < equipped.Length && i < player.armor.Length; i++)
             player.armor[i].SetDefaults(equipped[i]?.Type ?? ItemID.None);

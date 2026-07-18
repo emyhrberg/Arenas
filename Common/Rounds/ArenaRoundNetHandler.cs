@@ -10,9 +10,8 @@ namespace Arenas.Common.Rounds;
 internal static class ArenaRoundNetHandler
 {
     private enum Packet : byte { SyncState, CastVote, ApplyKit }
-    private static int lastMappedGenerationId = -1;
 
-    internal static void ResetClientState() => lastMappedGenerationId = -1;
+    internal static void ResetClientState() => ArenaMapReveal.Cancel();
 
     public static void HandlePacket(BinaryReader reader, int fromWho)
     {
@@ -41,8 +40,7 @@ internal static class ArenaRoundNetHandler
             IReadOnlyList<RoundPlayerStats> scoreboard = ArenaRoundSystem.Scoreboard;
             writer.Write((byte)ArenaRoundSystem.Phase); writer.Write((byte)ArenaRoundSystem.Result); writer.Write(ArenaRoundSystem.RemainingTicks);
             writer.Write((byte)ArenaRoundSystem.CurrentPresetIndex); writer.Write((sbyte)ArenaRoundSystem.VoteFor(playerId));
-            writer.Write(ArenaRoundSystem.IsTimerPaused); writer.Write(ArenaRoundSystem.BossLife); writer.Write(ArenaRoundSystem.BossLifeMax);
-            writer.Write(ArenaWorldSystem.IsClearing); writer.Write(ArenaWorldSystem.ClearingProgress);
+            writer.Write(ArenaRoundSystem.IsTimerPaused);
             writer.Write(ArenaRoundSystem.GenerationId); writer.Write(ArenaRoundSystem.GenerationProgress);
             writer.Write(ArenaWorldSystem.Layout != null); ArenaWorldSystem.Layout?.Write(writer);
             writer.Write((byte)ArenaRoundSystem.VoteCounts.Count);
@@ -63,22 +61,17 @@ internal static class ArenaRoundNetHandler
     private static void ReadState(BinaryReader reader)
     {
         RoundPhase phase = (RoundPhase)reader.ReadByte(); RoundResult result = (RoundResult)reader.ReadByte(); int ticks = reader.ReadInt32(); int preset = reader.ReadByte(); int localVote = reader.ReadSByte();
-        bool paused = reader.ReadBoolean(); int life = reader.ReadInt32(), lifeMax = reader.ReadInt32();
-        bool clearing = reader.ReadBoolean(); float clearingProgress = reader.ReadSingle();
+        bool paused = reader.ReadBoolean();
         int generationId = reader.ReadInt32(); float generationProgress = reader.ReadSingle();
         ArenaLayout layout = reader.ReadBoolean() ? ArenaLayout.Read(reader) : null;
         List<int> counts = []; List<List<byte>> voters = [];
         for (int i = reader.ReadByte(); i > 0; i--) { List<byte> group = []; for (int n = reader.ReadByte(); n > 0; n--) group.Add(reader.ReadByte()); voters.Add(group); counts.Add(group.Count); }
         List<RoundPlayerStats> scoreboard = [];
         for (int i = reader.ReadByte(); i > 0; i--) scoreboard.Add(new RoundPlayerStats(reader.ReadByte(), (Team)reader.ReadByte(), reader.ReadString(), reader.ReadInt32(), reader.ReadInt32(), reader.ReadInt64(), reader.ReadInt64()));
-        ArenaRoundSystem.ApplyState(phase, result, ticks, preset, localVote, paused, life, lifeMax, clearing, clearingProgress, generationId, generationProgress, layout, counts, voters, scoreboard);
-        if (layout != null && generationProgress >= 1f && lastMappedGenerationId != generationId)
+        ArenaRoundSystem.ApplyState(phase, result, ticks, preset, localVote, paused, generationId, generationProgress, layout, counts, voters, scoreboard);
+        if (layout != null && generationProgress >= 1f)
         {
-            lastMappedGenerationId = generationId;
-            Main.QueueMainThreadAction(() =>
-            {
-                ArenaMapReveal.Reveal(layout);
-            });
+            Main.QueueMainThreadAction(() => ArenaMapReveal.Request(layout, generationId));
         }
     }
 

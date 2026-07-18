@@ -131,6 +131,8 @@ internal static class ArenaDefaults
         ]
     };
 
+    #region Deprecated loadouts
+
     // End of pre-hardmode, tuned for Wall of Flesh. Evolves "molten warrior":
     // Night's Edge (1.4.4 buff), Star Cannon / Phoenix Blaster / Hellwing Bow,
     // Beenades, Obsidian whip-summoner set, dynamite bridge tools.
@@ -280,6 +282,8 @@ internal static class ArenaDefaults
             Item(ItemID.WoodPlatform, 9999)
         ]
     };
+
+    #endregion
 
     // All mechs down, tuned for Plantera. Hallowed armor (Holy Protection dodge)
     // with the 1.4.4 post-mech Terra Blade, Megashark/Shotbow + ichor, Optic
@@ -437,6 +441,8 @@ internal static class ArenaDefaults
         ]
     };
 
+    #region Deprecated loadouts
+
     // Post-Moon Lord. Zenith, SDMG + luminite, Phantasm + ichor (the speedrun
     // Moon Lord killer), Last Prism, Terraprisma + Kaleidoscope, Vortex/Nebula
     // set swaps, Celestial Starboard.
@@ -515,6 +521,8 @@ internal static class ArenaDefaults
             Item(ItemID.WoodPlatform, 9999)
         ]
     };
+
+    #endregion
 
     #endregion
 

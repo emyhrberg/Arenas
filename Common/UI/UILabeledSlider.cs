@@ -9,7 +9,7 @@ using Terraria.UI;
 
 namespace Arenas.Common.UI;
 
-internal sealed class UISliderElement : UIElement
+internal sealed class UILabeledSlider : UIElement
 {
     private readonly string label;
     private readonly float step, buttonStep;
@@ -25,7 +25,6 @@ internal sealed class UISliderElement : UIElement
     public float Value => value;
     public bool IsHeld => Slider.IsHeld;
     public Action<float> OnRelease { get; set; }
-    public string DisabledTooltip { get; set; }
 
     public bool Enabled
     {
@@ -33,7 +32,7 @@ internal sealed class UISliderElement : UIElement
         set { Slider.Enabled = value; text.TextColor = value ? Color.Gray : Color.DimGray; }
     }
 
-    public UISliderElement(string label, float min, float max, float defaultValue, float step = .01f, Action<float> onValueChanged = null, Func<float, string> format = null, Asset<Texture2D> icon = null, float buttonStep = 0f)
+    public UILabeledSlider(string label, float min, float max, float defaultValue, float step = .01f, Action<float> onValueChanged = null, Func<float, string> format = null, Asset<Texture2D> icon = null, float buttonStep = 0f)
     {
         this.label = label; Min = min; Max = max; this.step = Math.Max(step, .0001f); this.buttonStep = buttonStep > 0f ? buttonStep : this.step; changed = onValueChanged; this.format = format; this.icon = icon ?? Ass.IconArenas;
         Width.Set(0, 1f); Height.Set(32, 0);
@@ -55,9 +54,7 @@ internal sealed class UISliderElement : UIElement
     public override void Update(GameTime gameTime)
     {
         base.Update(gameTime);
-        if (!IsMouseHovering) return;
-        Main.LocalPlayer.mouseInterface = true;
-        if (!Enabled && !string.IsNullOrWhiteSpace(DisabledTooltip)) Main.instance.MouseText(DisabledTooltip);
+        if (IsMouseHovering) Main.LocalPlayer.mouseInterface = true;
     }
 
     protected override void DrawSelf(SpriteBatch spriteBatch)

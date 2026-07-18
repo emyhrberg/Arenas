@@ -8,7 +8,7 @@ namespace Arenas.Common.AdminTools.SubworldManager;
 
 internal static class SubworldManagerNetHandler
 {
-    public enum SubworldManagerPacketType : byte
+    internal enum Action : byte
     {
         SendAllToMainWorld = 0,
         SendAllToArenas = 1,
@@ -16,11 +16,11 @@ internal static class SubworldManagerNetHandler
         SendPlayerToArenas = 3
     }
 
-    public static void Request(SubworldManagerPacketType type, int targetPlayer = -1)
+    internal static void Request(Action action, int targetPlayer = -1)
     {
         if (Main.netMode == NetmodeID.SinglePlayer)
         {
-            ExecuteLocally(type, targetPlayer);
+            Execute(action, targetPlayer);
             return;
         }
 
@@ -29,40 +29,36 @@ internal static class SubworldManagerNetHandler
 
         var packet = ModContent.GetInstance<Arenas>().GetPacket();
         packet.Write((byte)Arenas.ArenasPacketType.SubworldManager);
-        packet.Write((byte)type);
+        packet.Write((byte)action);
         packet.Write((short)targetPlayer);
         packet.Send();
     }
 
     public static void HandlePacket(BinaryReader reader, int fromWho)
     {
-        var type = (SubworldManagerPacketType)reader.ReadByte();
+        Action action = (Action)reader.ReadByte();
         int targetPlayer = reader.ReadInt16();
 
-        if (Main.netMode == NetmodeID.Server)
+        if (Main.netMode != NetmodeID.Server)
+            return;
+        if (fromWho != 256 && !ErkySSCCompat.IsAdmin(fromWho, out string reason))
         {
-            if (fromWho != 256 && !ErkySSCCompat.IsPlayerAdmin(Main.player[fromWho], out string reason))
-            {
-                string name = fromWho >= 0 && fromWho < Main.maxPlayers ? Main.player[fromWho]?.name : "unknown";
-                Log.Warn($"Rejected Subworld admin packet '{type}' from {name} ({fromWho}).");
-                Log.Warn($"Reason: {reason}");
-                return;
-            }
-
-            if (SubworldSystem.IsActive<ArenasSubworld>())
-                RelayToMainServer(type, targetPlayer);
-            else
-                ExecuteOnMainServer(type, targetPlayer);
+            Log.Warn($"Rejected Subworld Manager action {action} from player {fromWho}: {reason}");
             return;
         }
+
+        if (SubworldSystem.IsActive<ArenasSubworld>())
+            RelayToMainServer(action, targetPlayer);
+        else
+            Execute(action, targetPlayer);
     }
 
-    private static void ExecuteLocally(SubworldManagerPacketType type, int targetPlayer)
+    private static void Execute(Action action, int targetPlayer)
     {
-        if (targetPlayer >= 0 && targetPlayer != Main.myPlayer)
+        if (Main.netMode == NetmodeID.SinglePlayer && targetPlayer >= 0 && targetPlayer != Main.myPlayer)
             return;
 
-        if (type is SubworldManagerPacketType.SendAllToMainWorld or SubworldManagerPacketType.SendPlayerToMainWorld)
+        if (action is Action.SendAllToMainWorld or Action.SendPlayerToMainWorld)
         {
             ArenaSubworldCoordinator.MoveFromArenaToMain(targetPlayer);
             return;
@@ -71,24 +67,16 @@ internal static class SubworldManagerNetHandler
         ArenaSubworldCoordinator.MoveFromMainToExistingArena(targetPlayer);
     }
 
-    private static void ExecuteOnMainServer(SubworldManagerPacketType type, int targetPlayer)
-    {
-        if (type is SubworldManagerPacketType.SendAllToMainWorld or SubworldManagerPacketType.SendPlayerToMainWorld)
-            ArenaSubworldCoordinator.MoveFromArenaToMain(targetPlayer);
-        else
-            ArenaSubworldCoordinator.MoveFromMainToExistingArena(targetPlayer);
-    }
-
-    private static void RelayToMainServer(SubworldManagerPacketType type, int targetPlayer)
+    private static void RelayToMainServer(Action action, int targetPlayer)
     {
         using MemoryStream stream = new();
         using (BinaryWriter writer = new(stream, System.Text.Encoding.UTF8, true))
         {
             writer.Write((byte)Arenas.ArenasPacketType.SubworldManager);
-            writer.Write((byte)type);
+            writer.Write((byte)action);
             writer.Write((short)targetPlayer);
         }
-        Log.Debug($"[SubworldManager0] Relaying {type} to the main server. target={targetPlayer}.");
+        Log.Debug($"[SubworldManager0] Relaying {action} to the main server target={targetPlayer}");
         SubworldSystem.SendToMainServer(ModContent.GetInstance<Arenas>(), stream.ToArray());
     }
 }

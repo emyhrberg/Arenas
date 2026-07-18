@@ -11,14 +11,14 @@ internal static class ArenaGenerationDiagnostics
     public static void LogSnapshot(string stage, ArenaLayout layout)
     {
         Metrics metrics = Measure(layout);
-        Log.Chat($"[WorldGenAudit/{stage}] {metrics.Summary}");
+        Log.Debug($"[WorldGenAudit/{stage}] {metrics.Summary}");
     }
 
     public static void ValidateOrThrow(ArenaLayout layout, IArenaGenerator generator)
     {
         Metrics m = Measure(layout, generator.WorldSurface, generator.RockLayer);
         List<string> failures = [];
-        Log.Chat($"[WorldGenAudit/Final] generator={layout.Generator} seed={layout.Seed} {m.Summary}");
+        Log.Debug($"[WorldGenAudit/Final] generator={layout.Generator} seed={layout.Seed} {m.Summary}");
 
         if (m.Active < 50_000)
             failures.Add($"active tiles={m.Active} < 50000; Terrain/Jungle initialization did not fill the arena");
@@ -41,12 +41,12 @@ internal static class ArenaGenerationDiagnostics
 
         if (failures.Count == 0)
         {
-            Log.Chat($"[WorldGenAudit/PASS] {layout.Generator} seed={layout.Seed} passed {m.CheckCount(layout.Generator)} generation invariants");
+            Log.Debug($"[WorldGenAudit/PASS] {layout.Generator} seed={layout.Seed} passed {m.CheckCount(layout.Generator)} generation invariants");
             return;
         }
 
         foreach (string failure in failures)
-            Log.Chat($"[WorldGenAudit/FAIL] {failure}");
+            Log.Debug($"[WorldGenAudit/FAIL] {failure}");
         throw new InvalidOperationException($"Arena generation audit failed for {layout.Generator} seed={layout.Seed}: {string.Join(" | ", failures)}. Metrics: {m.Summary}");
     }
 

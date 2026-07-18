@@ -10,7 +10,7 @@ using Terraria.ModLoader;
 namespace Arenas.Common.EndScreen;
 
 /// <summary>Replaces only the vanilla background while the end screen is visible.</summary>
-public class EndScreenBackgroundHook : ModSystem
+internal sealed class EndScreenBackgroundHook : ModSystem
 {
     private Hook drawBgHook;
 

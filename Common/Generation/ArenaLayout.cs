@@ -1,12 +1,11 @@
 using Arenas.Core.Configs.ConfigElements;
 using System;
-using System.Collections.Generic;
 using System.IO;
 using Terraria.Enums;
 
 namespace Arenas.Common.Generation;
 
-public sealed class ArenaLayout
+internal sealed class ArenaLayout
 {
     public ArenaGeneratorKind Generator { get; init; }
     public int Seed { get; init; }
@@ -27,26 +26,8 @@ public sealed class ArenaLayout
     public bool AutoPlaceTeamSpawns { get; init; }
     public bool AutoPlaceBossSpawn { get; init; }
     public int MirrorRight => WorldWidth - 1;
-    public int MirrorLeftX => WorldWidth / 2 - 1;
     public int MirrorRightX => WorldWidth / 2;
     public int CenterX => WorldWidth / 2;
-    public IReadOnlyList<Rectangle> StructuralRegions
-    {
-        get
-        {
-            if (Generator == ArenaGeneratorKind.SandboxWorld)
-                return [];
-
-            int outer = OuterBorderThickness;
-            return
-            [
-                new Rectangle(ArenaArea.Left - outer, ArenaArea.Top - outer, ArenaArea.Width + outer * 2, outer),
-                new Rectangle(ArenaArea.Left - outer, ArenaArea.Bottom, ArenaArea.Width + outer * 2, outer),
-                new Rectangle(ArenaArea.Left - outer, ArenaArea.Top, outer, ArenaArea.Height),
-                new Rectangle(ArenaArea.Right, ArenaArea.Top, outer, ArenaArea.Height)
-            ];
-        }
-    }
 
     public Point TeamSpawn(Team team) => team == Team.Blue ? BlueSpawn : RedSpawn;
 

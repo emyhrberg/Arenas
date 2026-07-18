@@ -11,7 +11,7 @@ using Terraria.ModLoader.UI;
 using Terraria.ModLoader.UI.Elements;
 using Terraria.UI;
 
-namespace Arenas.Common;
+namespace Arenas.Common.Sandbox;
 
 internal sealed class SandboxItemSpawnerPanel : UIDraggablePanel
 {
@@ -28,23 +28,23 @@ internal sealed class SandboxItemSpawnerPanel : UIDraggablePanel
 
     public SandboxItemSpawnerPanel() : base("Item Spawner")
     {
-        Width.Set(450, 0); Height.Set(600, 0); HAlign = .5f; Top.Set(90, 0); Left.Set(231, 0); ContentPanel.SetPadding(8);
+        Width.Set(450, 0); Height.Set(600, 0); HAlign = .5f; Top.Set(90, 0); Left.Set(231, 0); Content.SetPadding(8);
         foreach (Item item in ContentSamples.ItemsByType.OrderBy(x => x.Key).Select(x => x.Value).Where(x => x?.IsAir == false)) items.Add((item.Clone(), new SandboxItemSlot(item, size: 44)));
         Asset<Texture2D>[] icons = [Ass.FilterAll, Ass.FilterMelee, Ass.FilterMelee, Ass.FilterRanged, Ass.FilterMagic, Ass.FilterSummon, Ass.FilterArmor, Ass.FilterVanity, Ass.FilterAccessories, Ass.FilterPotion, Ass.FilterPlaceables, Ass.FilterMisc];
         for (int i = 0; i < icons.Length; i++) AddFilter(icons[i], (Filter)i, i * 24); AddModFilters();
-        search.Top.Set(0, 0); search.Left.Set(-140, 1); search.Width.Set(140, 0); search.Height.Set(24, 0); search.OnChanged = Rebuild; ContentPanel.Append(search);
-        grid.Top.Set(60, 0); grid.Width.Set(-26, 1); grid.Height.Set(-84, 1); grid.SetScrollbar(scroll); ContentPanel.Append(grid);
-        scroll.Top.Set(60, 0); scroll.Left.Set(-20, 1); scroll.Width.Set(20, 0); scroll.Height.Set(-84, 1); ContentPanel.Append(scroll);
-        count.Top.Set(-18, 1); count.HAlign = .5f; ContentPanel.Append(count); Rebuild();
+        search.Top.Set(0, 0); search.Left.Set(-140, 1); search.Width.Set(140, 0); search.Height.Set(24, 0); search.OnChanged = Rebuild; Content.Append(search);
+        grid.Top.Set(60, 0); grid.Width.Set(-26, 1); grid.Height.Set(-84, 1); grid.SetScrollbar(scroll); Content.Append(grid);
+        scroll.Top.Set(60, 0); scroll.Left.Set(-20, 1); scroll.Width.Set(20, 0); scroll.Height.Set(-84, 1); Content.Append(scroll);
+        count.Top.Set(-18, 1); count.HAlign = .5f; Content.Append(count); Rebuild();
     }
 
-    protected override void OnClosePanelLeftClick() { search.Unfocus(); ModContent.GetInstance<AdminUISystem>().Hide(); }
+    protected override void OnClosePanelLeftClick() { search.Unfocus(); ModContent.GetInstance<SandboxUISystem>().Hide(); }
     protected override void OnRefreshPanelLeftClick() { search.SetText(""); mod = ""; filter = Filter.All; Rebuild(); }
-    private void AddFilter(Asset<Texture2D> icon, Filter value, float left) { SpawnerFilterButton b = new(icon, value.ToString(), left); b.OnLeftClick += (_, _) => { filter = value; Rebuild(); }; filters.Add(b); ContentPanel.Append(b); }
+    private void AddFilter(Asset<Texture2D> icon, Filter value, float left) { SpawnerFilterButton b = new(icon, value.ToString(), left); b.OnLeftClick += (_, _) => { filter = value; Rebuild(); }; filters.Add(b); Content.Append(b); }
     private void AddModFilters()
     {
         Mod[] owners = [.. ModLoader.Mods.Where(x => x.GetContent<ModItem>().Any())]; string[] names = ["", .. owners.Select(x => x.Name)]; float left = 0;
-        foreach (string name in names) { Mod owner = owners.FirstOrDefault(x => x.Name == name); SpawnerFilterButton b = new(Ass.FilterAll, owner?.DisplayNameClean ?? "All Items", left, name); b.OnLeftClick += (_, _) => { mod = name; Rebuild(); }; mods.Add(b); ContentPanel.Append(b); left += 24; }
+        foreach (string name in names) { Mod owner = owners.FirstOrDefault(x => x.Name == name); SpawnerFilterButton b = new(Ass.FilterAll, owner?.DisplayNameClean ?? "All Items", left, name); b.OnLeftClick += (_, _) => { mod = name; Rebuild(); }; mods.Add(b); Content.Append(b); left += 24; }
     }
     private void Rebuild()
     {

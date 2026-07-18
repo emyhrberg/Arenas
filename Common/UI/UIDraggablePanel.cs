@@ -1,9 +1,5 @@
-﻿using Arenas.Core;
-using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
-using ReLogic.Content;
+using Arenas.Core;
 using System;
-using Terraria;
 using Terraria.Audio;
 using Terraria.GameContent.UI.Elements;
 using Terraria.ID;
@@ -11,314 +7,104 @@ using Terraria.UI;
 
 namespace Arenas.Common.UI;
 
-/// <summary>
-/// Class used to define common properties for admin tool window panels,
-/// such as 
-/// <see cref="PointsSetter"/> 
-/// <seealso cref="GameStarter"/>, etc.
-/// <seealso cref="AdminTools"/>
-/// <seealso cref="Common.Spectator.UI"/>
-/// </summary>
-public abstract class UIDraggablePanel : UIElement
+internal abstract class UIDraggablePanel : UIElement
 {
-    // Dragging
+    private readonly UIPanel titleBar;
+    private readonly UIPanel closeButton;
+    private readonly UIPanel refreshButton;
+    private readonly UIResizeHandle resizeHandle;
     private bool dragging;
     private Vector2 dragOffset;
 
-    // Content
-    protected UIPanel TitlePanel;
-    protected UIPanel ContentPanel;
-    protected UIPanel RefreshPanel;
-    protected UIPanel ClosePanel;
-    protected UIResizeButton ResizeButton;
-    private readonly string title;
-
-    // Overridable properties
+    protected UIPanel Content { get; }
     protected abstract void OnClosePanelLeftClick();
     protected virtual void OnRefreshPanelLeftClick() { }
-    protected virtual void OnPanelRebuilt() { }
-    protected virtual bool ShowRefreshButton => true;
-    protected virtual bool IsTabButtonHovered() => false;
-
-    /// <summary> Gets the minimum allowed width, in pixels, for resizing operations. </summary>
-    protected virtual float MinResizeW => 360;
-    /// <summary> Gets the minimum allowed height, in pixels, when resizing. </summary>
+    protected virtual float MinResizeW => 360f;
     protected virtual float MinResizeH => 250f;
-    /// <summary> Gets the maximum allowed width, in pixels, for resizing operations. </summary>
     protected virtual float MaxResizeW => 1000f;
-    /// <summary> Gets the maximum allowed height, in pixels, when resizing. </summary>
     protected virtual float MaxResizeH => 1000f;
-    protected virtual bool ShowResizeButton => true;
 
-    // Constructor sets the style of this panel.
-    public UIDraggablePanel(string title)
+    protected UIDraggablePanel(string title)
     {
-        this.title = title;
+        Width.Set(350f, 0f);
+        Height.Set(460f, 0f);
+        HAlign = .9f;
+        VAlign = .7f;
+        SetPadding(0f);
 
-        // Size and position
-        Width.Set(350, 0);
-        Height.Set(460, 0);
-        Top.Set(0, 0);
-        Left.Set(0, 0);
-        VAlign = 0.7f;
-        HAlign = 0.9f;
-        SetPadding(0);
-
-        // Rebuild the entire panel
-        Rebuild();
-    }
-
-    private void Rebuild()
-    {
-        dragging = false;
-
-        RemoveAllChildren();
-
-        TitlePanel = null;
-        ContentPanel = null;
-        RefreshPanel = null;
-        ClosePanel = null;
-        ResizeButton = null;
-
-        TitlePanel = new();
-        TitlePanel.Height.Set(40, 0);
-        TitlePanel.Width.Set(0, 1);
-        TitlePanel.SetPadding(0);
-        TitlePanel.BackgroundColor = new Color(63, 82, 151) * 1f;
-
-        UIText titleText = new(title, large: true, textScale: 0.7f)
+        titleBar = new UIPanel
         {
-            HAlign = 0.5f,
-            VAlign = 0.5f
+            Width = { Percent = 1f },
+            Height = { Pixels = 40f },
+            BackgroundColor = new Color(63, 82, 151)
         };
-        TitlePanel.Append(titleText);
+        titleBar.SetPadding(0f);
+        titleBar.Append(new UIText(title, .7f, true) { HAlign = .5f, VAlign = .5f });
 
-        ContentPanel = new UIPanel
+        Content = new UIPanel
         {
-            Top = new StyleDimension(40, 0),
-            Width = new StyleDimension(0, 1),
-            Height = new StyleDimension(-40, 1),
-            BackgroundColor = new Color(20, 20, 60) * 0.7f,
+            Top = { Pixels = 40f },
+            Width = { Percent = 1f },
+            Height = { Pixels = -40f, Percent = 1f },
+            BackgroundColor = new Color(20, 20, 60) * .7f,
             BorderColor = Color.Black
         };
-        ContentPanel.SetPadding(0);
-        Append(ContentPanel);
+        Content.SetPadding(0f);
 
-        ClosePanel = new UIPanel
-        {
-            Height = new StyleDimension(0, 1),
-            Width = new StyleDimension(40, 0),
-            HAlign = 1f,
-            VAlign = 0.5f
-        };
-        ClosePanel.OnLeftClick += (_, _) =>
+        refreshButton = HeaderButton(0f, new UIImage(Ass.IconRefresh.Value) { HAlign = .5f, VAlign = .5f });
+        refreshButton.OnLeftClick += (_, _) => OnRefreshPanelLeftClick();
+
+        closeButton = HeaderButton(1f, new UIText("X", .55f, true) { HAlign = .5f, VAlign = .5f });
+        closeButton.OnLeftClick += (_, _) =>
         {
             SoundEngine.PlaySound(SoundID.MenuClose);
             OnClosePanelLeftClick();
         };
-        ClosePanel.OnMouseOver += (_, _) => ClosePanel.BorderColor = Color.Yellow;
-        ClosePanel.OnMouseOut += (_, _) => ClosePanel.BorderColor = Color.Black;
 
-        var closeText = new UIText("X", large: true, textScale: 0.55f)
-        {
-            HAlign = 0.5f,
-            VAlign = 0.5f
-        };
+        titleBar.Append(refreshButton);
+        titleBar.Append(closeButton);
+        Append(Content);
+        Append(titleBar);
 
-        ClosePanel.Append(closeText);
-        TitlePanel.Append(ClosePanel);
-        Append(TitlePanel);
-
-        // Refresh panel
-        if (ShowRefreshButton)
-        {
-            RefreshPanel = new()
-            {
-                Height = new StyleDimension(0, 1),
-                Width = new StyleDimension(40, 0),
-                VAlign = 0.5f
-            };
-
-            RefreshPanel.OnLeftClick += (_, _) => OnRefreshPanelLeftClick();
-            RefreshPanel.OnMouseOver += (_, _) => RefreshPanel.BorderColor = Color.Yellow;
-            RefreshPanel.OnMouseOut += (_, _) => RefreshPanel.BorderColor = Color.Black;
-            RefreshPanel.SetPadding(0);
-
-            RefreshPanel.Append(new UIImage(Ass.IconRefresh.Value)
-            {
-                HAlign = 0.5f,
-                VAlign = 0.5f
-            });
-
-            TitlePanel.Append(RefreshPanel);
-        }
-
-        // Resize
-        if (ShowResizeButton)
-        {
-            ResizeButton = new(Ass.IconResize);
-
-            ResizeButton.OnDragX += dx =>
-            {
-                if (Parent == null)
-                    return;
-
-                if (HAlign != 0f || VAlign != 0f || Left.Percent != 0f || Top.Percent != 0f)
-                {
-                    var p = Parent.GetDimensions();
-                    var d = GetDimensions();
-
-                    HAlign = 0f;
-                    VAlign = 0f;
-                    Left.Percent = 0f;
-                    Top.Percent = 0f;
-
-                    Left.Pixels = d.X - p.X;
-                    Top.Pixels = d.Y - p.Y;
-
-                    Recalculate();
-                }
-
-                var parent = Parent.GetDimensions();
-
-                float maxW = Math.Min(MaxResizeW, parent.Width - Left.Pixels);
-                float w = Utils.Clamp(Width.Pixels + dx, MinResizeW, maxW);
-
-                Width.Set(w, 0f);
-                Recalculate();
-            };
-
-            ResizeButton.OnDragY += dy =>
-            {
-                if (Parent == null)
-                    return;
-
-                if (HAlign != 0f || VAlign != 0f || Left.Percent != 0f || Top.Percent != 0f)
-                {
-                    var p = Parent.GetDimensions();
-                    var d = GetDimensions();
-
-                    HAlign = 0f;
-                    VAlign = 0f;
-                    Left.Percent = 0f;
-                    Top.Percent = 0f;
-
-                    Left.Pixels = d.X - p.X;
-                    Top.Pixels = d.Y - p.Y;
-
-                    Recalculate();
-                }
-
-                var parent = Parent.GetDimensions();
-
-                float maxH = Math.Min(MaxResizeH, parent.Height - Top.Pixels);
-                float h = Utils.Clamp(Height.Pixels + dy, MinResizeH, Math.Max(MinResizeH, maxH));
-
-                Height.Set(h, 0f);
-                Recalculate();
-            };
-
-            Append(ResizeButton);
-        }
-        Recalculate();
+        resizeHandle = new UIResizeHandle();
+        resizeHandle.Dragged += Resize;
+        Append(resizeHandle);
     }
 
-    #region Dragging
     public override void Update(GameTime gameTime)
     {
         base.Update(gameTime);
-
         if (IsMouseHovering)
             Main.LocalPlayer.mouseInterface = true;
-
-        if (RefreshPanel?.IsMouseHovering == true)
+        if (refreshButton.IsMouseHovering)
             Main.instance.MouseText("Refresh");
-
-        if (Parent == null)
+        if (!dragging || Parent == null)
             return;
-
-        if (dragging)
+        if (!Main.mouseLeft)
         {
-            if (!Main.mouseLeft)
-            {
-                dragging = false;
-                return;
-            }
-
-            var parent = Parent.GetDimensions();
-
-            Vector2 mouse = Main.MouseScreen;
-            Left.Pixels = mouse.X - dragOffset.X - parent.X;
-            Top.Pixels = mouse.Y - dragOffset.Y - parent.Y;
-
-            // Clamp to screen
-            var dims = GetDimensions();
-            Left.Pixels = Utils.Clamp(Left.Pixels, 0f, Math.Max(0f, parent.Width - dims.Width));
-            Top.Pixels = Utils.Clamp(Top.Pixels, 0f, Math.Max(0f, parent.Height - dims.Height));
-            Recalculate();
+            dragging = false;
             return;
         }
 
-        if (ClosePanel.IsMouseHovering || RefreshPanel?.IsMouseHovering == true || ResizeButton?.IsMouseHovering == true || IsTabButtonHovered())
-            return;
-
-        // Ensure panel stays on screen
-        var parentSpace = Parent.GetDimensions().ToRectangle();
-        if (!GetDimensions().ToRectangle().Intersects(parentSpace))
-        {
-            Left.Pixels = Utils.Clamp(Left.Pixels, 0, parentSpace.Right - Width.Pixels);
-            Top.Pixels = Utils.Clamp(Top.Pixels, 0, parentSpace.Bottom - Height.Pixels);
-            Recalculate();
-        }
-
-#if DEBUG
-        if (Main.keyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.F5) && !Main.oldKeyState.IsKeyDown(Microsoft.Xna.Framework.Input.Keys.F5))
-        {
-            Rebuild();
-            OnPanelRebuilt();
-        }
-#endif
+        CalculatedStyle parent = Parent.GetDimensions();
+        Vector2 mouse = Main.MouseScreen - dragOffset - parent.Position();
+        Left.Set(MathHelper.Clamp(mouse.X, 0f, Math.Max(0f, parent.Width - GetDimensions().Width)), 0f);
+        Top.Set(MathHelper.Clamp(mouse.Y, 0f, Math.Max(0f, parent.Height - GetDimensions().Height)), 0f);
+        Recalculate();
     }
 
     public override void LeftMouseDown(UIMouseEvent evt)
     {
         base.LeftMouseDown(evt);
-
-        if (ClosePanel.IsMouseHovering || RefreshPanel?.IsMouseHovering == true || ResizeButton?.IsMouseHovering == true || IsTabButtonHovered())
+        if (Parent == null || !titleBar.ContainsPoint(evt.MousePosition) || IsOverButton())
             return;
 
-        if (TitlePanel == null || !TitlePanel.ContainsPoint(evt.MousePosition) || Parent == null)
-            return;
-
-        BringToFront();
-
-        if (HAlign != 0f || VAlign != 0f || Left.Percent != 0f || Top.Percent != 0f)
-        {
-            var p = Parent.GetDimensions();
-            var d = GetDimensions();
-
-            HAlign = 0f;
-            VAlign = 0f;
-            Left.Percent = 0f;
-            Top.Percent = 0f;
-
-            Left.Pixels = d.X - p.X;
-            Top.Pixels = d.Y - p.Y;
-
-            Recalculate();
-        }
-
-        dragging = true;
-        dragOffset = Main.MouseScreen - GetDimensions().Position();
-    }
-
-    private void BringToFront()
-    {
-        if (Parent is not UIElement parent)
-            return;
-
+        UIElement parent = Parent;
         parent.RemoveChild(this);
         parent.Append(this);
+        UsePixelPosition();
+        dragging = true;
+        dragOffset = Main.MouseScreen - GetDimensions().Position();
     }
 
     public override void LeftMouseUp(UIMouseEvent evt)
@@ -326,5 +112,47 @@ public abstract class UIDraggablePanel : UIElement
         base.LeftMouseUp(evt);
         dragging = false;
     }
-    #endregion
+
+    private UIPanel HeaderButton(float align, UIElement child)
+    {
+        UIPanel button = new()
+        {
+            Width = { Pixels = 40f },
+            Height = { Percent = 1f },
+            HAlign = align,
+            VAlign = .5f
+        };
+        button.SetPadding(0f);
+        button.OnMouseOver += (_, _) => button.BorderColor = Color.Yellow;
+        button.OnMouseOut += (_, _) => button.BorderColor = Color.Black;
+        button.Append(child);
+        return button;
+    }
+
+    private void Resize(Vector2 delta)
+    {
+        if (Parent == null)
+            return;
+        UsePixelPosition();
+        CalculatedStyle parent = Parent.GetDimensions();
+        float maxWidth = Math.Max(MinResizeW, Math.Min(MaxResizeW, parent.Width - Left.Pixels));
+        float maxHeight = Math.Max(MinResizeH, Math.Min(MaxResizeH, parent.Height - Top.Pixels));
+        Width.Set(MathHelper.Clamp(Width.Pixels + delta.X, MinResizeW, maxWidth), 0f);
+        Height.Set(MathHelper.Clamp(Height.Pixels + delta.Y, MinResizeH, maxHeight), 0f);
+        Recalculate();
+    }
+
+    private void UsePixelPosition()
+    {
+        if (Parent == null || HAlign == 0f && VAlign == 0f && Left.Percent == 0f && Top.Percent == 0f)
+            return;
+        CalculatedStyle parent = Parent.GetDimensions();
+        CalculatedStyle panel = GetDimensions();
+        HAlign = VAlign = 0f;
+        Left.Set(panel.X - parent.X, 0f);
+        Top.Set(panel.Y - parent.Y, 0f);
+        Recalculate();
+    }
+
+    private bool IsOverButton() => closeButton.IsMouseHovering || refreshButton.IsMouseHovering || resizeHandle.IsMouseHovering;
 }

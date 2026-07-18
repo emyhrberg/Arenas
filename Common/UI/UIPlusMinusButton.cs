@@ -11,7 +11,7 @@ namespace Arenas.Common.UI;
 /// A single "+" or "-" step button with the shared PvPAdventure / ErkySSC style.
 /// IMPORTANT: keep this class identical to ErkySSC's UIPlusMinusButton.
 /// </summary>
-public class UIPlusMinusButton : UIElement
+internal sealed class UIPlusMinusButton : UIElement
 {
     public const float DefaultSize = 20f;
 

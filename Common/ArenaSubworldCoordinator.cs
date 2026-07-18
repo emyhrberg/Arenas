@@ -43,11 +43,6 @@ internal sealed class ArenaSubworldCoordinator : ModSystem, ICopyWorldData
     internal static bool IsTransitioning => transitionState != TransitionState.None;
     internal static string SscWorldScope => sscWorldScope;
 
-    public override void OnWorldUnload()
-    {
-        // Static transition data intentionally survives a normal Subworld Library world swap.
-    }
-
     public override void PostUpdateEverything()
     {
         if (SubworldSystem.IsActive<ArenasSubworld>())
@@ -84,14 +79,14 @@ internal sealed class ArenaSubworldCoordinator : ModSystem, ICopyWorldData
         MoveRosterIntoArena();
     }
 
-    internal static bool StartRound(int presetIndex, int countdownTicks, int playingTicks, int generationId)
+    internal static bool PrepareArena(int presetIndex, int countdownTicks, int playingTicks, int generationId)
     {
         if (Main.netMode == NetmodeID.MultiplayerClient)
             return false;
 
         if (SubworldSystem.IsActive<ArenasSubworld>())
         {
-            int expected = Math.Max(1, CountReadyPlayers(presetIndex));
+            int expected = Math.Max(1, CountReadyPlayers());
             CaptureTeamsFromActivePlayers();
             pendingRequest = new ArenaSubworldRequest(presetIndex, Main.rand.Next(), countdownTicks, playingTicks, Math.Max(1, generationId), expected);
             Log.Debug($"[ArenaFlow1] Requested a fresh arena from inside the current subworld. preset={presetIndex}, expectedPlayers={expected}.");
@@ -110,7 +105,7 @@ internal sealed class ArenaSubworldCoordinator : ModSystem, ICopyWorldData
         if (SubworldSystem.AnyActive())
             return false;
 
-        CaptureRoster(presetIndex);
+        CaptureRoster();
         pendingRequest = new ArenaSubworldRequest(presetIndex, Main.rand.Next(), countdownTicks, playingTicks, Math.Max(1, generationId), Math.Max(1, roster.Count));
         Log.Debug($"[ArenaFlow1] Launching an arena subworld. preset={presetIndex}, seed={pendingRequest.Seed}, expectedPlayers={pendingRequest.ExpectedPlayers}.");
         if (Main.netMode == NetmodeID.SinglePlayer)
@@ -175,7 +170,7 @@ internal sealed class ArenaSubworldCoordinator : ModSystem, ICopyWorldData
         SubworldSystem.SendToMainServer(ModContent.GetInstance<Arenas>(), stream.ToArray());
     }
 
-    private static void CaptureRoster(int presetIndex)
+    private static void CaptureRoster()
     {
         roster.Clear();
         rosterTeams.Clear();
@@ -270,7 +265,7 @@ internal sealed class ArenaSubworldCoordinator : ModSystem, ICopyWorldData
             return;
 
         bootstrapTicks++;
-        int readyPlayers = CountReadyPlayers(activeRequest.PresetIndex);
+        int readyPlayers = CountReadyPlayers();
         int expectedPlayers = Math.Max(1, activeRequest.ExpectedPlayers);
         if (readyPlayers != lastReadyPlayers)
         {
@@ -286,11 +281,11 @@ internal sealed class ArenaSubworldCoordinator : ModSystem, ICopyWorldData
             Log.Warn($"Arena bootstrap timed out waiting for players; starting with {readyPlayers}/{expectedPlayers} ready.");
 
         bootstrapPending = false;
-        Log.Debug($"[ArenaFlow5] Starting round bootstrap. preset={activeRequest.PresetIndex}, readyPlayers={readyPlayers}.");
-        ArenaRoundSystem.StartSubworldRound(activeRequest.PresetIndex, activeRequest.CountdownTicks, activeRequest.PlayingTicks, activeRequest.GenerationId);
+        Log.Debug($"[ArenaFlow5] Arena transfer complete. preset={activeRequest.PresetIndex}, readyPlayers={readyPlayers}; waiting for host start.");
+        ArenaRoundSystem.MarkSubworldReady(activeRequest.PresetIndex, activeRequest.GenerationId);
     }
 
-    private static int CountReadyPlayers(int presetIndex)
+    private static int CountReadyPlayers()
     {
         ApplyRosterTeams();
         ArenaRoundSystem.AssignBalancedTeams();

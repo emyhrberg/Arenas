@@ -25,15 +25,15 @@ internal static class VanillaGenPassRunner
             Main.rand = new UnifiedRandom(seed);
             pass.Reset();
             Stopwatch timer = Stopwatch.StartNew();
-            Log.Chat($"[{scope}] START vanilla GenPass '{name}' seed={seed} size={Main.maxTilesX}x{Main.maxTilesY}");
+            Log.Debug($"[{scope}] START vanilla GenPass '{name}' seed={seed} size={Main.maxTilesX}x{Main.maxTilesY}");
             pass.Apply(new GenerationProgress(), Configuration.GetPassConfiguration(name));
             timer.Stop();
-            Log.Chat($"[{scope}] END vanilla GenPass '{name}' elapsed={timer.Elapsed.TotalMilliseconds:F1}ms surface={Main.worldSurface:F1} rock={Main.rockLayer:F1} water={GenVars.waterLine} lava={GenVars.lavaLine}");
+            Log.Debug($"[{scope}] END vanilla GenPass '{name}' elapsed={timer.Elapsed.TotalMilliseconds:F1}ms surface={Main.worldSurface:F1} rock={Main.rockLayer:F1} water={GenVars.waterLine} lava={GenVars.lavaLine}");
         }
         catch (Exception exception)
         {
             string state = $"scope={scope}, pass={name}, seed={seed}, size={Main.maxTilesX}x{Main.maxTilesY}, surface={Main.worldSurface:F1}, rock={Main.rockLayer:F1}, water={GenVars.waterLine}, lava={GenVars.lavaLine}";
-            Log.Chat($"[WorldGenFailure] {state}: {exception.GetType().Name}: {exception.Message}");
+            Log.Debug($"[WorldGenFailure] {state}: {exception.GetType().Name}: {exception.Message}");
             throw new InvalidOperationException($"Vanilla world generation failed ({state}). Inspect the inner exception and the preceding WorldGen chat/log entries", exception);
         }
     }

@@ -12,7 +12,7 @@ namespace Arenas.Common.EndScreen;
 
 /// <summary>Owns end screen lifetime and snapshot creation.</summary>
 [Autoload(Side = ModSide.Both)]
-public class EndScreenSystem : ModSystem
+internal sealed class EndScreenSystem : ModSystem
 {
     private const int FadeInFrames = 24;
     public const int BackButtonDelayFrames = 360; // 6 seconds before manual close appears
@@ -22,7 +22,6 @@ public class EndScreenSystem : ModSystem
 
     public EndScreenSnapshot CurrentSnapshot;
     public int AgeFrames;
-    public int PresentationId;
 
     // Kept after the screen hides so /gamesummary can bring it back.
     public EndScreenSnapshot LastSnapshot;
@@ -107,7 +106,6 @@ public class EndScreenSystem : ModSystem
         CurrentSnapshot = snapshot;
         LastSnapshot = snapshot;
         AgeFrames = 0;
-        PresentationId++;
         forcedView = false;
         PlayOpenSound(snapshot);
     }
@@ -120,7 +118,6 @@ public class EndScreenSystem : ModSystem
 
         CurrentSnapshot = LastSnapshot;
         AgeFrames = 0;
-        PresentationId++;
         forcedView = true;
         PlayOpenSound(LastSnapshot);
         return true;
@@ -192,14 +189,9 @@ public class EndScreenSystem : ModSystem
     {
         int TeamScore(Team t) => ArenaRoundSystem.Scoreboard.Where(p => p.Team == t).Sum(p => p.Kills);
 
-        int teamScore = TeamScore(team);
-        int opponentScore = scoreTeams.Where(t => t != team).DefaultIfEmpty(Team.None).Max(TeamScore);
-
         EndScreenSnapshot snapshot = new()
         {
             Team = team,
-            TeamScore = teamScore,
-            OpponentScore = opponentScore,
             Result = GetResult()
         };
 
@@ -243,16 +235,7 @@ public class EndScreenSystem : ModSystem
             player.Kills,
             player.Deaths,
             damage,
-            0u,
-            0u,
-            0u,
-            0u,
-            0u,
-            0u,
-            bossDamage,
-            0u,
-            0u,
-            0u);
+            bossDamage);
     }
 
     private static List<EndScreenPlayerStats> AssignRoles(List<EndScreenPlayerStats> players)
@@ -260,11 +243,6 @@ public class EndScreenSystem : ModSystem
         Dictionary<byte, (string Title, string Value)> roles = [];
 
         AwardHighest(players, roles, p => p.BossDamageDealt, "Boss Breaker", p => $"{Short(p.BossDamageDealt)} boss dmg");
-        AwardHighest(players, roles, p => p.PortalKills, "Portal Breaker", p => $"{p.PortalKills} {Plural(p.PortalKills, "portal")}");
-        AwardHighest(players, roles, p => p.DifferentWeaponsUsed, "The Arsenal", p => $"{p.DifferentWeaponsUsed} {Plural(p.DifferentWeaponsUsed, "weapon")}");
-        AwardHighest(players, roles, p => p.LavaDeaths, "Lava Magnet", p => $"{p.LavaDeaths} lava {Plural(p.LavaDeaths, "death")}");
-        AwardHighest(players, roles, p => p.FoodEaten, "Feastmaster", p => $"{p.FoodEaten} food eaten");
-        AwardHighest(players, roles, p => p.LostHoney, "Honey Spiller", p => $"{p.LostHoney} honey lost");
         AwardFewestDeaths(players, roles);
 
         return players
@@ -292,7 +270,7 @@ public class EndScreenSystem : ModSystem
 }
 
 /// <summary>Freezes local player movement/actions while the end screen is open.</summary>
-public class EndScreenInputBlocker : ModPlayer
+internal sealed class EndScreenInputBlocker : ModPlayer
 {
     public override void SetControls()
     {

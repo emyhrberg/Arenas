@@ -14,9 +14,6 @@ internal sealed class ArenaWorldSystem : ModSystem
     // strand the round in Generating/Idle even though the arena world is ready.
     public static bool Active => SubworldSystem.IsActive<ArenasSubworld>();
     public static bool WorldReady { get; private set; }
-    public static bool IsClearing => false;
-    public static float ClearingProgress => 0f;
-
     public override void ClearWorld()
     {
         Layout = null;
@@ -70,10 +67,6 @@ internal sealed class ArenaWorldSystem : ModSystem
         WorldReady = layout != null;
     }
 
-    internal static void ApplyNetworkClearing(bool clearing, float progress)
-    {
-        // World clearing is intentionally unsupported. Arena tiles exist only in ArenasSubworld.
-    }
 }
 
 internal sealed class ArenaSpawnSuppression : GlobalNPC

@@ -185,7 +185,7 @@ internal sealed class SurfaceArenaGenerator(ArenaGeneratorKind kind) : IArenaGen
 
     public void GenerateVanilla(ArenaLayout layout)
     {
-        Log.Chat($"[WorldGen2.Surface] Starting compact vanilla world generation for {kind} seed={layout.Seed}");
+        Log.Debug($"[WorldGen2.Surface] Starting compact vanilla world generation for {kind} seed={layout.Seed}");
         (worldSurface, rockLayer) = VanillaSurfaceWorldGenerator.Generate(layout, layout.Seed, kind);
     }
 

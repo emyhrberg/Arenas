@@ -1,11 +1,11 @@
-﻿using System.IO;
+using System.IO;
 using Terraria;
 using Terraria.Enums;
 using Terraria.ID;
 
 namespace Arenas.Common.TeamBoss;
 
-public static class TeamBossNetHandler
+internal static class TeamBossNetHandler
 {
     public static void HandlePacket(BinaryReader reader, int whoAmI)
     {
@@ -25,6 +25,6 @@ public static class TeamBossNetHandler
         if (npc == null || !npc.active)
             return;
 
-        npc.GetGlobalNPC<TeamBossNPC>().MarkNextStrikeForTeam(npc, team);
+        npc.GetGlobalNPC<TeamBossGlobalNPC>().MarkNextStrikeForTeam(npc, team);
     }
 }

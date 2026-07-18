@@ -1,4 +1,5 @@
 using Arenas.Common.Rounds;
+using Arenas.Common.UI;
 using Arenas.Core;
 using Arenas.Core.Configs.ConfigElements;
 using Microsoft.Xna.Framework.Graphics;
@@ -10,18 +11,18 @@ using Terraria.ID;
 using Terraria.ModLoader.Config;
 using Terraria.UI;
 
-namespace Arenas.Common.UI;
+namespace Arenas.Common.Sandbox;
 
-internal sealed class AdminLoadoutUIState : UIState
+internal sealed class SandboxUIState : UIState
 {
     public override void OnInitialize()
     {
-        Append(new AdminLoadoutPanel());
+        Append(new SandboxLoadoutPanel());
         Append(new SandboxItemSpawnerPanel());
     }
 }
 
-internal sealed class AdminLoadoutPanel : UIDraggablePanel
+internal sealed class SandboxLoadoutPanel : UIDraggablePanel
 {
     private UIList list;
     private UIScrollbar scrollbar;
@@ -31,7 +32,7 @@ internal sealed class AdminLoadoutPanel : UIDraggablePanel
     protected override float MaxResizeW => 760f;
     protected override float MaxResizeH => 800f;
 
-    public AdminLoadoutPanel() : base("Sandbox Loadouts")
+    public SandboxLoadoutPanel() : base("Sandbox Loadouts")
     {
         Width.Set(650f, 0f);
         Height.Set(600f, 0f);
@@ -39,16 +40,16 @@ internal sealed class AdminLoadoutPanel : UIDraggablePanel
         VAlign = 0f;
         Left.Set(-331f, 0f);
         Top.Set(90f, 0f);
-        ContentPanel.SetPadding(8f);
+        Content.SetPadding(8f);
         BuildList();
     }
 
-    protected override void OnClosePanelLeftClick() => ModContent.GetInstance<AdminUISystem>().Hide();
+    protected override void OnClosePanelLeftClick() => ModContent.GetInstance<SandboxUISystem>().Hide();
     protected override void OnRefreshPanelLeftClick() => BuildList();
 
     private void BuildList()
     {
-        ContentPanel.RemoveAllChildren();
+        Content.RemoveAllChildren();
         list = new UIList
         {
             Width = { Pixels = -26f, Percent = 1f },
@@ -64,15 +65,15 @@ internal sealed class AdminLoadoutPanel : UIDraggablePanel
             Height = { Percent = 1f }
         };
         list.SetScrollbar(scrollbar);
-        ContentPanel.Append(list);
-        ContentPanel.Append(scrollbar);
+        Content.Append(list);
+        Content.Append(scrollbar);
 
         List<BossFightPreset> presets = ArenaRoundSystem.GetValidPresets();
         for (int i = 0; i < presets.Count; i++)
             list.Add(new SandboxLoadoutRow(i, presets[i]));
 
         if (presets.Count == 0)
-            list.Add(new UIText("No fight preset loadouts are configured.", .9f));
+            list.Add(new UIText("No fight preset loadouts", .9f));
 
         list.Recalculate();
     }
@@ -125,7 +126,7 @@ internal sealed class SandboxLoadoutRow : UIPanel
         };
         equipButton.OnMouseOver += (_, _) => equipButton.BorderColor = Color.Yellow;
         equipButton.OnMouseOut += (_, _) => equipButton.BorderColor = Color.Black;
-        equipButton.OnLeftClick += (_, _) => SandboxAdminNetHandler.RequestLoadout(presetIndex);
+        equipButton.OnLeftClick += (_, _) => SandboxNetHandler.RequestLoadout(presetIndex);
         Append(equipButton);
 
         AddItemPreview();
@@ -134,7 +135,7 @@ internal sealed class SandboxLoadoutRow : UIPanel
     public override void Update(GameTime gameTime)
     {
         base.Update(gameTime);
-        bool selected = Main.LocalPlayer.GetModPlayer<ArenasPlayer>().SandboxLoadoutPresetIndex == presetIndex;
+        bool selected = Main.LocalPlayer.GetModPlayer<ArenaPlayer>().SandboxLoadoutPresetIndex == presetIndex;
         BackgroundColor = selected ? new Color(48, 86, 122) * .96f : new Color(30, 43, 98) * .92f;
         if (IsMouseHovering)
             Main.LocalPlayer.mouseInterface = true;
@@ -144,8 +145,8 @@ internal sealed class SandboxLoadoutRow : UIPanel
     {
         List<(ItemDefinition definition, int stack)> items = [];
         Loadout loadout = preset.Loadout ?? new Loadout();
-        Armor armor = loadout.Armor ?? new Armor();
-        Accessories accessories = loadout.Accessories ?? new Accessories();
+        LoadoutArmor armor = loadout.Armor ?? new LoadoutArmor();
+        LoadoutAccessories accessories = loadout.Accessories ?? new LoadoutAccessories();
         items.Add((armor.Head, 1));
         items.Add((armor.Body, 1));
         items.Add((armor.Legs, 1));
@@ -211,14 +212,14 @@ internal sealed class SandboxItemSlot : UIElement
     {
         base.LeftClick(evt);
         if (interactive && !item.IsAir)
-            SandboxAdminNetHandler.RequestItem(item.type, Math.Max(1, item.maxStack));
+            SandboxNetHandler.RequestItem(item.type, Math.Max(1, item.maxStack));
     }
 
     public override void RightClick(UIMouseEvent evt)
     {
         base.RightClick(evt);
         if (interactive && !item.IsAir)
-            SandboxAdminNetHandler.RequestItem(item.type, 1);
+            SandboxNetHandler.RequestItem(item.type, 1);
     }
 
     public override void Update(GameTime gameTime)

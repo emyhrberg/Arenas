@@ -4,7 +4,7 @@ using Arenas.Core.Configs.ConfigElements;
 
 namespace Arenas.Common;
 
-internal sealed class ArenasPlayer : ModPlayer
+internal sealed class ArenaPlayer : ModPlayer
 {
     internal int SandboxLoadoutPresetIndex { get; set; } = -1;
 

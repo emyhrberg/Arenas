@@ -136,7 +136,7 @@ internal static class VanillaJungleGenerator
                 tile.ClearTile();
                 removed++;
             }
-        Log.Chat($"[WorldGen2.Jungle] Removed {removed} frame-important object tiles before mirroring; terrain, Hive blocks, plants, vines, walls and liquids remain vanilla-generated");
+        Log.Debug($"[WorldGen2.Jungle] Removed {removed} frame-important object tiles before mirroring; terrain, Hive blocks, plants, vines, walls and liquids remain vanilla-generated");
     }
 
     private static void ClearBossPocket(int centerX, int centerY, int sourceWidth)
@@ -152,7 +152,7 @@ internal static class VanillaJungleGenerator
                 tile.ClearTile();
                 tile.LiquidAmount = 0;
             }
-        Log.Chat($"[WorldGen2.Jungle] Guaranteed compact boss pocket radius={radius} at source=({centerX},{centerY})");
+        Log.Debug($"[WorldGen2.Jungle] Guaranteed compact boss pocket radius={radius} at source=({centerX},{centerY})");
     }
 
     private static void Run(string name, int seed) => VanillaGenPassRunner.Run("WorldGen2.Jungle", name, seed);

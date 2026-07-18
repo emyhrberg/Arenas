@@ -11,13 +11,13 @@ internal sealed class LoadoutArmorElement : ObjectElement
 
         TextDisplayFunction = () =>
         {
-            string baseLabel = Label ?? MemberInfo?.Name ?? "Armor";
-            string summary = ArmorSummary(Value as Armor);
+            string baseLabel = Label ?? MemberInfo?.Name ?? "LoadoutArmor";
+            string summary = ArmorSummary(Value as LoadoutArmor);
             return string.IsNullOrWhiteSpace(summary) ? baseLabel : $"{baseLabel} {summary}";
         };
     }
 
-    private static string ArmorSummary(Armor a)
+    private static string ArmorSummary(LoadoutArmor a)
     {
         if (a == null)
             return "";

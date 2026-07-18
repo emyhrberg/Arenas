@@ -83,36 +83,28 @@ internal sealed class ArenaBoundaryDrawSystem : ModSystem
         {
             ArenaLayout layout = ArenaWorldSystem.Layout;
             if (layout == null || ArenaRoundSystem.Phase is not (RoundPhase.FreezeCountdown or RoundPhase.Playing)
-                || !TryGetLocalBarrier(layout, out int tileX, out bool redOnLeft))
+                || !TryGetLocalTeam(out _))
                 return true;
 
             int boundaryWidth = layout.TeamBorderWidth * 16;
-            int screenX = (int)MathF.Round(tileX * 16f - Main.screenPosition.X) - boundaryWidth / 2;
             int screenY = (int)MathF.Round(layout.ArenaArea.Top * 16f - Main.screenPosition.Y);
             int height = layout.ArenaArea.Height * 16;
             float pulse = .86f + MathF.Sin((float)Main.timeForVisualEffects * .045f) * .08f;
-            DrawWorldGradient(Main.spriteBatch, new Rectangle(screenX, screenY, boundaryWidth, height), redOnLeft, pulse);
+            Rectangle blueLine = BoundaryRectangle(layout.BlueBorderX, boundaryWidth, screenY, height);
+            Rectangle redLine = BoundaryRectangle(layout.RedBorderX, boundaryWidth, screenY, height);
+            DrawWorldGradients(Main.spriteBatch, blueLine, redLine, pulse);
             return true;
         }
+
+        private static Rectangle BoundaryRectangle(int tileX, int width, int screenY, int height) =>
+            new((int)MathF.Round(tileX * 16f - Main.screenPosition.X) - width / 2, screenY, width, height);
     }
 
-    internal static bool TryGetLocalBarrier(ArenaLayout layout, out int tileX, out bool redOnLeft)
+    internal static bool TryGetLocalTeam(out Team team)
     {
-        if (ArenaRoundSystem.TryGetParticipantTeam(Main.myPlayer, out Team team) && team == Team.Red)
-        {
-            tileX = layout.RedBorderX;
-            redOnLeft = true;
-            return true;
-        }
-        if (team == Team.Blue)
-        {
-            tileX = layout.BlueBorderX;
-            redOnLeft = false;
-            return true;
-        }
-        tileX = 0;
-        redOnLeft = true;
-        return false;
+        if (!ArenaRoundSystem.TryGetParticipantTeam(Main.myPlayer, out team))
+            return false;
+        return team is Team.Red or Team.Blue;
     }
 
     private static void SetEffect(Effect effect, bool redOnLeft, float opacity)
@@ -128,20 +120,35 @@ internal sealed class ArenaBoundaryDrawSystem : ModSystem
         effect.Parameters["shimmerSpeed"]?.SetValue(.06f);
     }
 
-    private static void DrawWorldGradient(SpriteBatch batch, Rectangle area, bool redOnLeft, float opacity)
+    private static void DrawWorldGradients(SpriteBatch batch, Rectangle blueLine, Rectangle redLine, float opacity)
     {
-        if (area.Width <= 0 || area.Height <= 0) return;
+        if (blueLine.Width <= 0 || blueLine.Height <= 0 || redLine.Width <= 0 || redLine.Height <= 0) return;
         Effect effect = EffectLoader.TryGetSpawnBoxBorderEffect(out Effect loaded) ? loaded : null;
-        if (effect != null) SetEffect(effect, redOnLeft, opacity);
         batch.End();
         batch.Begin(effect == null ? SpriteSortMode.Deferred : SpriteSortMode.Immediate, BlendState.AlphaBlend, SamplerState.PointClamp,
             DepthStencilState.None, Main.Rasterizer, effect, Main.GameViewMatrix.TransformationMatrix);
-        if (effect != null) effect.CurrentTechnique.Passes[0].Apply();
-        if (effect != null) batch.Draw(TextureAssets.MagicPixel.Value, area, Color.White);
-        else DrawPixelGradient(batch, area, redOnLeft, opacity);
+        if (effect != null)
+        {
+            // Blue's left boundary blocks movement from the right; Red's right
+            // boundary blocks movement from the left. The green sides are passable.
+            DrawShaderGradient(batch, effect, blueLine, redOnLeft: false, opacity);
+            DrawShaderGradient(batch, effect, redLine, redOnLeft: true, opacity);
+        }
+        else
+        {
+            DrawPixelGradient(batch, blueLine, redOnLeft: false, opacity);
+            DrawPixelGradient(batch, redLine, redOnLeft: true, opacity);
+        }
         batch.End();
         batch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, Main.DefaultSamplerState,
             DepthStencilState.None, Main.Rasterizer, null, Main.UIScaleMatrix);
+    }
+
+    private static void DrawShaderGradient(SpriteBatch batch, Effect effect, Rectangle area, bool redOnLeft, float opacity)
+    {
+        SetEffect(effect, redOnLeft, opacity);
+        effect.CurrentTechnique.Passes[0].Apply();
+        batch.Draw(TextureAssets.MagicPixel.Value, area, Color.White);
     }
 
     internal static void DrawPixelGradient(SpriteBatch batch, Rectangle area, bool redOnLeft, float opacity)
@@ -165,9 +172,15 @@ internal sealed class ArenaBoundaryMapLayer : ModMapLayer
     {
         ArenaLayout layout = ArenaWorldSystem.Layout;
         if (layout == null || ArenaRoundSystem.Phase is not (RoundPhase.FreezeCountdown or RoundPhase.Playing)
-            || !ArenaBoundaryDrawSystem.TryGetLocalBarrier(layout, out int tileX, out bool redOnLeft))
+            || !ArenaBoundaryDrawSystem.TryGetLocalTeam(out _))
             return;
 
+        DrawLine(ref context, layout, layout.BlueBorderX, redOnLeft: false);
+        DrawLine(ref context, layout, layout.RedBorderX, redOnLeft: true);
+    }
+
+    private static void DrawLine(ref MapOverlayDrawContext context, ArenaLayout layout, int tileX, bool redOnLeft)
+    {
         float widthTiles = layout.TeamBorderWidth;
         Vector2 topLeft = (new Vector2(tileX - widthTiles / 2f, layout.ArenaArea.Top) - context.MapPosition) * context.MapScale + context.MapOffset;
         int width = Math.Max(1, (int)MathF.Round(context.MapScale * widthTiles));

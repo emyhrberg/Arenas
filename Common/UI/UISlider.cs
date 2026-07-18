@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Arenas.Core;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -12,23 +12,17 @@ using Terraria.UI;
 
 namespace Arenas.Common.UI;
 
-public class UISlider : UIElement
+internal sealed class UISlider : UIElement
 {
-    public Asset<Texture2D> InnerTexture;
-    public Asset<Texture2D> OuterTexture;
+    private readonly Asset<Texture2D> innerTexture = Ass.SliderGradient;
+    private readonly Asset<Texture2D> outerTexture = Ass.SliderHighlight;
     public bool Enabled = true;
     public bool IsHeld;
     public float Ratio;
     public event Action<float> OnDrag;
     public event Action<float> OnRelease;
 
-    public UISlider()
-    {
-        Width.Set(0, 1f);
-        Height.Set(16, 0f);
-        InnerTexture = Ass.SliderGradient;
-        OuterTexture = Ass.SliderHighlight;
-    }
+    public UISlider() { Width.Set(0, 1f); Height.Set(16, 0f); }
 
     public override void LeftMouseDown(UIMouseEvent evt)
     {
@@ -89,10 +83,10 @@ public class UISlider : UIElement
         Color drawColor = Enabled ? Color.White : Color.Gray * 0.65f;
         DrawBar(sb, Ass.Slider.Value, rect, drawColor);
         if (Enabled && (IsHeld || IsMouseHovering))
-            DrawBar(sb, OuterTexture.Value, rect, Main.OurFavoriteColor);
+            DrawBar(sb, outerTexture.Value, rect, Main.OurFavoriteColor);
         Rectangle innerBarArea = rect;
         innerBarArea.Inflate(-4, -4);
-        sb.Draw(InnerTexture.Value, innerBarArea, drawColor);
+        sb.Draw(innerTexture.Value, innerBarArea, drawColor);
         Texture2D blip = TextureAssets.ColorSlider.Value;
         Vector2 blipOrigin = blip.Size() * 0.5f;
         Vector2 blipPosition = new(innerBarArea.X + Ratio * innerBarArea.Width, innerBarArea.Center.Y);

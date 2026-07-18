@@ -1,14 +1,25 @@
 Mods: {
 	Arenas: {
-		Keybinds.Scoreboard.DisplayName: Scoreboard
+		Keybinds: {
+			Scoreboard.DisplayName: Scoreboard
+			SandboxMenu.DisplayName: Sandbox Menu
+		}
 
 		Tools: {
 			SubworldManagerPanel.Title: Arenas Subworld Manager
 			ArenaGameManagerPanel.Title: Arenas Game Manager
-			ArenaGeometryManagerPanel.Title: Arenas Arena Settings
 		}
 
 		Configs: {
+			ArenasClientConfig: {
+				DisplayName: Interface
+
+				ShowTopScoreboard: {
+					Label: Top Scoreboard
+					Tooltip: Show round status at the top
+				}
+			}
+
 			ArenasConfig: {
 				DisplayName: Fight Presets
 
@@ -240,68 +251,6 @@ Mods: {
 				}
 			}
 
-			Armor: {
-				Tooltip: ""
-
-				Head: {
-					Label: Head
-					Tooltip: ""
-				}
-
-				Body: {
-					Label: Body
-					Tooltip: ""
-				}
-
-				Legs: {
-					Label: Legs
-					Tooltip: ""
-				}
-			}
-
-			Accessories: {
-				Tooltip: ""
-
-				Accessory1: {
-					Label: Accessory1
-					Tooltip: ""
-				}
-
-				Accessory2: {
-					Label: Accessory2
-					Tooltip: ""
-				}
-
-				Accessory3: {
-					Label: Accessory3
-					Tooltip: ""
-				}
-
-				Accessory4: {
-					Label: Accessory4
-					Tooltip: ""
-				}
-
-				Accessory5: {
-					Label: Accessory5
-					Tooltip: ""
-				}
-			}
-
-			Equipment: {
-				Tooltip: ""
-
-				GrapplingHook: {
-					Label: Grappling Hook
-					Tooltip: ""
-				}
-
-				Mount: {
-					Label: Mount
-					Tooltip: ""
-				}
-			}
-
 			LoadoutItem: {
 				Tooltip: ""
 
@@ -366,6 +315,68 @@ Mods: {
 				SandboxWorld: {
 					Label: Sandbox World
 					Tooltip: Custom world and every loadout
+				}
+			}
+
+			LoadoutArmor: {
+				Tooltip: ""
+
+				Head: {
+					Label: Head
+					Tooltip: ""
+				}
+
+				Body: {
+					Label: Body
+					Tooltip: ""
+				}
+
+				Legs: {
+					Label: Legs
+					Tooltip: ""
+				}
+			}
+
+			LoadoutAccessories: {
+				Tooltip: ""
+
+				Accessory1: {
+					Label: Accessory1
+					Tooltip: ""
+				}
+
+				Accessory2: {
+					Label: Accessory2
+					Tooltip: ""
+				}
+
+				Accessory3: {
+					Label: Accessory3
+					Tooltip: ""
+				}
+
+				Accessory4: {
+					Label: Accessory4
+					Tooltip: ""
+				}
+
+				Accessory5: {
+					Label: Accessory5
+					Tooltip: ""
+				}
+			}
+
+			LoadoutEquipment: {
+				Tooltip: ""
+
+				GrapplingHook: {
+					Label: Grappling Hook
+					Tooltip: ""
+				}
+
+				Mount: {
+					Label: Mount
+					Tooltip: ""
 				}
 			}
 		}

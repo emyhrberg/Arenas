@@ -30,30 +30,22 @@ internal sealed class ArenaRoundUI : ModSystem
     {
         if (!ArenaWorldSystem.Active)
         {
-            DrawTopScoreboard(true);
+            if (ModContent.GetInstance<ArenasClientConfig>().ShowTopScoreboard)
+                DrawTopScoreboard(true);
             if (ScoreboardVisible) DrawScoreboard();
             return true;
         }
-        if (ArenaWorldSystem.IsClearing)
-            DrawWorldWaiting();
-        else if (ArenaRoundSystem.Phase == RoundPhase.Generating)
+        if (ArenaRoundSystem.Phase == RoundPhase.Generating)
             DrawGeneration();
         else if (ArenaRoundSystem.Phase == RoundPhase.Voting)
         {
             if (!ModContent.GetInstance<EndScreenSystem>().IsVisible) ArenaBossVoteDrawer.Draw(260);
         }
-        DrawTopScoreboard(false);
+        if (ModContent.GetInstance<ArenasClientConfig>().ShowTopScoreboard)
+            DrawTopScoreboard(false);
         if (ArenaRoundSystem.Phase == RoundPhase.FreezeCountdown) DrawCountdown();
         if (ScoreboardVisible) DrawScoreboard();
         return true;
-    }
-
-    private static void DrawWorldWaiting()
-    {
-        Rectangle panel = new(Main.screenWidth / 2 - 210, Main.screenHeight / 2 - 45, 420, 90);
-        Utils.DrawInvBG(Main.spriteBatch, panel, new Color(25, 38, 86) * .94f);
-        string text = $"Clearing World  {ArenaWorldSystem.ClearingProgress:P0}";
-        Utils.DrawBorderStringBig(Main.spriteBatch, text, panel.Center.ToVector2(), Color.White, .5f, .5f, .5f);
     }
 
     private static void DrawGeneration()
@@ -103,11 +95,11 @@ internal sealed class ArenaRoundUI : ModSystem
     private static string TopStatus()
     {
         if (!ArenaWorldSystem.Active) return "Waiting for arenas";
-        if (ArenaWorldSystem.IsClearing) return "Clearing";
         return ArenaRoundSystem.Phase switch
         {
             RoundPhase.Idle => "Waiting for host",
             RoundPhase.Generating => "Generating",
+            RoundPhase.Ready => "Waiting for host",
             RoundPhase.Sandbox => "Sandbox",
             RoundPhase.Voting => "Voting",
             RoundPhase.FreezeCountdown => Math.Max(1, (int)Math.Ceiling(ArenaRoundSystem.RemainingTicks / 60f)).ToString(),

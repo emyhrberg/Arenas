@@ -10,13 +10,13 @@ internal sealed class LoadoutAccessoriesElement : ObjectElement
 
         TextDisplayFunction = () =>
         {
-            string baseLabel = Label ?? MemberInfo?.Name ?? "Accessories";
-            string summary = AccessoriesSummary(Value as Accessories);
+            string baseLabel = Label ?? MemberInfo?.Name ?? "LoadoutAccessories";
+            string summary = AccessoriesSummary(Value as LoadoutAccessories);
             return string.IsNullOrWhiteSpace(summary) ? baseLabel : $"{baseLabel} {summary}";
         };
     }
 
-    private static string AccessoriesSummary(Accessories a)
+    private static string AccessoriesSummary(LoadoutAccessories a)
     {
         if (a == null)
             return "";

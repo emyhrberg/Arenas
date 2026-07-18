@@ -8,6 +8,7 @@ using System.Linq;
 using Terraria.Audio;
 using Terraria.Enums;
 using Terraria.GameContent;
+using Terraria.GameContent.UI.Elements;
 using Terraria.ID;
 using Terraria.UI;
 
@@ -33,13 +34,97 @@ internal static class ArenaGameManagerText
     }
 
     public static string Time(int seconds) => $"{Math.Max(0, seconds) / 60:00}:{Math.Max(0, seconds) % 60:00}";
-    public static string Phase(RoundPhase phase) => phase == RoundPhase.FreezeCountdown ? "Freeze Countdown" : phase.ToString();
+    public static string Phase(RoundPhase phase) => phase switch
+    {
+        RoundPhase.FreezeCountdown => "Freeze Countdown",
+        RoundPhase.Ready => "Waiting for host",
+        _ => phase.ToString()
+    };
     public static string Result(RoundResult result) => result switch { RoundResult.BossDefeated => "Boss Defeated", RoundResult.TimeExpired => "Time Expired", RoundResult.BossDespawned => "Boss Despawned", RoundResult.SpawnFailed => "Spawn Failed", RoundResult.GenerationFailed => "Generation Failed", RoundResult.AdminEnded => "Ended by Admin", _ => "" };
 
     public static void Panel(SpriteBatch batch, Rectangle rect, Color background, Color border)
     {
         Utils.DrawSplicedPanel(batch, PanelBackground, rect.X, rect.Y, rect.Width, rect.Height, 10, 10, 10, 10, background);
         Utils.DrawSplicedPanel(batch, PanelBorder, rect.X, rect.Y, rect.Width, rect.Height, 10, 10, 10, 10, border);
+    }
+}
+
+internal sealed class ArenaManagerSection : UIPanel
+{
+    private readonly string title;
+
+    public ArenaManagerSection(string title, float height)
+    {
+        this.title = title;
+        Width.Set(0, 1f);
+        Height.Set(height, 0);
+        SetPadding(0);
+        BackgroundColor = new Color(20, 27, 62) * .95f;
+        BorderColor = new Color(116, 154, 255) * .75f;
+    }
+
+    public void Add(UIElement element, float top)
+    {
+        element.Top.Set(top, 0);
+        element.Left.Set(7, 0);
+        element.Width.Set(-14, 1f);
+        Append(element);
+    }
+
+    public void SetHeight(float height) => Height.Set(height, 0);
+
+    protected override void DrawSelf(SpriteBatch batch)
+    {
+        base.DrawSelf(batch);
+        Rectangle box = GetDimensions().ToRectangle();
+        batch.Draw(TextureAssets.MagicPixel.Value, new Rectangle(box.X + 10, box.Y + 28, box.Width - 20, 2), Color.White * .1f);
+        Utils.DrawBorderString(batch, title, new Vector2(box.X + 10, box.Y + 6), new Color(255, 228, 140), .9f);
+    }
+}
+
+internal sealed class ArenaManagerTabs : UIElement
+{
+    private readonly string[] labels;
+    private readonly Func<int> selected;
+    private readonly Action<int> select;
+
+    public ArenaManagerTabs(string[] labels, Func<int> selected, Action<int> select)
+    {
+        this.labels = labels;
+        this.selected = selected;
+        this.select = select;
+        Height.Set(34, 0);
+    }
+
+    public override void LeftClick(UIMouseEvent evt)
+    {
+        base.LeftClick(evt);
+        Rectangle box = GetDimensions().ToRectangle();
+        int index = Math.Clamp((int)((evt.MousePosition.X - box.X) * labels.Length / Math.Max(1, box.Width)), 0, labels.Length - 1);
+        if (index == selected()) return;
+        SoundEngine.PlaySound(SoundID.MenuTick);
+        select(index);
+    }
+
+    public override void Update(GameTime gameTime)
+    {
+        base.Update(gameTime);
+        if (IsMouseHovering) Main.LocalPlayer.mouseInterface = true;
+    }
+
+    protected override void DrawSelf(SpriteBatch batch)
+    {
+        Rectangle box = GetDimensions().ToRectangle();
+        int active = selected();
+        for (int i = 0; i < labels.Length; i++)
+        {
+            int left = box.X + box.Width * i / labels.Length;
+            int right = box.X + box.Width * (i + 1) / labels.Length;
+            Rectangle tab = new(left + 2, box.Y, right - left - 4, box.Height);
+            bool hover = tab.Contains(Main.MouseScreen.ToPoint());
+            ArenaGameManagerText.Panel(batch, tab, i == active ? new Color(73, 94, 171) : new Color(35, 45, 92), i == active ? new Color(255, 228, 140) : hover ? Color.White : Color.Black);
+            ArenaGameManagerText.Draw(batch, labels[i], tab.Center.ToVector2() + new Vector2(0, -8), i == active ? Color.White : Color.LightGray, .72f, tab.Width - 12, .5f);
+        }
     }
 }
 
@@ -52,7 +137,6 @@ internal sealed class ArenaManagerStatusRow : UIElement
         Rectangle rect = GetDimensions().ToRectangle(); ArenaGameManagerText.Panel(batch, rect, new Color(20, 20, 60) * .9f, Color.Black);
         bool active = ArenaWorldSystem.Active;
         string status = !active ? "Main world - waiting for arenas"
-            : ArenaWorldSystem.IsClearing ? "Clearing world from Game Manager"
             : ArenaRoundSystem.Phase == RoundPhase.Idle && ArenaWorldSystem.Layout == null ? "Idle - use Game Manager to start"
             : ArenaRoundSystem.Phase == RoundPhase.Idle && ArenaRoundSystem.Result == RoundResult.GenerationFailed ? "Idle - generation failed"
             : ArenaRoundSystem.IsTimerPaused ? $"{ArenaGameManagerText.Phase(ArenaRoundSystem.Phase)} - paused"
@@ -62,8 +146,8 @@ internal sealed class ArenaManagerStatusRow : UIElement
         ArenaGameManagerText.Icon(batch, Ass.IconArenas, new(rect.X + 8, rect.Y + 7, 20, 20), Color.White);
         ArenaGameManagerText.Draw(batch, $"Status: {status}", new(rect.X + 36, rect.Y + 9), color, .72f, rect.Width - 126);
         string value = !active ? "Lobby"
-            : ArenaWorldSystem.IsClearing ? $"Clear: {ArenaWorldSystem.ClearingProgress:P0}"
             : ArenaRoundSystem.Phase == RoundPhase.Generating ? $"Build: {ArenaRoundSystem.GenerationProgress:P0}"
+            : ArenaRoundSystem.Phase == RoundPhase.Ready ? "Arena ready"
             : $"Time: {ArenaGameManagerText.Time((int)Math.Ceiling(ArenaRoundSystem.RemainingTicks / 60f))}";
         ArenaGameManagerText.Draw(batch, value, new(rect.Right - 10, rect.Y + 9), Color.White, .68f, 84, 1f);
     }

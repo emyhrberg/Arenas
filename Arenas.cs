@@ -5,13 +5,13 @@ using Terraria.ModLoader.IO;
 
 namespace Arenas;
 
-public class Arenas : Mod
+public sealed class Arenas : Mod
 {
     private const string ImportSscStatsCall = "ErkySSC.ImportStats";
     private const string ExportSscStatsCall = "ErkySSC.ExportStats";
     private const string SscStorageScopeCall = "ErkySSC.StorageScope";
 
-    public enum ArenasPacketType
+    internal enum ArenasPacketType : byte
     {
         ArenaRound,
         TeamBoss,
@@ -20,7 +20,8 @@ public class Arenas : Mod
         PlayerStatus,
         ArenaSubworld,
         SubworldManager,
-        SandboxAdmin
+        Sandbox,
+        MapReveal
     }
 
     public override void HandlePacket(BinaryReader reader, int whoAmI)
@@ -50,8 +51,11 @@ public class Arenas : Mod
             case ArenasPacketType.SubworldManager:
                 Common.AdminTools.SubworldManager.SubworldManagerNetHandler.HandlePacket(reader, whoAmI);
                 break;
-            case ArenasPacketType.SandboxAdmin:
-                Common.UI.SandboxAdminNetHandler.HandlePacket(reader, whoAmI);
+            case ArenasPacketType.Sandbox:
+                Common.Sandbox.SandboxNetHandler.HandlePacket(reader, whoAmI);
+                break;
+            case ArenasPacketType.MapReveal:
+                Common.Generation.ArenaMapRevealNetHandler.HandlePacket(reader, whoAmI);
                 break;
         }
     }

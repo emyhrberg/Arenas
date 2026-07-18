@@ -55,7 +55,7 @@ public sealed class ArenasSubworld : Subworld
         Log.Debug($"[WorldGen1] Running preset selection. preset={request.PresetIndex}, boss={preset.Boss.DisplayName}, generator={generator.Kind}, seed={request.Seed}.");
         selectedGenerator = generator;
         selectedGeometry = ArenaGeneratorRegistry.ResolveGeometry(preset);
-        Log.Chat($"[WorldGen1] Geometry world={selectedGeometry.WorldWidth}x{selectedGeometry.WorldHeight} arena=({selectedGeometry.ArenaLeft},{selectedGeometry.ArenaTop})..({selectedGeometry.ArenaRight},{selectedGeometry.ArenaBottom}) boss=({selectedGeometry.BossAreaX},{selectedGeometry.BossAreaY},{selectedGeometry.BossAreaWidth},{selectedGeometry.BossAreaHeight}) borders={selectedGeometry.BlueBorderX}/{selectedGeometry.RedBorderX}");
+        Log.Debug($"[WorldGen1] Geometry world={selectedGeometry.WorldWidth}x{selectedGeometry.WorldHeight} arena=({selectedGeometry.ArenaLeft},{selectedGeometry.ArenaTop})..({selectedGeometry.ArenaRight},{selectedGeometry.ArenaBottom}) boss=({selectedGeometry.BossAreaX},{selectedGeometry.BossAreaY},{selectedGeometry.BossAreaWidth},{selectedGeometry.BossAreaHeight}) borders={selectedGeometry.BlueBorderX}/{selectedGeometry.RedBorderX}");
         if (Main.maxTilesX != selectedGeometry.WorldWidth || Main.maxTilesY != selectedGeometry.WorldHeight)
             throw new InvalidOperationException($"Subworld Library created {Main.maxTilesX}x{Main.maxTilesY}, but preset '{ArenaRoundSystem.PresetName(preset)}' requested {selectedGeometry.WorldWidth}x{selectedGeometry.WorldHeight}");
         if (generator.Kind != ArenaGeneratorKind.SandboxWorld)
@@ -145,8 +145,10 @@ public sealed class ArenasSubworld : Subworld
             ArenaSubworldCoordinator.QueueSubworldRoundStart();
         }
 
-        if (!Main.dedServ)
-            Main.QueueMainThreadAction(() => ArenaMapReveal.Reveal(ArenaWorldSystem.Layout ?? GeneratedLayout));
+        // Multiplayer clients request the reveal after the authoritative round state
+        // (layout + generation ID) arrives. Revealing here races the tile-section stream.
+        if (Main.netMode == NetmodeID.SinglePlayer && GeneratedLayout != null)
+            Main.QueueMainThreadAction(() => ArenaMapReveal.Request(GeneratedLayout, ArenaRoundSystem.GenerationId));
     }
 
     public override void OnUnload()

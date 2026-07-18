@@ -1,4 +1,4 @@
-﻿using Arenas.Core.Configs.ConfigElements.LoadoutItems;
+using Arenas.Core.Configs.ConfigElements.LoadoutItems;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -8,26 +8,25 @@ using Terraria.ModLoader.Config;
 
 namespace Arenas.Core.Configs.ConfigElements;
 
-// Class used to define a player's arena loadout.
 public class Loadout
 {
     [ConfigIcon(ItemID.IronHelmet)]
     [CustomModConfigItem(typeof(LoadoutArmorElement))]
-    public Armor Armor { get; set; } = new();
+    public LoadoutArmor Armor { get; set; } = new();
 
     [ConfigIcon(ItemID.HermesBoots)]
     [CustomModConfigItem(typeof(LoadoutAccessoriesElement))]
-    public Accessories Accessories { get; set; } = new();
+    public LoadoutAccessories Accessories { get; set; } = new();
 
     [ConfigIcon(ItemID.GrapplingHook)]
     [CustomModConfigItem(typeof(LoadoutEquipmentElement))]
-    public Equipment Equipment { get; set; } = new();
+    public LoadoutEquipment Equipment { get; set; } = new();
 
     [ConfigIcon(ItemID.GoldChest)]
     [CustomModConfigItem(typeof(LoadoutInventoryListElement))]
     public List<LoadoutItem> Inventory { get; set; } = [];
 }
-public class Armor
+public class LoadoutArmor
 {
     [CustomModConfigItem(typeof(ItemHeadDefinitionElement))]
     public ItemDefinition Head { get; set; } = new(ItemID.None);
@@ -39,7 +38,7 @@ public class Armor
     public ItemDefinition Legs { get; set; } = new(ItemID.None);
 }
 
-public class Accessories
+public class LoadoutAccessories
 {
     [CustomModConfigItem(typeof(ItemAccessoryDefinitionElement))]
     public ItemDefinition Accessory1 { get; set; } = new(ItemID.None);
@@ -57,7 +56,7 @@ public class Accessories
     public ItemDefinition Accessory5 { get; set; } = new(ItemID.None);
 }
 
-public class Equipment
+public class LoadoutEquipment
 {
     [CustomModConfigItem(typeof(ItemGrapplingHookDefinitionElement))]
     public ItemDefinition GrapplingHook { get; set; } = new(ItemID.None);
@@ -66,10 +65,6 @@ public class Equipment
     public ItemDefinition Mount { get; set; } = new(ItemID.None);
 }
 
-/// <summary>
-/// Consists of a item and a stack.
-/// A lot of logic to clamp the stack based on the item type.
-/// </summary>
 public class LoadoutItem
 {
     private ItemDefinition _item = new(ItemID.None);
@@ -81,7 +76,7 @@ public class LoadoutItem
         set
         {
             _item = value ?? new ItemDefinition(ItemID.None);
-            Stack = _stack; // re-clamp
+            Stack = _stack;
         }
     }
 
@@ -92,13 +87,7 @@ public class LoadoutItem
         get => _stack;
         set
         {
-            int type = Item?.Type ?? 0;
-            int max = GetMaxStack(type);
-            int clamped = Math.Clamp(value, 1, max);
-            // useless -_-
-            //if (value < 1 || value > max)
-            //    Main.NewText("Warning: Item stack out of bounds!", Color.OrangeRed);
-            _stack = clamped;
+            _stack = Math.Clamp(value, 1, GetMaxStack(Item?.Type ?? 0));
         }
     }
 
@@ -108,11 +97,7 @@ public class LoadoutItem
             return 1;
 
         if (ContentSamples.ItemsByType.TryGetValue(type, out Item sample))
-        {
             return Math.Max(1, sample.maxStack);
-        }
-
-        // Fallback
         Item temp = new();
         temp.SetDefaults(type);
         return Math.Max(1, temp.maxStack);

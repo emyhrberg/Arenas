@@ -1,34 +1,31 @@
 ﻿namespace Arenas.Core.Compat;
 
-public static class ErkySSCCompat
+internal static class ErkySSCCompat
 {
-    public static bool IsPlayerAdmin(Player player, out string reason)
-    {
-        reason = string.Empty;
+    internal static bool IsAdmin(int playerId, out string reason) =>
+        playerId >= 0 && playerId < Main.maxPlayers
+            ? IsPlayerAdmin(Main.player[playerId], out reason)
+            : Fail("Invalid player", out reason);
 
+    internal static bool IsPlayerAdmin(Player player, out string reason)
+    {
         if (player == null || !player.active)
-        {
-            reason = "Player is invalid or inactive.";
-            return false;
-        }
+            return Fail("Invalid player", out reason);
 
         if (!ModLoader.TryGetMod("ErkySSC", out Mod erkySSCMod))
+            return Fail("ErkySSC is not loaded", out reason);
+
+        try
         {
-            reason = "ErkySSC is not loaded.";
-            return false;
+            bool admin = erkySSCMod.Call("IsAdmin", player.whoAmI) is true;
+            reason = admin ? "" : "ErkySSC admin required";
+            return admin;
         }
-
-        object result = erkySSCMod.Call("IsAdmin", player.whoAmI);
-
-        if (result is bool isAdmin)
+        catch (System.Exception exception)
         {
-            if (!isAdmin)
-                reason = "Player is not an admin in ErkySSC.";
-
-            return isAdmin;
+            return Fail($"ErkySSC admin check failed: {exception.Message}", out reason);
         }
-
-        reason = "Unexpected response from ErkySSC mod call.";
-        return false;
     }
+
+    private static bool Fail(string message, out string reason) { reason = message; return false; }
 }
