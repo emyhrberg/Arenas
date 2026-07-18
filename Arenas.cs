@@ -9,6 +9,7 @@ public class Arenas : Mod
 {
     private const string ImportSscStatsCall = "ErkySSC.ImportStats";
     private const string ExportSscStatsCall = "ErkySSC.ExportStats";
+    private const string SscStorageScopeCall = "ErkySSC.StorageScope";
 
     public enum ArenasPacketType
     {
@@ -16,7 +17,10 @@ public class Arenas : Mod
         TeamBoss,
         ArenaGameManager,
         EndScreen,
-        PlayerStatus
+        PlayerStatus,
+        ArenaSubworld,
+        SubworldManager,
+        SandboxAdmin
     }
 
     public override void HandlePacket(BinaryReader reader, int whoAmI)
@@ -40,11 +44,23 @@ public class Arenas : Mod
             case ArenasPacketType.PlayerStatus:
                 ArenaPlayerStatusNetHandler.HandlePacket(reader, whoAmI);
                 break;
+            case ArenasPacketType.ArenaSubworld:
+                Common.ArenaSubworldCoordinator.HandlePacket(reader, whoAmI);
+                break;
+            case ArenasPacketType.SubworldManager:
+                Common.AdminTools.SubworldManager.SubworldManagerNetHandler.HandlePacket(reader, whoAmI);
+                break;
+            case ArenasPacketType.SandboxAdmin:
+                Common.UI.SandboxAdminNetHandler.HandlePacket(reader, whoAmI);
+                break;
         }
     }
 
     public override object Call(params object[] args)
     {
+        if (args.Length >= 1 && args[0] is string simpleOperation && simpleOperation == SscStorageScopeCall)
+            return Common.ArenaSubworldCoordinator.SscWorldScope;
+
         if (args.Length < 4 || args[0] is not string operation ||
             args[1] is not int whoAmI || args[2] is not string characterKey ||
             args[3] is not TagCompound root || whoAmI is < 0 or >= Main.maxPlayers)

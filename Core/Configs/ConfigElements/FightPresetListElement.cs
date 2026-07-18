@@ -77,7 +77,7 @@ internal sealed class FightPresetListElement : ListElement
                     if (preset == null)
                         return $"{index + 1}: Missing";
 
-                    return $"{index + 1}: {preset.Boss?.DisplayName ?? "Fight Preset"}";
+                    return $"{index + 1}: {ArenaRoundSystem.PresetName(preset)}";
                 };
             }
 
@@ -147,7 +147,16 @@ internal sealed class FightPresetListElement : ListElement
         protected override void DrawSelf(SpriteBatch spriteBatch)
         {
             base.DrawSelf(spriteBatch);
-            ArenaBossVoteDrawer.DrawBossHead(getPreset()?.Boss?.Type ?? 0, GetDimensions().ToRectangle());
+            BossFightPreset preset = getPreset();
+            if (ArenaRoundSystem.IsSandboxPreset(preset))
+            {
+                Texture2D icon = Ass.IconArenas.Value;
+                Rectangle box = GetDimensions().ToRectangle();
+                float scale = Math.Min(box.Width / (float)icon.Width, box.Height / (float)icon.Height);
+                spriteBatch.Draw(icon, box.Center.ToVector2(), null, Color.White, 0f, icon.Size() * .5f, scale, SpriteEffects.None, 0f);
+                return;
+            }
+            ArenaBossVoteDrawer.DrawBossHead(preset?.Boss?.Type ?? 0, GetDimensions().ToRectangle());
         }
     }
 }

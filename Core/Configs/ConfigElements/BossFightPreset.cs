@@ -17,11 +17,15 @@ public enum ArenaGeneratorKind
     KingSlimeSurface,
     EyeSurface,
     PlanteraJungle,
-    GolemTemple
+    GolemTemple,
+    SandboxWorld
 }
 
 public sealed class BossFightPreset
 {
+    [DefaultValue("")]
+    public string Name { get; set; } = "";
+
     [ConfigIcon(ItemID.SuspiciousLookingEye)]
     public NPCDefinition Boss { get; set; } = new();
 

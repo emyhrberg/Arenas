@@ -27,6 +27,7 @@ internal interface IArenaGenerator
     double WorldSurface { get; }
     double RockLayer { get; }
     bool UsesVanillaGeneration => false;
+    bool ClearBossArea => true;
     void GenerateVanilla(ArenaLayout layout) { }
     void PlaceCombatStructures(ArenaLayout layout) { }
 }
@@ -43,7 +44,8 @@ internal static class ArenaGeneratorRegistry
         [ArenaGeneratorKind.KingSlimeSurface] = new SurfaceArenaGenerator(ArenaGeneratorKind.KingSlimeSurface),
         [ArenaGeneratorKind.EyeSurface] = new SurfaceArenaGenerator(ArenaGeneratorKind.EyeSurface),
         [ArenaGeneratorKind.PlanteraJungle] = new PlanteraArenaGenerator(),
-        [ArenaGeneratorKind.GolemTemple] = new GolemArenaGenerator()
+        [ArenaGeneratorKind.GolemTemple] = new GolemArenaGenerator(),
+        [ArenaGeneratorKind.SandboxWorld] = new SandboxWorldArenaGenerator()
     };
 
     public static bool TryResolve(BossFightPreset preset, out IArenaGenerator generator)
@@ -80,6 +82,37 @@ internal static class ArenaGeneratorRegistry
             StagingLobby = StagingLobby
         };
     }
+}
+
+internal sealed class SandboxWorldArenaGenerator : IArenaGenerator
+{
+    public ArenaGeneratorKind Kind => ArenaGeneratorKind.SandboxWorld;
+    public double WorldSurface => Main.worldSurface;
+    public double RockLayer => Main.rockLayer;
+
+    public ArenaLayout CreateLayout(int seed)
+    {
+        int spawnX = Math.Clamp(Main.spawnTileX, 12, Math.Max(12, Main.maxTilesX - 13));
+        int spawnY = Math.Clamp(Main.spawnTileY, 12, Math.Max(12, Main.maxTilesY - 13));
+        Rectangle arena = new(3, 3, Math.Max(1, Main.maxTilesX - 6), Math.Max(1, Main.maxTilesY - 6));
+        Rectangle spawnRoom = new(spawnX - 10, spawnY - 10, 20, 20);
+        return new ArenaLayout
+        {
+            Generator = Kind,
+            Seed = seed,
+            ArenaArea = arena,
+            BossArea = new Rectangle(spawnX, spawnY, 1, 1),
+            RedSpawnClearance = spawnRoom,
+            BlueSpawnClearance = spawnRoom,
+            RedSpawn = new Point(spawnX, spawnY),
+            BlueSpawn = new Point(spawnX, spawnY),
+            BossSpawn = new Point(spawnX, spawnY),
+            StagingLobby = spawnRoom
+        };
+    }
+
+    public void Prepare(ArenaLayout layout) { }
+    public ArenaTileData GetTile(ArenaLayout layout, int x, int y) => ArenaTileData.Air();
 }
 
 internal sealed class EmergencyFlatArenaGenerator : IArenaGenerator
@@ -141,6 +174,7 @@ internal sealed class SurfaceArenaGenerator(ArenaGeneratorKind kind) : IArenaGen
 
     public void GenerateVanilla(ArenaLayout layout)
     {
+        Log.Debug($"[WorldGen2.Surface] Running vanilla-style Smooth World and Spreading Grass for {kind}.");
         UnifiedRandom previousRandom = WorldGen.genRand;
         bool previousGenerating = WorldGen.gen;
         double previousSurface = Main.worldSurface, previousRockLayer = Main.rockLayer;
@@ -153,8 +187,11 @@ internal sealed class SurfaceArenaGenerator(ArenaGeneratorKind kind) : IArenaGen
             Main.worldSurface = GenVars.worldSurface = 520;
             GenVars.worldSurfaceLow = 488; GenVars.worldSurfaceHigh = 506;
             Main.rockLayer = GenVars.rockLayer = 550;
+            Log.Debug("[WorldGen2.Surface] Running Smooth World.");
             VanillaArenaPasses.SmoothWorld(layout.ArenaArea);
+            Log.Debug("[WorldGen2.Surface] Running Spreading Grass.");
             VanillaArenaPasses.SpreadingGrass(layout.ArenaArea);
+            Log.Debug("[WorldGen2.Surface] Clearing the configured boss chamber.");
             ClearLeftArea(layout.BossArea);
         }
         finally
@@ -208,6 +245,7 @@ internal sealed class PlanteraArenaGenerator : IArenaGenerator
 
     public void GenerateVanilla(ArenaLayout layout)
     {
+        Log.Debug($"[WorldGen2.Plantera] Preparing vanilla Jungle generation. seed={layout.Seed}.");
         UnifiedRandom previousRandom = WorldGen.genRand;
         bool previousGenerating = WorldGen.gen;
         WorldGen._genRand = new UnifiedRandom(layout.Seed);
@@ -236,13 +274,19 @@ internal sealed class PlanteraArenaGenerator : IArenaGenerator
             // Run Terraria's actual Jungle generation pass as a 425-tile source world. This makes every
             // internal vanilla search/range stay on the generated half before it is mirrored.
             Main.maxTilesX = 425;
+            Log.Debug("[WorldGen2.Plantera] Running Terraria.GameContent.Biomes.JunglePass.");
             new JunglePass().Apply(new GenerationProgress(), new GameConfiguration(new JObject()));
             Main.maxTilesX = previousWorldWidth;
 
+            Log.Debug("[WorldGen2.Plantera] Running Mud Caves To Grass.");
             VanillaArenaPasses.MudCavesToGrass(layout.ArenaArea);
+            Log.Debug("[WorldGen2.Plantera] Running Smooth World.");
             VanillaArenaPasses.SmoothWorld(layout.ArenaArea);
+            Log.Debug("[WorldGen2.Plantera] Running Spreading Grass.");
             VanillaArenaPasses.SpreadingGrass(layout.ArenaArea);
+            Log.Debug("[WorldGen2.Plantera] Running Muds Walls In Jungle.");
             VanillaArenaPasses.MudWallsInJungle(layout.ArenaArea);
+            Log.Debug("[WorldGen2.Plantera] Removing liquids and clearing combat/spawn chambers.");
             ClearLeftLiquids(layout.ArenaArea);
 
             ClearLeftArea(layout.RedSpawnClearance);
@@ -311,6 +355,7 @@ internal sealed class GolemArenaGenerator : IArenaGenerator
     public double WorldSurface => 110;
     public double RockLayer => 170;
     public bool UsesVanillaGeneration => true;
+    public bool ClearBossArea => false;
 
     public ArenaLayout CreateLayout(int seed) => ArenaGeneratorRegistry.Layout(Kind, seed, new Rectangle(305, 270, 240, 230), new Rectangle(118, 452, 65, 48), new Rectangle(667, 452, 65, 48), new Point(150, 499), new Point(699, 499), new Point(425, 440));
     public void Prepare(ArenaLayout layout) { }
@@ -318,26 +363,32 @@ internal sealed class GolemArenaGenerator : IArenaGenerator
     public ArenaTileData GetTile(ArenaLayout layout, int x, int y)
     {
         if (!layout.ArenaArea.Contains(x, y)) return ArenaTileData.Air();
-        return ArenaTileData.Solid(TileID.LihzahrdBrick, WallID.LihzahrdBrickUnsafe);
+        if (y < 115) return ArenaTileData.Air();
+        return ArenaTileData.Solid(TileID.Mud, WallID.JungleUnsafe);
     }
 
     public void GenerateVanilla(ArenaLayout layout)
     {
+        Log.Debug($"[WorldGen2.Golem] Preparing vanilla temple generation. seed={layout.Seed}.");
         UnifiedRandom previousRandom = WorldGen.genRand;
         bool previousGenerating = WorldGen.gen;
         WorldGen._genRand = new UnifiedRandom(layout.Seed);
         WorldGen.gen = true;
         try
         {
-            WorldGen.makeTemple(205, 155);
+            Log.Debug("[WorldGen2.Golem] Running WorldGen.makeTemple.");
+            WorldGen.makeTemple(205, 190);
             Vector2D path = new(layout.RedSpawn.X, layout.RedSpawn.Y - 10);
             int destinationX = layout.BossArea.Left + 28;
             int destinationY = layout.BossArea.Center.Y;
+            Log.Debug($"[WorldGen2.Golem] Running WorldGen.templePather toward ({destinationX},{destinationY}).");
             for (int guard = 0; guard < 80 && ((int)path.X != destinationX || (int)path.Y != destinationY); guard++)
                 path = WorldGen.templePather(path, destinationX, destinationY);
 
+            Log.Debug("[WorldGen2.Golem] Running Smooth World.");
             VanillaArenaPasses.SmoothWorld(layout.ArenaArea);
 
+            Log.Debug("[WorldGen2.Golem] Removing traps, altar objects, liquids, and wiring.");
             for (int x = layout.ArenaArea.Left; x < 425; x++)
                 for (int y = layout.ArenaArea.Top; y < layout.ArenaArea.Bottom; y++)
                 {
@@ -348,7 +399,7 @@ internal sealed class GolemArenaGenerator : IArenaGenerator
                     tile.RedWire = tile.BlueWire = tile.GreenWire = tile.YellowWire = false;
                     tile.HasActuator = tile.IsActuated = false;
                 }
-            ClearLeftArea(layout.BossArea);
+            ClearCombatChamber(layout);
         }
         finally
         {
@@ -363,6 +414,21 @@ internal sealed class GolemArenaGenerator : IArenaGenerator
         for (int x = layout.BossArea.Left; x < layout.BossArea.Right; x++)
         {
             Tile tile = Main.tile[x, y];
+            tile.ClearTile();
+            tile.HasTile = true;
+            tile.TileType = TileID.LihzahrdBrick;
+            tile.WallType = WallID.LihzahrdBrickUnsafe;
+        }
+    }
+
+    private static void ClearCombatChamber(ArenaLayout layout)
+    {
+        Rectangle chamber = new(layout.BossSpawn.X - 58, layout.BossSpawn.Y - 62, 116, 64);
+        ClearLeftArea(chamber);
+        int floorY = chamber.Bottom - 1;
+        for (int x = chamber.Left; x < Math.Min(425, chamber.Right); x++)
+        {
+            Tile tile = Main.tile[x, floorY];
             tile.ClearTile();
             tile.HasTile = true;
             tile.TileType = TileID.LihzahrdBrick;

@@ -43,6 +43,19 @@ public static class Ass
     public static Asset<Texture2D> Knock;
     public static Asset<Texture2D> Ping;
 
+    // Item spawner
+    public static Asset<Texture2D> FilterAll;
+    public static Asset<Texture2D> FilterMelee;
+    public static Asset<Texture2D> FilterRanged;
+    public static Asset<Texture2D> FilterMagic;
+    public static Asset<Texture2D> FilterSummon;
+    public static Asset<Texture2D> FilterArmor;
+    public static Asset<Texture2D> FilterVanity;
+    public static Asset<Texture2D> FilterAccessories;
+    public static Asset<Texture2D> FilterPotion;
+    public static Asset<Texture2D> FilterPlaceables;
+    public static Asset<Texture2D> FilterMisc;
+
     // Flag
     public static bool Initialized { get; set; }
 

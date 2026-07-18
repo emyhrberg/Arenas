@@ -24,6 +24,9 @@ public sealed class ArenaLayout
     {
         get
         {
+            if (Generator == ArenaGeneratorKind.SandboxWorld)
+                return [];
+
             int outer = ArenaGeneratorRegistry.OuterBorderThickness;
             return
             [
@@ -39,6 +42,9 @@ public sealed class ArenaLayout
 
     public bool IsProtectedTile(int x, int y)
     {
+        if (Generator == ArenaGeneratorKind.SandboxWorld)
+            return false;
+
         Point point = new(x, y);
         Rectangle outer = ArenaArea;
         outer.Inflate(ArenaGeneratorRegistry.OuterBorderThickness, ArenaGeneratorRegistry.OuterBorderThickness);

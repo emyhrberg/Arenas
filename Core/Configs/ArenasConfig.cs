@@ -71,5 +71,27 @@ internal sealed class ArenasConfig : ArenasServerConfig
     [Expand(true)]
     [CustomModConfigItem(typeof(FightPresetListElement))]
     public List<BossFightPreset> FightPresets { get; set; } = ArenaDefaults.CreateFightPresets();
+
+    public override void OnLoaded()
+    {
+        base.OnLoaded();
+        EnsureSandboxPreset();
+    }
+
+    public override void OnChanged()
+    {
+        base.OnChanged();
+        EnsureSandboxPreset();
+    }
+
+    private void EnsureSandboxPreset()
+    {
+        FightPresets ??= [];
+        if (!FightPresets.Exists(preset => preset?.ArenaGenerator == ArenaGeneratorKind.SandboxWorld))
+        {
+            FightPresets.Add(ArenaDefaults.CreateSandboxPreset());
+            Log.Debug("[SandboxConfig] Added the built-in Sandbox preset to the loaded server config.");
+        }
+    }
 }
 

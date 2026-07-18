@@ -5,7 +5,7 @@ using Terraria.GameContent;
 
 namespace Arenas.Common.TeamBoss;
 
-public sealed class TeamBossBar : GlobalBossBar
+public sealed class TeamBossBarDrawer : GlobalBossBar
 {
     public override void PostDraw(SpriteBatch spriteBatch, NPC npc, BossBarDrawParams drawParams)
     {

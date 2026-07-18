@@ -8,6 +8,7 @@ using System.Linq;
 using Terraria.Enums;
 using Terraria.Localization;
 using Terraria.UI;
+using SubworldLibrary;
 
 namespace Arenas.Common.AdminTools.GameManager;
 
@@ -43,7 +44,7 @@ internal sealed class ArenaGameManagerPanel : UIDraggablePanel
         if (!countdown.IsHeld && ArenaRoundSystem.Phase == RoundPhase.FreezeCountdown) countdown.SetValue(SecondsLeft());
         if (!roundTime.IsHeld && ArenaRoundSystem.Phase == RoundPhase.Playing) roundTime.SetValue(SecondsLeft());
         if (!votingTime.IsHeld && ArenaRoundSystem.Phase == RoundPhase.Voting) votingTime.SetValue(SecondsLeft());
-        bool active = InArena(); countdown.Enabled = roundTime.Enabled = votingTime.Enabled = active;
+        bool available = !SubworldSystem.AnyActive() || InArena(); countdown.Enabled = roundTime.Enabled = votingTime.Enabled = available;
         base.Update(gameTime);
     }
 
@@ -57,11 +58,10 @@ internal sealed class ArenaGameManagerPanel : UIDraggablePanel
     private void AddButtons()
     {
         AddButton(new(() => ArenaRoundSystem.Phase == RoundPhase.Idle ? "Start Round" : "Restart Round", Ass.IconStartGame, StartRound, CanStart, StartReason), 252);
-        AddButton(new(() => "Balance Teams", Ass.IconArenas, () => Request(ArenaGameManagerNetHandler.ActionType.BalanceTeams), CanBalance, () => "Randomly split every online player as evenly as possible between Red and Blue"), 290);
-        AddButton(new(() => ArenaWorldSystem.IsClearing ? $"Clearing World ({ArenaWorldSystem.ClearingProgress:P0})" : "Clear World", Ass.IconRefresh, () => Request(ArenaGameManagerNetHandler.ActionType.ClearWorld), CanClear, () => "Stop the current game, erase the world, and create a small safe platform at the central spawn", true), 328);
-        AddButton(new(() => ArenaRoundSystem.IsTimerPaused ? "Resume Timer" : "Pause Timer", Ass.IconArenas, () => Request(ArenaGameManagerNetHandler.ActionType.TogglePause), () => InArena() && ArenaRoundSystem.Phase is not (RoundPhase.Idle or RoundPhase.Generating), () => "Pause or resume the timer"), 366);
-        AddButton(new(AdvanceText, Ass.IconRefresh, () => Request(ArenaGameManagerNetHandler.ActionType.AdvancePhase), () => InArena() && ArenaRoundSystem.Phase is RoundPhase.FreezeCountdown or RoundPhase.Voting, AdvanceTooltip), 404);
-        AddButton(new(() => ArenaRoundSystem.Phase == RoundPhase.Generating ? "Abort Generation" : "End Round", Ass.IconEndGame, () => Request(ArenaGameManagerNetHandler.ActionType.EndRound), () => InArena() && ArenaRoundSystem.Phase is RoundPhase.Generating or RoundPhase.FreezeCountdown or RoundPhase.Playing, () => ArenaRoundSystem.Phase == RoundPhase.Generating ? "Abort generation and return to a clean central spawn" : "End the round and open voting", true), 442);
+        AddButton(new(() => "Balance Teams", Ass.IconArenas, () => Request(ArenaGameManagerNetHandler.ActionType.BalanceTeams), CanBalance, () => "Shuffle Red and Blue"), 290);
+        AddButton(new(() => ArenaRoundSystem.IsTimerPaused ? "Resume Timer" : "Pause Timer", Ass.IconArenas, () => Request(ArenaGameManagerNetHandler.ActionType.TogglePause), () => InArena() && ArenaRoundSystem.Phase is not (RoundPhase.Idle or RoundPhase.Generating), () => "Pause or resume the timer"), 328);
+        AddButton(new(AdvanceText, Ass.IconRefresh, () => Request(ArenaGameManagerNetHandler.ActionType.AdvancePhase), () => InArena() && ArenaRoundSystem.Phase is RoundPhase.FreezeCountdown or RoundPhase.Voting, AdvanceTooltip), 366);
+        AddButton(new(() => ArenaRoundSystem.Phase == RoundPhase.Generating ? "Changing Arena" : "End Round", Ass.IconEndGame, () => Request(ArenaGameManagerNetHandler.ActionType.EndRound), () => InArena() && ArenaRoundSystem.Phase is RoundPhase.Generating or RoundPhase.FreezeCountdown or RoundPhase.Playing, () => ArenaRoundSystem.Phase == RoundPhase.Generating ? "The next disposable arena subworld is loading" : "End the round and open voting", true), 404);
     }
 
     private void StartRound() { ArenaGameManagerNetHandler.Request(ArenaGameManagerNetHandler.ActionType.StartRound, preset.Index, (int)countdown.Value, (int)roundTime.Value); selectionTouched = false; }
@@ -70,11 +70,16 @@ internal sealed class ArenaGameManagerPanel : UIDraggablePanel
     private static ArenaTimingConfig TimingConfig => ModContent.GetInstance<ArenaTimingConfig>();
     private static int DefaultCountdownSeconds() => TimingConfig.UseFreezeCountdown ? TimingConfig.FreezeCountdownSeconds : 0;
     private static bool InArena() => ArenaWorldSystem.Active;
-    private static bool TeamsReady() => Main.netMode == Terraria.ID.NetmodeID.SinglePlayer ? Main.LocalPlayer?.active == true : Main.player.Any(p => p?.active == true && (Team)p.team == Team.Red) && Main.player.Any(p => p?.active == true && (Team)p.team == Team.Blue);
-    private bool CanStart() => InArena() && ArenaWorldSystem.WorldReady && !ArenaWorldSystem.IsClearing && ArenaRoundSystem.GetValidPresets().Count > 0 && TeamsReady();
-    private static bool CanBalance() => InArena() && ArenaRoundSystem.Phase == RoundPhase.Idle && !ArenaWorldSystem.IsClearing;
-    private static bool CanClear() => InArena() && !ArenaWorldSystem.IsClearing;
-    private string StartReason() => !InArena() ? "Enter Arenas first" : ArenaWorldSystem.IsClearing ? "Wait for the world clear to finish" : ArenaRoundSystem.GetValidPresets().Count == 0 ? "Add a valid boss fight preset" : !TeamsReady() ? "Balance teams first; Red and Blue both need a player" : "Generate this arena, teleport both teams, and start the freeze countdown";
+    private static bool PlayersReady() => Main.player.Any(player => player?.active == true);
+    private bool SelectedIsSandbox()
+    {
+        BossFightPreset selected = ArenaRoundSystem.GetPresetOrDefault(preset.Index);
+        return ArenaRoundSystem.IsSandboxPreset(selected);
+    }
+    private bool CanStart() => (!SubworldSystem.AnyActive() || InArena()) && !ArenaSubworldCoordinator.IsTransitioning
+        && ArenaRoundSystem.GetValidPresets().Count > 0 && PlayersReady();
+    private static bool CanBalance() => !SubworldSystem.AnyActive() && ArenaRoundSystem.Phase == RoundPhase.Idle && !ArenaSubworldCoordinator.IsTransitioning;
+    private string StartReason() => SubworldSystem.AnyActive() && !InArena() ? "Return to the main world" : ArenaSubworldCoordinator.IsTransitioning ? "Changing arena" : ArenaRoundSystem.GetValidPresets().Count == 0 ? "Add a fight preset" : !PlayersReady() ? "Waiting for players" : SelectedIsSandbox() ? "Open Sandbox" : "Enter the boss arena";
     private static string AdvanceText() => ArenaRoundSystem.Phase == RoundPhase.FreezeCountdown ? "Start Fight" : ArenaRoundSystem.Phase == RoundPhase.Voting ? "End Voting" : "Next Phase";
     private static string AdvanceTooltip() => ArenaRoundSystem.Phase == RoundPhase.FreezeCountdown ? "Skip the countdown" : "End voting now";
 

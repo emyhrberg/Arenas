@@ -45,8 +45,20 @@ internal static class ArenaDefaults
             MaxMana = 200,
             RoundDurationSeconds = 600,
             Loadout = CreatePostPlantera()
-        }
+        },
+        CreateSandboxPreset()
     ];
+
+    internal static BossFightPreset CreateSandboxPreset() => new()
+    {
+        Name = "Sandbox",
+        Boss = new NPCDefinition(NPCID.None),
+        ArenaGenerator = ArenaGeneratorKind.SandboxWorld,
+        MaxHealth = 500,
+        MaxMana = 200,
+        RoundDurationSeconds = 600,
+        Loadout = new Loadout()
+    };
 
     #region Progression loadouts
 

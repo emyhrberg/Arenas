@@ -17,7 +17,7 @@ internal sealed class ArenaGameManagerQuickbarSystem : ModSystem
         if (!TryGetErkySSC(out Mod mod)) return;
         try
         {
-            mod.Call("RegisterAdminQuickbarEntry", Owner, "arena_game_manager", "Arenas Game Manager", "Clear the world, balance teams, and manage rounds", Ass.IconStartGame,
+            mod.Call("RegisterAdminQuickbarEntry", Owner, "arena_game_manager", "Arenas : Game Manager", "Balance teams and launch disposable arena subworlds", Ass.IconArenas,
                 new Action(() => ModContent.GetInstance<ArenaGameManagerUISystem>()?.Toggle()),
                 new Func<string>(() => ModContent.GetInstance<ArenaGameManagerUISystem>()?.IsActive == true ? "Close" : "Open"),
                 new Func<Color>(() => Color.White), true, 31, "");

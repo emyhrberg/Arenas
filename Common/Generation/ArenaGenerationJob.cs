@@ -73,6 +73,7 @@ internal sealed class ArenaGenerationJob
             FailedStage = Stage;
             Error = exception;
             Stage = ArenaGenerationStage.Failed;
+            Log.Error($"[WorldGenError] Arena generation failed during {FailedStage}: {exception}");
         }
     }
 
@@ -131,7 +132,7 @@ internal sealed class ArenaGenerationJob
 
         if (IsOuterFrame(p))
             Apply(Main.tile[x, y], ArenaTileData.Solid(TileID.LihzahrdBrick));
-        else if (Layout.BossArea.Contains(p) || Layout.RedSpawnClearance.Contains(p) || Layout.BlueSpawnClearance.Contains(p))
+        else if ((generator.ClearBossArea && Layout.BossArea.Contains(p)) || Layout.RedSpawnClearance.Contains(p) || Layout.BlueSpawnClearance.Contains(p))
         {
             Tile tile = Main.tile[x, y];
             tile.ClearTile();
@@ -295,7 +296,12 @@ internal sealed class ArenaGenerationJob
         return outer.Contains(point) && !Layout.ArenaArea.Contains(point);
     }
 
-    private void Advance(ArenaGenerationStage stage) { Stage = stage; cursor = 0; }
+    private void Advance(ArenaGenerationStage stage)
+    {
+        Log.Debug($"[WorldGen2] Completed {Stage}; advancing to {stage}.");
+        Stage = stage;
+        cursor = 0;
+    }
     private static void Apply(Tile tile, ArenaTileData data)
     {
         tile.ClearEverything(); tile.WallType = data.WallType;

@@ -51,17 +51,18 @@ internal sealed class ArenaManagerStatusRow : UIElement
     {
         Rectangle rect = GetDimensions().ToRectangle(); ArenaGameManagerText.Panel(batch, rect, new Color(20, 20, 60) * .9f, Color.Black);
         bool active = ArenaWorldSystem.Active;
-        string status = !active ? "Outside Arenas"
+        string status = !active ? "Main world - waiting for arenas"
             : ArenaWorldSystem.IsClearing ? "Clearing world from Game Manager"
             : ArenaRoundSystem.Phase == RoundPhase.Idle && ArenaWorldSystem.Layout == null ? "Idle - use Game Manager to start"
             : ArenaRoundSystem.Phase == RoundPhase.Idle && ArenaRoundSystem.Result == RoundResult.GenerationFailed ? "Idle - generation failed"
             : ArenaRoundSystem.IsTimerPaused ? $"{ArenaGameManagerText.Phase(ArenaRoundSystem.Phase)} - paused"
             : ArenaRoundSystem.Phase == RoundPhase.Voting && ArenaRoundSystem.Result != RoundResult.None ? $"Voting - {ArenaGameManagerText.Result(ArenaRoundSystem.Result)}"
             : ArenaGameManagerText.Phase(ArenaRoundSystem.Phase);
-        Color color = !active ? Color.Gray : ArenaRoundSystem.IsTimerPaused ? Color.Yellow : ArenaRoundSystem.Phase == RoundPhase.Playing ? Color.LimeGreen : Color.White;
+        Color color = !active ? new Color(174, 216, 226) : ArenaRoundSystem.IsTimerPaused ? Color.Yellow : ArenaRoundSystem.Phase == RoundPhase.Playing ? Color.LimeGreen : Color.White;
         ArenaGameManagerText.Icon(batch, Ass.IconArenas, new(rect.X + 8, rect.Y + 7, 20, 20), Color.White);
         ArenaGameManagerText.Draw(batch, $"Status: {status}", new(rect.X + 36, rect.Y + 9), color, .72f, rect.Width - 126);
-        string value = ArenaWorldSystem.IsClearing ? $"Clear: {ArenaWorldSystem.ClearingProgress:P0}"
+        string value = !active ? "Lobby"
+            : ArenaWorldSystem.IsClearing ? $"Clear: {ArenaWorldSystem.ClearingProgress:P0}"
             : ArenaRoundSystem.Phase == RoundPhase.Generating ? $"Build: {ArenaRoundSystem.GenerationProgress:P0}"
             : $"Time: {ArenaGameManagerText.Time((int)Math.Ceiling(ArenaRoundSystem.RemainingTicks / 60f))}";
         ArenaGameManagerText.Draw(batch, value, new(rect.Right - 10, rect.Y + 9), Color.White, .68f, 84, 1f);
@@ -111,8 +112,11 @@ internal sealed class ArenaManagerPresetSelector : UIElement
         Rectangle rect = GetDimensions().ToRectangle(); ArenaGameManagerText.Panel(batch, rect, new Color(20, 20, 60) * .9f, Color.Black); DrawArrow(batch, Previous(rect), "<"); DrawArrow(batch, Next(rect), ">");
         List<Core.Configs.ConfigElements.BossFightPreset> presets = ArenaRoundSystem.GetValidPresets();
         if (presets.Count == 0) { ArenaGameManagerText.Draw(batch, "No valid fight presets", rect.Center.ToVector2() + new Vector2(0, -8), Color.Gray, .76f, rect.Width - 100, .5f); return; }
-        SetIndex(index); var preset = presets[index]; ArenaBossVoteDrawer.DrawBossHead(preset.Boss?.Type ?? 0, new(rect.X + 48, rect.Y + 4, 40, 40));
-        string label = index == ArenaRoundSystem.CurrentPresetIndex ? "Current boss" : "Selected boss";
+        SetIndex(index); var preset = presets[index];
+        Rectangle iconBox = new(rect.X + 48, rect.Y + 4, 40, 40);
+        if (ArenaRoundSystem.IsSandboxPreset(preset)) ArenaGameManagerText.Icon(batch, Ass.IconArenas, iconBox, Color.White);
+        else ArenaBossVoteDrawer.DrawBossHead(preset.Boss?.Type ?? 0, iconBox);
+        string label = index == ArenaRoundSystem.CurrentPresetIndex ? "Current preset" : "Selected preset";
         ArenaGameManagerText.Draw(batch, label, new(rect.X + 94, rect.Y + 6), new Color(174, 216, 226), .55f, rect.Width - 145);
         ArenaGameManagerText.Draw(batch, ArenaRoundSystem.PresetName(preset), new(rect.X + 94, rect.Y + 23), Color.White, .78f, rect.Width - 145);
     }

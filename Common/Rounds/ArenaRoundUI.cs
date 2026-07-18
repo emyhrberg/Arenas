@@ -28,7 +28,12 @@ internal sealed class ArenaRoundUI : ModSystem
 
     private static bool Draw()
     {
-        if (!ArenaWorldSystem.Active) return true;
+        if (!ArenaWorldSystem.Active)
+        {
+            DrawTopScoreboard(true);
+            if (ScoreboardVisible) DrawScoreboard();
+            return true;
+        }
         if (ArenaWorldSystem.IsClearing)
             DrawWorldWaiting();
         else if (ArenaRoundSystem.Phase == RoundPhase.Generating)
@@ -37,7 +42,7 @@ internal sealed class ArenaRoundUI : ModSystem
         {
             if (!ModContent.GetInstance<EndScreenSystem>().IsVisible) ArenaBossVoteDrawer.Draw(260);
         }
-        DrawTopScoreboard();
+        DrawTopScoreboard(false);
         if (ArenaRoundSystem.Phase == RoundPhase.FreezeCountdown) DrawCountdown();
         if (ScoreboardVisible) DrawScoreboard();
         return true;
@@ -64,38 +69,46 @@ internal sealed class ArenaRoundUI : ModSystem
         Utils.DrawBorderString(Main.spriteBatch, $"{progress:P0}", new Vector2(panel.Center.X, panel.Y + 57), Color.White, .85f, .5f, .5f);
     }
 
-    private static void DrawTopScoreboard()
+    private static void DrawTopScoreboard(bool mainWorld)
     {
         var presets = ArenaRoundSystem.GetValidPresets(); int index = ArenaRoundSystem.CurrentPresetIndex;
-        int bossType = index >= 0 && index < presets.Count ? presets[index].Boss.Type : 0;
-        const int timerWidth = 184, timerHeight = 52, damageWidth = 88, damageHeight = 30, iconSize = 50;
+        int bossType = index >= 0 && index < presets.Count ? presets[index].Boss?.Type ?? 0 : 0;
+        int timerWidth = mainWorld ? 240 : 184;
+        const int timerHeight = 52, damageWidth = 88, damageHeight = 30, iconSize = 50;
         Rectangle timer = new(Main.screenWidth / 2 - timerWidth / 2, 0, timerWidth, timerHeight);
         Rectangle red = new(timer.X - damageWidth, timer.Y, damageWidth, damageHeight), blue = new(timer.Right, timer.Y, damageWidth, damageHeight);
-        Rectangle bounds = Rectangle.Union(red, blue); bounds.Inflate(16, 16);
+        Rectangle bounds = mainWorld ? timer : Rectangle.Union(red, blue); bounds.Inflate(16, 16);
         scorelineOpacity = MathHelper.Lerp(scorelineOpacity, bounds.Contains(Main.MouseScreen.ToPoint()) ? .25f : 1f, 1f / 16f);
 
         Utils.DrawInvBG(Main.spriteBatch, timer, Color.White * .9f * scorelineOpacity);
-        Utils.DrawInvBG(Main.spriteBatch, red, Main.teamColor[(int)Terraria.Enums.Team.Red] * .7f * scorelineOpacity);
-        Utils.DrawInvBG(Main.spriteBatch, blue, Main.teamColor[(int)Terraria.Enums.Team.Blue] * .7f * scorelineOpacity);
-        DrawDamage(TeamBossDamage(Terraria.Enums.Team.Red).ToString(), red);
+        if (!mainWorld)
+        {
+            Utils.DrawInvBG(Main.spriteBatch, red, Main.teamColor[(int)Terraria.Enums.Team.Red] * .7f * scorelineOpacity);
+            Utils.DrawInvBG(Main.spriteBatch, blue, Main.teamColor[(int)Terraria.Enums.Team.Blue] * .7f * scorelineOpacity);
+            DrawDamage(TeamBossDamage(Terraria.Enums.Team.Red).ToString(), red);
+        }
         Rectangle bossIcon = new(timer.Center.X - iconSize / 2, timer.Center.Y - iconSize / 2, iconSize, iconSize);
-        ArenaBossVoteDrawer.DrawBossHead(bossType, bossIcon, .34f * scorelineOpacity);
+        if (!mainWorld && bossType > 0)
+            ArenaBossVoteDrawer.DrawBossHead(bossType, bossIcon, .34f * scorelineOpacity);
         ArenaScoreboardDrawer.Text(TopStatus(), new Vector2(timer.Center.X, timer.Center.Y - 11),
             Color.White * scorelineOpacity, 1.15f, timer.Width - 18);
-        DrawDamage(TeamBossDamage(Terraria.Enums.Team.Blue).ToString(), blue);
+        if (!mainWorld)
+            DrawDamage(TeamBossDamage(Terraria.Enums.Team.Blue).ToString(), blue);
 
         if (timer.Contains(Main.MouseScreen.ToPoint())) { Main.LocalPlayer.mouseInterface = true; Main.instance.MouseText("Round status"); }
-        else if (red.Contains(Main.MouseScreen.ToPoint())) { Main.LocalPlayer.mouseInterface = true; Main.instance.MouseText("Red team boss damage"); }
-        else if (blue.Contains(Main.MouseScreen.ToPoint())) { Main.LocalPlayer.mouseInterface = true; Main.instance.MouseText("Blue team boss damage"); }
+        else if (!mainWorld && red.Contains(Main.MouseScreen.ToPoint())) { Main.LocalPlayer.mouseInterface = true; Main.instance.MouseText("Red team boss damage"); }
+        else if (!mainWorld && blue.Contains(Main.MouseScreen.ToPoint())) { Main.LocalPlayer.mouseInterface = true; Main.instance.MouseText("Blue team boss damage"); }
     }
 
     private static string TopStatus()
     {
+        if (!ArenaWorldSystem.Active) return "Waiting for arenas";
         if (ArenaWorldSystem.IsClearing) return "Clearing";
         return ArenaRoundSystem.Phase switch
         {
             RoundPhase.Idle => "Waiting for host",
             RoundPhase.Generating => "Generating",
+            RoundPhase.Sandbox => "Sandbox",
             RoundPhase.Voting => "Voting",
             RoundPhase.FreezeCountdown => Math.Max(1, (int)Math.Ceiling(ArenaRoundSystem.RemainingTicks / 60f)).ToString(),
             RoundPhase.Playing => FormatTime(ArenaRoundSystem.RemainingTicks),

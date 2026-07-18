@@ -15,9 +15,9 @@ internal sealed class SteamAvatarCache : ModSystem
     private static readonly Dictionary<ulong, ulong> nextAvatarAttempts = [];
     private static string localSteamId = "";
     private static ulong nextSteamIdAttempt;
+    private static int mainThreadId;
 
-    public override void OnWorldLoad() => Clear();
-    public override void OnWorldUnload() => Clear();
+    public override void Load() => mainThreadId = Environment.CurrentManagedThreadId;
     public override void Unload() => Clear();
 
     internal static string GetLocalSteamId()
@@ -89,12 +89,13 @@ internal sealed class SteamAvatarCache : ModSystem
 
     private static void Clear()
     {
-        foreach (Texture2D avatar in avatars.Values)
-            avatar?.Dispose();
-
+        Texture2D[] stale = [.. avatars.Values];
         avatars.Clear();
         nextAvatarAttempts.Clear();
         localSteamId = "";
         nextSteamIdAttempt = 0;
+        void Dispose() { foreach (Texture2D avatar in stale) if (avatar is { IsDisposed: false }) avatar.Dispose(); }
+        if (Environment.CurrentManagedThreadId == mainThreadId) Dispose();
+        else Main.QueueMainThreadAction(Dispose);
     }
 }

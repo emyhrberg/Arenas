@@ -1,6 +1,6 @@
 ﻿using Terraria.DataStructures;
 
-namespace Arenas.Common.Statistics;
+namespace Arenas.Common.TeamBoss;
 
 internal class StatisticsProjectile : GlobalProjectile
 {

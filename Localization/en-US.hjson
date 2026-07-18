@@ -3,43 +3,48 @@ Mods: {
 		Keybinds.Scoreboard.DisplayName: Scoreboard
 
 		Tools: {
-			ArenasManagerPanel.Title: Arenas Player Manager
+			SubworldManagerPanel.Title: Arenas Subworld Manager
 			ArenaGameManagerPanel.Title: Arenas Game Manager
 		}
 
 		Configs: {
 			ArenasConfig: {
-				DisplayName: Arenas Fight Presets
+				DisplayName: Fight Presets
 				Headers.FightPresets: Fight Presets
 
 				FightPresets: {
 					Label: Fight Presets
-					Tooltip: Every boss fight setting and loadout is configured inside its preset.
+					Tooltip: Bosses, arenas, and gear
 				}
 			}
 
 			ArenaTimingConfig: {
-				DisplayName: Arenas Round Timing
+				DisplayName: Round Times
 				Headers.RoundTiming: Round Timing
 
 				UseFreezeCountdown: {
 					Label: Use Freeze Countdown
-					Tooltip: Freeze participants briefly before each fight begins.
+					Tooltip: Hold players before battle
 				}
 
 				FreezeCountdownSeconds: {
 					Label: Freeze Countdown
-					Tooltip: Number of seconds participants remain frozen before a fight.
+					Tooltip: Time before battle
 				}
 
 				VotingDurationSeconds: {
 					Label: Voting Duration
-					Tooltip: Number of seconds players have to vote after a fight.
+					Tooltip: Time to pick the next fight
 				}
 			}
 
 			BossFightPreset: {
 				Tooltip: ""
+
+				Name: {
+					Label: Preset Name
+					Tooltip: Fight name
+				}
 
 				Boss: {
 					Label: Boss
@@ -48,32 +53,32 @@ Mods: {
 
 				ArenaGenerator: {
 					Label: Arena Generator
-					Tooltip: Selects the code-defined mirrored arena layout and terrain generator. Auto chooses from the boss NPC.
+					Tooltip: Arena world style
 				}
 
 				MaxHealth: {
-					Label: Player Max Health
-					Tooltip: Maximum health applied to every participant in this fight.
+					Label: Life
+					Tooltip: Player life
 				}
 
 				MaxMana: {
-					Label: Player Max Mana
-					Tooltip: Maximum mana applied to every participant in this fight.
+					Label: Mana
+					Tooltip: Player mana
 				}
 
 				RoundDurationSeconds: {
-					Label: Round Duration
-					Tooltip: Maximum duration of this boss fight.
+					Label: Battle Time
+					Tooltip: Battle time
 				}
 
 				Loadout: {
 					Label: Loadout
-					Tooltip: Full player equipment and inventory for this fight.
+					Tooltip: Starting gear
 				}
 
 				Time: {
-					Label: Fight Time
-					Tooltip: Optionally change the world time when this fight starts.
+					Label: Time
+					Tooltip: Day or night
 				}
 			}
 
@@ -201,27 +206,32 @@ Mods: {
 
 				Auto: {
 					Label: Auto
-					Tooltip: Choose the generator from the configured boss.
+					Tooltip: Match the boss
 				}
 
 				KingSlimeSurface: {
 					Label: King Slime Surface
-					Tooltip: Mirrored forest terrain with a grounded central boss arena.
+					Tooltip: Forest arena
 				}
 
 				EyeSurface: {
 					Label: Eye Surface
-					Tooltip: Mirrored surface platforms designed for the Eye of Cthulhu.
+					Tooltip: Night sky arena
 				}
 
 				PlanteraJungle: {
 					Label: Plantera Jungle
-					Tooltip: Mirrored underground-jungle caves with a central Plantera chamber.
+					Tooltip: Underground Jungle arena
 				}
 
 				GolemTemple: {
 					Label: Golem Temple
-					Tooltip: Mirrored Lihzahrd temple rooms with a central Golem chamber.
+					Tooltip: Jungle Temple arena
+				}
+
+				SandboxWorld: {
+					Label: Sandbox World
+					Tooltip: Custom world and every loadout
 				}
 			}
 		}

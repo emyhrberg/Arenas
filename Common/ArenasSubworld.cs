@@ -1,183 +1,159 @@
-﻿﻿using Arenas.Core;
-using Arenas.Core.Configs;
+using Arenas.Common.Generation;
+using Arenas.Common.Rounds;
+using Arenas.Core.Configs.ConfigElements;
 using Microsoft.Xna.Framework;
 using SubworldLibrary;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using Terraria;
-using Terraria.DataStructures;
 using Terraria.GameContent.Generation;
 using Terraria.ID;
 using Terraria.IO;
 using Terraria.ModLoader;
-using Terraria.Utilities;
 using Terraria.WorldBuilding;
 
 namespace Arenas.Common;
 
-public class ArenasSubworld : Subworld
+/// <summary>
+/// A disposable world created by Subworld Library for exactly one arena layout.
+/// The main world is never used as a generation target.
+/// </summary>
+public sealed class ArenasSubworld : Subworld
 {
-    public override int ReadFile(BinaryReader reader)
-    {
-        return base.ReadFile(reader);
-    }
-    public override bool NormalUpdates => false;
-    public override int Width => 850; // our structure is 680
-    public override int Height => 600; // our structure is 169
+    private static ArenaGenerationJob generationJob;
+    private static IArenaGenerator selectedGenerator;
 
+    internal static ArenaLayout GeneratedLayout { get; private set; }
+
+    public override int Width => 850;
+    public override int Height => 600;
     public override bool ShouldSave => false;
     public override bool NoPlayerSaving => true;
+    public override bool NormalUpdates => true;
 
-    public override List<GenPass> Tasks => GenPasses();
+    public override List<GenPass> Tasks =>
+    [
+        new PassLegacy("Select Arena Preset", SelectPreset, 0.05f),
+        new PassLegacy("Generate Boss Arena", GenerateArena, 0.90f),
+        new PassLegacy("Finalize Arena", FinalizeArena, 0.05f)
+    ];
 
-    #region World gen
-    private List<GenPass> GenPasses()
+    private static void SelectPreset(GenerationProgress progress, GameConfiguration configuration)
     {
-        return
-        [
-            Pass("GenerateArena", GenerateArena),
-            Pass("AdjustWorldHeight", AdjustWorldHeight), // perform this pass LAST ALWAYS!
-        ];
+        progress.Message = "Selecting boss arena";
+        GeneratedLayout = null;
+        generationJob = null;
+        selectedGenerator = null;
+
+        ArenaSubworldRequest request = ArenaSubworldCoordinator.ActiveRequest;
+        BossFightPreset preset = ArenaRoundSystem.GetPresetOrDefault(request.PresetIndex);
+        if (preset == null || !ArenaGeneratorRegistry.TryResolve(preset, out IArenaGenerator generator))
+            throw new InvalidOperationException($"Fight preset {request.PresetIndex} has no valid arena generator.");
+
+        Log.Debug($"[WorldGen1] Running preset selection. preset={request.PresetIndex}, boss={preset.Boss.DisplayName}, generator={generator.Kind}, seed={request.Seed}.");
+        selectedGenerator = generator;
+        if (generator.Kind != ArenaGeneratorKind.SandboxWorld)
+            generationJob = new ArenaGenerationJob(generator, request.Seed);
     }
 
-    private static void GenerateArena()
+    private static void GenerateArena(GenerationProgress progress, GameConfiguration configuration)
     {
-        try
+        if (selectedGenerator?.Kind == ArenaGeneratorKind.SandboxWorld)
         {
-            var mod = ModContent.GetInstance<Arenas>();
-            const string path = "Core/WorldFiles/Arenas_v10.wld";
-
-            byte[] bytes = mod.GetFileBytes(path);
-            if (bytes == null || bytes.Length == 0)
-            {
-                Log.Error($"Failed to load arena world bytes. Missing mod file: '{path}'. Ensure it's included in the .tmod build output.");
-                return;
-            }
-
-            using var ms = new MemoryStream(bytes);
-            using var reader = new BinaryReader(ms);
-            WorldFile.LoadWorld_Version2(reader);
-            Log.Debug($"[Arenas] maxTilesY={Main.maxTilesY} worldSurface={Main.worldSurface} rockLayer={Main.rockLayer}");
+            LoadSandboxWorld(progress);
+            return;
         }
-        catch (Exception e)
+
+        if (generationJob == null)
+            throw new InvalidOperationException("The arena generation job was not initialized.");
+
+        Log.Debug($"[WorldGen2] Generating terrain and structures for {generationJob.Layout.Generator}.");
+        progress.Message = $"Generating {generationJob.Layout.Generator} arena";
+        while (!generationJob.IsComplete && !generationJob.HasFailed)
         {
-            Log.Error("Failed to generate arena: " + e);
+            generationJob.Tick();
+            progress.Set(generationJob.Progress);
         }
+
+        if (generationJob.HasFailed)
+            throw new InvalidOperationException($"Arena generation failed during {generationJob.FailedStage}.", generationJob.Error);
+
+        GeneratedLayout = generationJob.Layout;
+        Log.Debug($"[WorldGen2] Arena generation completed. generator={GeneratedLayout.Generator}, seed={GeneratedLayout.Seed}.");
     }
 
-    private static void AdjustWorldHeight()
+    private static void LoadSandboxWorld(GenerationProgress progress)
     {
-        Main.worldSurface = 599; // Hides the underground layer just out of bounds
-        Main.rockLayer = 599; // Hides the cavern layer just out of bounds
-        Log.Debug($"[Arenas] maxTilesY={Main.maxTilesY} worldSurface={Main.worldSurface} rockLayer={Main.rockLayer}");
+        const string path = "Core/WorldFiles/Arenas_v10.wld";
+        progress.Message = "Loading Sandbox world";
+        Log.Debug($"[WorldGen2.Sandbox] Loading bundled world file '{path}' only.");
 
-        // move spawn pos up
-        //Main.spawnTileX += 3;
-        //Main.spawnTileY -= 110;
+        byte[] bytes = ModContent.GetInstance<Arenas>().GetFileBytes(path);
+        if (bytes == null || bytes.Length == 0)
+            throw new InvalidOperationException($"Bundled Sandbox world file '{path}' is missing or empty.");
+
+        using MemoryStream stream = new(bytes, writable: false);
+        using BinaryReader reader = new(stream);
+        WorldFile.LoadWorld_Version2(reader);
+
+        ArenaSubworldRequest request = ArenaSubworldCoordinator.ActiveRequest;
+        GeneratedLayout = selectedGenerator.CreateLayout(request.Seed);
+        progress.Set(1f);
+        Log.Debug($"[WorldGen2.Sandbox] Loaded {Main.maxTilesX}x{Main.maxTilesY} world. spawn=({Main.spawnTileX},{Main.spawnTileY}), bytes={bytes.Length}.");
     }
 
-    private static GenPass Pass(string name, Action action, string message = null, float weight = 1f)
+    private static void FinalizeArena(GenerationProgress progress, GameConfiguration configuration)
     {
-        message ??= "Generating " + name;
-        Log.Info("Arenas subworld is " + message);
-        //Log.Chat("Arenas subworld is " + message);
-        return new PassLegacy(name, (p, _) => { p.Message = message; action(); }, weight);
-    }
-    #endregion
+        if (GeneratedLayout == null)
+            throw new InvalidOperationException("Arena generation completed without a layout.");
 
-    // Sets the time to the middle of the day whenever the subworld loads
-    public override void OnLoad()
-    {
-        SendWelcomeMessage();
-
-        //var config = ModContent.GetInstance<ArenasConfig>();
-        //RevealMap();
-
-        // become a ghost
-        //Main.LocalPlayer.ghost = true;
-
-        //ArenasUISystem.Toggle();
-    }
-
-    private void SendWelcomeMessage()
-    {
-        if (Main.netMode != NetmodeID.Server)
+        Log.Debug($"[WorldGen3] Finalizing arena spawn and world state. spawn={ArenaGeneratorRegistry.WorldSpawn}, bossSpawn={GeneratedLayout.BossSpawn}.");
+        progress.Message = "Preparing the fight";
+        if (GeneratedLayout.Generator != ArenaGeneratorKind.SandboxWorld)
         {
-            Main.dayTime = true;
-            Main.time = 12000;
-
-            Main.NewText("Welcome to Arenas - join Red Team or Blue Team to start your adventure.", Color.MediumPurple);
+            Main.spawnTileX = ArenaGeneratorRegistry.WorldSpawn.X;
+            Main.spawnTileY = ArenaGeneratorRegistry.WorldSpawn.Y;
         }
+        progress.Set(1f);
+        generationJob = null;
+        selectedGenerator = null;
     }
 
     public override void OnEnter()
     {
-        Log.Chat("Entered world with height: " + Main.ActiveWorldFileData.WorldSizeY);
-        //ArenaPlayerCountNet.Broadcast();
-    }
-    public override void OnExit()
-    {
-        //ArenaPlayerCountNet.Broadcast();
+        SubworldSystem.noReturn = true;
+        SubworldSystem.hideUnderworld = true;
     }
 
-    // Modify light here
-    public override bool GetLight(Tile tile, int x, int y, ref FastRandom rand, ref Vector3 color)
+    public override void OnLoad()
     {
-        // Hotfix...
-        // Fixes the black not drawing properly
-        // From sublib discord
-        // https://discord.com/channels/668545664724238363/681476367090450446/1463111528927596695
-        color.X = 0.004f;
-        color.Y = 0.004f;
-        color.Z = 0.004f;
+        SubworldSystem.noReturn = true;
+        SubworldSystem.hideUnderworld = true;
+
+        Log.Debug($"[WorldGen4] Arenas subworld OnLoad. netMode={Main.netMode}, gameMenu={Main.gameMenu}, generatedLayout={GeneratedLayout != null}.");
+
+        if (Main.netMode != NetmodeID.MultiplayerClient)
+        {
+            ArenaWorldSystem.InitializeSubworld(GeneratedLayout);
+            ArenaSubworldCoordinator.QueueSubworldRoundStart();
+        }
+
+        if (!Main.dedServ)
+            Main.QueueMainThreadAction(() => ArenaMapReveal.Reveal(ArenaWorldSystem.Layout ?? GeneratedLayout));
+    }
+
+    public override void OnUnload()
+    {
+        generationJob = null;
+        selectedGenerator = null;
+        GeneratedLayout = null;
+    }
+
+    public override bool GetLight(Tile tile, int x, int y, ref Terraria.Utilities.FastRandom rand, ref Vector3 color)
+    {
+        color.X = Math.Max(color.X, 0.004f);
+        color.Y = Math.Max(color.Y, 0.004f);
+        color.Z = Math.Max(color.Z, 0.004f);
         return false;
-    }
-
-    public static void RevealMap()
-    {
-        if (Main.LocalPlayer == null || Main.Map == null)
-        {
-            Log.Warn("No player exists, cant reveal map yet");
-            return;
-        }
-
-        for (int i = 0; i < Main.maxTilesX; i++)
-        {
-            for (int j = 0; j < Main.maxTilesY; j++)
-            {
-                if (WorldGen.InWorld(i, j))
-                    Main.Map.Update(i, j, 255);
-            }
-        }
-
-        Main.refreshMap = true;
-    }
-}
-
-public class UpdateSubworldSystem : ModSystem
-{
-    public override void PreUpdateWorld()
-    {
-        if (SubworldSystem.IsActive<ArenasSubworld>())
-        {
-            // Update mechanisms
-            Wiring.UpdateMech();
-
-            // Update tile entities
-            TileEntity.UpdateStart();
-            foreach (TileEntity te in TileEntity.ByID.Values)
-            {
-                te.Update();
-            }
-            TileEntity.UpdateEnd();
-
-            // Update liquid
-            if (++Liquid.skipCount > 1)
-            {
-                Liquid.UpdateLiquid();
-                Liquid.skipCount = 0;
-            }
-        }
     }
 }

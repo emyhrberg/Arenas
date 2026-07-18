@@ -56,7 +56,13 @@ internal static class ArenaBossVoteDrawer
 
             Rectangle icon = new(row.X + S(14), row.Y + S(8), S(52), S(48));
             DrawPanel(icon, new Color(34, 49, 111), DarkEdge, S(7));
-            DrawBossHead(presets[i].Boss?.Type ?? 0, icon);
+            if (ArenaRoundSystem.IsSandboxPreset(presets[i]))
+            {
+                Texture2D sandboxIcon = Ass.IconArenas.Value;
+                float sandboxScale = Math.Min((icon.Width - 8f) / sandboxIcon.Width, (icon.Height - 8f) / sandboxIcon.Height);
+                Main.spriteBatch.Draw(sandboxIcon, icon.Center.ToVector2(), null, Color.White, 0f, sandboxIcon.Size() * .5f, sandboxScale, SpriteEffects.None, 0f);
+            }
+            else DrawBossHead(presets[i].Boss?.Type ?? 0, icon);
             DrawVoteState(icon, selected, hover, scale);
 
             Color nameColor = selected ? new Color(206, 255, 142) : hover ? Yellow : Color.White;

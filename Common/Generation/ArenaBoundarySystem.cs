@@ -93,7 +93,7 @@ internal sealed class ArenaBoundaryDrawSystem : ModSystem
             int screenY = (int)MathF.Round(layout.ArenaArea.Top * 16f - Main.screenPosition.Y);
             int height = layout.ArenaArea.Height * 16;
             float pulse = .86f + MathF.Sin((float)Main.timeForVisualEffects * .045f) * .08f;
-            DrawGradient(Main.spriteBatch, new Rectangle(screenX, screenY, boundaryWidth, height), redOnLeft, pulse);
+            DrawWorldGradient(Main.spriteBatch, new Rectangle(screenX, screenY, boundaryWidth, height), redOnLeft, pulse);
             return true;
         }
     }
@@ -117,32 +117,39 @@ internal sealed class ArenaBoundaryDrawSystem : ModSystem
         return false;
     }
 
-    internal static void DrawGradient(SpriteBatch batch, Rectangle area, bool redOnLeft, float opacity)
+    private static void SetEffect(Effect effect, bool redOnLeft, float opacity)
+    {
+        effect.Parameters["globalTime"]?.SetValue((float)Main.timeForVisualEffects);
+        effect.Parameters["borderColor"]?.SetValue(new Color(255, 35, 45).ToVector3());
+        effect.Parameters["passableColor"]?.SetValue(new Color(35, 235, 95).ToVector3());
+        effect.Parameters["opacity"]?.SetValue(opacity);
+        effect.Parameters["flipGradient"]?.SetValue(redOnLeft ? 0f : 1f);
+        effect.Parameters["pulseStrength"]?.SetValue(.10f);
+        effect.Parameters["shimmerStrength"]?.SetValue(.08f);
+        effect.Parameters["shimmerScale"]?.SetValue(16f);
+        effect.Parameters["shimmerSpeed"]?.SetValue(.06f);
+    }
+
+    private static void DrawWorldGradient(SpriteBatch batch, Rectangle area, bool redOnLeft, float opacity)
+    {
+        if (area.Width <= 0 || area.Height <= 0) return;
+        Effect effect = EffectLoader.TryGetSpawnBoxBorderEffect(out Effect loaded) ? loaded : null;
+        if (effect != null) SetEffect(effect, redOnLeft, opacity);
+        batch.End();
+        batch.Begin(effect == null ? SpriteSortMode.Deferred : SpriteSortMode.Immediate, BlendState.AlphaBlend, SamplerState.PointClamp,
+            DepthStencilState.None, Main.Rasterizer, effect, Main.GameViewMatrix.TransformationMatrix);
+        if (effect != null) effect.CurrentTechnique.Passes[0].Apply();
+        if (effect != null) batch.Draw(TextureAssets.MagicPixel.Value, area, Color.White);
+        else DrawPixelGradient(batch, area, redOnLeft, opacity);
+        batch.End();
+        batch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, Main.DefaultSamplerState,
+            DepthStencilState.None, Main.Rasterizer, null, Main.UIScaleMatrix);
+    }
+
+    internal static void DrawPixelGradient(SpriteBatch batch, Rectangle area, bool redOnLeft, float opacity)
     {
         if (area.Width <= 0 || area.Height <= 0) return;
         Texture2D pixel = TextureAssets.MagicPixel.Value;
-        if (EffectLoader.TryGetSpawnBoxBorderEffect(out Effect effect))
-        {
-            effect.Parameters["globalTime"]?.SetValue((float)Main.timeForVisualEffects);
-            effect.Parameters["borderColor"]?.SetValue(new Color(255, 35, 45).ToVector3());
-            effect.Parameters["passableColor"]?.SetValue(new Color(35, 235, 95).ToVector3());
-            effect.Parameters["opacity"]?.SetValue(opacity);
-            effect.Parameters["flipGradient"]?.SetValue(redOnLeft ? 0f : 1f);
-            effect.Parameters["pulseStrength"]?.SetValue(.10f);
-            effect.Parameters["shimmerStrength"]?.SetValue(.08f);
-            effect.Parameters["shimmerScale"]?.SetValue(16f);
-            effect.Parameters["shimmerSpeed"]?.SetValue(.06f);
-
-            batch.End();
-            batch.Begin(SpriteSortMode.Immediate, BlendState.AlphaBlend, SamplerState.LinearClamp,
-                DepthStencilState.None, Main.Rasterizer, effect, Matrix.Identity);
-            batch.Draw(pixel, area, Color.White);
-            batch.End();
-            batch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.LinearClamp,
-                DepthStencilState.None, Main.Rasterizer, null, Matrix.Identity);
-            return;
-        }
-
         for (int x = 0; x < area.Width; x++)
         {
             float amount = area.Width == 1 ? .5f : x / (float)(area.Width - 1);
@@ -165,7 +172,7 @@ internal sealed class ArenaBoundaryMapLayer : ModMapLayer
 
         float widthTiles = ArenaBoundaryDrawSystem.BoundaryWidthTiles;
         Vector2 topLeft = (new Vector2(tileX - widthTiles / 2f, layout.ArenaArea.Top) - context.MapPosition) * context.MapScale + context.MapOffset;
-        int width = Math.Max(2, (int)MathF.Ceiling(context.MapScale * widthTiles));
+        int width = Math.Max(1, (int)MathF.Round(context.MapScale * widthTiles));
         Rectangle line = new((int)MathF.Round(topLeft.X), (int)MathF.Round(topLeft.Y), width,
             Math.Max(1, (int)MathF.Round(layout.ArenaArea.Height * context.MapScale)));
         if (!Main.mapFullscreen && Main.mapStyle == 1)
@@ -173,6 +180,6 @@ internal sealed class ArenaBoundaryMapLayer : ModMapLayer
             line = Rectangle.Intersect(line, new Rectangle(Main.miniMapX, Main.miniMapY, Main.miniMapWidth, Main.miniMapHeight));
             if (line.Width <= 0 || line.Height <= 0) return;
         }
-        ArenaBoundaryDrawSystem.DrawGradient(Main.spriteBatch, line, redOnLeft, .9f);
+        ArenaBoundaryDrawSystem.DrawPixelGradient(Main.spriteBatch, line, redOnLeft, .9f);
     }
 }
