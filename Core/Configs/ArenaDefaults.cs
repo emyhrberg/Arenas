@@ -13,6 +13,7 @@ internal static class ArenaDefaults
         {
             Boss = new NPCDefinition(NPCID.KingSlime),
             ArenaGenerator = ArenaGeneratorKind.KingSlimeSurface,
+            Arena = ArenaGeometryDefaults.Create(ArenaGeneratorKind.KingSlimeSurface),
             MaxHealth = 200,
             MaxMana = 100,
             RoundDurationSeconds = 300,
@@ -22,6 +23,7 @@ internal static class ArenaDefaults
         {
             Boss = new NPCDefinition(NPCID.EyeofCthulhu),
             ArenaGenerator = ArenaGeneratorKind.EyeSurface,
+            Arena = ArenaGeometryDefaults.Create(ArenaGeneratorKind.EyeSurface),
             MaxHealth = 200,
             MaxMana = 100,
             RoundDurationSeconds = 300,
@@ -32,6 +34,7 @@ internal static class ArenaDefaults
         {
             Boss = new NPCDefinition(NPCID.Plantera),
             ArenaGenerator = ArenaGeneratorKind.PlanteraJungle,
+            Arena = ArenaGeometryDefaults.Create(ArenaGeneratorKind.PlanteraJungle),
             MaxHealth = 500,
             MaxMana = 200,
             RoundDurationSeconds = 600,
@@ -41,6 +44,7 @@ internal static class ArenaDefaults
         {
             Boss = new NPCDefinition(NPCID.Golem),
             ArenaGenerator = ArenaGeneratorKind.GolemTemple,
+            Arena = ArenaGeometryDefaults.Create(ArenaGeneratorKind.GolemTemple),
             MaxHealth = 500,
             MaxMana = 200,
             RoundDurationSeconds = 600,
@@ -54,6 +58,7 @@ internal static class ArenaDefaults
         Name = "Sandbox",
         Boss = new NPCDefinition(NPCID.None),
         ArenaGenerator = ArenaGeneratorKind.SandboxWorld,
+        Arena = ArenaGeometryDefaults.Create(ArenaGeneratorKind.SandboxWorld),
         MaxHealth = 500,
         MaxMana = 200,
         RoundDurationSeconds = 600,

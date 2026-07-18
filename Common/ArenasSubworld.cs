@@ -22,11 +22,12 @@ public sealed class ArenasSubworld : Subworld
 {
     private static ArenaGenerationJob generationJob;
     private static IArenaGenerator selectedGenerator;
+    private static ArenaGeometryConfig selectedGeometry;
 
     internal static ArenaLayout GeneratedLayout { get; private set; }
 
-    public override int Width => 850;
-    public override int Height => 600;
+    public override int Width => RequestedGeometry().WorldWidth;
+    public override int Height => RequestedGeometry().WorldHeight;
     public override bool ShouldSave => false;
     public override bool NoPlayerSaving => true;
     public override bool NormalUpdates => true;
@@ -44,6 +45,7 @@ public sealed class ArenasSubworld : Subworld
         GeneratedLayout = null;
         generationJob = null;
         selectedGenerator = null;
+        selectedGeometry = null;
 
         ArenaSubworldRequest request = ArenaSubworldCoordinator.ActiveRequest;
         BossFightPreset preset = ArenaRoundSystem.GetPresetOrDefault(request.PresetIndex);
@@ -52,8 +54,12 @@ public sealed class ArenasSubworld : Subworld
 
         Log.Debug($"[WorldGen1] Running preset selection. preset={request.PresetIndex}, boss={preset.Boss.DisplayName}, generator={generator.Kind}, seed={request.Seed}.");
         selectedGenerator = generator;
+        selectedGeometry = ArenaGeneratorRegistry.ResolveGeometry(preset);
+        Log.Chat($"[WorldGen1] Geometry world={selectedGeometry.WorldWidth}x{selectedGeometry.WorldHeight} arena=({selectedGeometry.ArenaLeft},{selectedGeometry.ArenaTop})..({selectedGeometry.ArenaRight},{selectedGeometry.ArenaBottom}) boss=({selectedGeometry.BossAreaX},{selectedGeometry.BossAreaY},{selectedGeometry.BossAreaWidth},{selectedGeometry.BossAreaHeight}) borders={selectedGeometry.BlueBorderX}/{selectedGeometry.RedBorderX}");
+        if (Main.maxTilesX != selectedGeometry.WorldWidth || Main.maxTilesY != selectedGeometry.WorldHeight)
+            throw new InvalidOperationException($"Subworld Library created {Main.maxTilesX}x{Main.maxTilesY}, but preset '{ArenaRoundSystem.PresetName(preset)}' requested {selectedGeometry.WorldWidth}x{selectedGeometry.WorldHeight}");
         if (generator.Kind != ArenaGeneratorKind.SandboxWorld)
-            generationJob = new ArenaGenerationJob(generator, request.Seed);
+            generationJob = new ArenaGenerationJob(generator, selectedGeometry, request.Seed);
     }
 
     private static void GenerateArena(GenerationProgress progress, GameConfiguration configuration)
@@ -97,7 +103,7 @@ public sealed class ArenasSubworld : Subworld
         WorldFile.LoadWorld_Version2(reader);
 
         ArenaSubworldRequest request = ArenaSubworldCoordinator.ActiveRequest;
-        GeneratedLayout = selectedGenerator.CreateLayout(request.Seed);
+        GeneratedLayout = selectedGenerator.CreateLayout(selectedGeometry ?? RequestedGeometry(), request.Seed);
         progress.Set(1f);
         Log.Debug($"[WorldGen2.Sandbox] Loaded {Main.maxTilesX}x{Main.maxTilesY} world. spawn=({Main.spawnTileX},{Main.spawnTileY}), bytes={bytes.Length}.");
     }
@@ -107,16 +113,17 @@ public sealed class ArenasSubworld : Subworld
         if (GeneratedLayout == null)
             throw new InvalidOperationException("Arena generation completed without a layout.");
 
-        Log.Debug($"[WorldGen3] Finalizing arena spawn and world state. spawn={ArenaGeneratorRegistry.WorldSpawn}, bossSpawn={GeneratedLayout.BossSpawn}.");
+        Log.Debug($"[WorldGen3] Finalizing arena spawn and world state. spawn={GeneratedLayout.RedSpawn}, bossSpawn={GeneratedLayout.BossSpawn}.");
         progress.Message = "Preparing the fight";
         if (GeneratedLayout.Generator != ArenaGeneratorKind.SandboxWorld)
         {
-            Main.spawnTileX = ArenaGeneratorRegistry.WorldSpawn.X;
-            Main.spawnTileY = ArenaGeneratorRegistry.WorldSpawn.Y;
+            Main.spawnTileX = GeneratedLayout.RedSpawn.X;
+            Main.spawnTileY = GeneratedLayout.RedSpawn.Y;
         }
         progress.Set(1f);
         generationJob = null;
         selectedGenerator = null;
+        selectedGeometry = null;
     }
 
     public override void OnEnter()
@@ -146,7 +153,15 @@ public sealed class ArenasSubworld : Subworld
     {
         generationJob = null;
         selectedGenerator = null;
+        selectedGeometry = null;
         GeneratedLayout = null;
+    }
+
+    private static ArenaGeometryConfig RequestedGeometry()
+    {
+        BossFightPreset preset = ArenaRoundSystem.GetPresetOrDefault(ArenaSubworldCoordinator.ActiveRequest.PresetIndex);
+        ArenaGeometryConfig geometry = ArenaGeneratorRegistry.ResolveGeometry(preset);
+        return geometry ?? ArenaGeometryDefaults.Create(ArenaGeneratorKind.KingSlimeSurface);
     }
 
     public override bool GetLight(Tile tile, int x, int y, ref Terraria.Utilities.FastRandom rand, ref Vector3 color)

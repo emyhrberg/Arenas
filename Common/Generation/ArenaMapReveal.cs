@@ -9,7 +9,7 @@ internal static class ArenaMapReveal
         if (Main.dedServ || layout == null || !Main.mapEnabled) return;
 
         Rectangle area = layout.ArenaArea;
-        area.Inflate(ArenaGeneratorRegistry.OuterBorderThickness, ArenaGeneratorRegistry.OuterBorderThickness);
+        area.Inflate(layout.OuterBorderThickness, layout.OuterBorderThickness);
         int left = Math.Max(0, area.Left), top = Math.Max(0, area.Top);
         int right = Math.Min(Main.maxTilesX, area.Right), bottom = Math.Min(Main.maxTilesY, area.Bottom);
         for (int x = left; x < right; x++)

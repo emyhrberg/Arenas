@@ -34,9 +34,9 @@ internal sealed class ArenaBoundaryPlayer : ModPlayer
         float maxY = arena.Bottom - Player.height;
 
         if (team == Team.Red)
-            maxX = Math.Min(maxX, layout.BossArea.Right * 16f - Player.width);
+            maxX = Math.Min(maxX, layout.RedBorderX * 16f - Player.width);
         else if (team == Team.Blue)
-            minX = Math.Max(minX, layout.BossArea.Left * 16f);
+            minX = Math.Max(minX, layout.BlueBorderX * 16f);
         else
             return;
 
@@ -71,8 +71,6 @@ internal sealed class ArenaBoundaryPlayer : ModPlayer
 [Autoload(Side = ModSide.Client)]
 internal sealed class ArenaBoundaryDrawSystem : ModSystem
 {
-    internal const int BoundaryWidthTiles = 3;
-
     public override void ModifyInterfaceLayers(List<GameInterfaceLayer> layers)
     {
         int index = layers.FindIndex(layer => layer.Name == "Vanilla: Interface Logic 1");
@@ -88,7 +86,7 @@ internal sealed class ArenaBoundaryDrawSystem : ModSystem
                 || !TryGetLocalBarrier(layout, out int tileX, out bool redOnLeft))
                 return true;
 
-            int boundaryWidth = BoundaryWidthTiles * 16;
+            int boundaryWidth = layout.TeamBorderWidth * 16;
             int screenX = (int)MathF.Round(tileX * 16f - Main.screenPosition.X) - boundaryWidth / 2;
             int screenY = (int)MathF.Round(layout.ArenaArea.Top * 16f - Main.screenPosition.Y);
             int height = layout.ArenaArea.Height * 16;
@@ -102,13 +100,13 @@ internal sealed class ArenaBoundaryDrawSystem : ModSystem
     {
         if (ArenaRoundSystem.TryGetParticipantTeam(Main.myPlayer, out Team team) && team == Team.Red)
         {
-            tileX = layout.BossArea.Right;
+            tileX = layout.RedBorderX;
             redOnLeft = true;
             return true;
         }
         if (team == Team.Blue)
         {
-            tileX = layout.BossArea.Left;
+            tileX = layout.BlueBorderX;
             redOnLeft = false;
             return true;
         }
@@ -170,7 +168,7 @@ internal sealed class ArenaBoundaryMapLayer : ModMapLayer
             || !ArenaBoundaryDrawSystem.TryGetLocalBarrier(layout, out int tileX, out bool redOnLeft))
             return;
 
-        float widthTiles = ArenaBoundaryDrawSystem.BoundaryWidthTiles;
+        float widthTiles = layout.TeamBorderWidth;
         Vector2 topLeft = (new Vector2(tileX - widthTiles / 2f, layout.ArenaArea.Top) - context.MapPosition) * context.MapScale + context.MapOffset;
         int width = Math.Max(1, (int)MathF.Round(context.MapScale * widthTiles));
         Rectangle line = new((int)MathF.Round(topLeft.X), (int)MathF.Round(topLeft.Y), width,

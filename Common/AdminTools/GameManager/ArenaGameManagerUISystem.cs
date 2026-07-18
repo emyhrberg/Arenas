@@ -16,7 +16,7 @@ internal sealed class ArenaGameManagerUISystem : ModSystem
 
     public override void OnWorldLoad()
     {
-        ui = new(); state = new(); state.Append(new ArenaGameManagerPanel()); ui.SetState(null);
+        ui = new(); state = new(); state.Append(new ArenaGameManagerPanel()); state.Append(new ArenaGeometryManagerPanel()); ui.SetState(null);
     }
 
     public override void UpdateUI(GameTime gameTime) => ui?.Update(gameTime);

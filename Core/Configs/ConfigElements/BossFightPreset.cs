@@ -33,6 +33,10 @@ public sealed class BossFightPreset
     [DefaultValue(ArenaGeneratorKind.Auto)]
     public ArenaGeneratorKind ArenaGenerator { get; set; } = ArenaGeneratorKind.Auto;
 
+    [ConfigIcon(ItemID.Ruler)]
+    [Expand(false)]
+    public ArenaGeometryConfig Arena { get; set; } = new();
+
     [ConfigIcon(ItemID.LifeCrystal)]
     [DefaultValue(500)]
     [Range(1, 10000)]

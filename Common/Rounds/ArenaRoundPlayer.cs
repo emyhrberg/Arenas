@@ -55,7 +55,7 @@ internal sealed class ArenaRoundPlayer : ModPlayer
                 NetMessage.SendData(MessageID.TogglePVP, -1, -1, null, Player.whoAmI);
         }
         if (Player.whoAmI != Main.myPlayer) return;
-        Point spawn = ArenaWorldSystem.Layout?.RedSpawn ?? ArenaGeneratorRegistry.WorldSpawn;
+        Point spawn = ArenaWorldSystem.Layout?.RedSpawn ?? new Point(Math.Max(1, Main.maxTilesX / 2), Math.Max(1, Main.maxTilesY / 2));
         if (ArenaRoundSystem.Phase is RoundPhase.FreezeCountdown or RoundPhase.Playing
             && ArenaRoundSystem.TryGetParticipantTeam(Player.whoAmI, out Terraria.Enums.Team team))
             spawn = ArenaRoundSystem.TeamSpawn(team);
@@ -69,7 +69,7 @@ internal sealed class ArenaRoundPlayer : ModPlayer
         Point spawn = ArenaRoundSystem.Phase is RoundPhase.FreezeCountdown or RoundPhase.Playing
             && ArenaRoundSystem.TryGetParticipantTeam(Player.whoAmI, out Terraria.Enums.Team team)
             ? ArenaRoundSystem.TeamSpawn(team)
-            : ArenaWorldSystem.Layout?.RedSpawn ?? ArenaGeneratorRegistry.WorldSpawn;
+            : ArenaWorldSystem.Layout?.RedSpawn ?? new Point(Math.Max(1, Main.maxTilesX / 2), Math.Max(1, Main.maxTilesY / 2));
         Vector2 position = new(spawn.X * 16, spawn.Y * 16 - Player.height);
         Player.Teleport(position, TeleportationStyleID.RodOfDiscord);
         Player.velocity = Vector2.Zero;

@@ -126,6 +126,7 @@ internal sealed class FightPresetListElement : ListElement
             }
 
             preset.Boss ??= new NPCDefinition();
+            preset.Arena ??= new ArenaGeometryConfig();
             preset.Loadout ??= new Loadout();
         }
     }

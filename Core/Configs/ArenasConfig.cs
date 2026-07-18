@@ -1,8 +1,9 @@
 using Arenas.Core.Configs.ConfigElements;
 using System;
 using System.Collections.Generic;
-using Terraria.Localization;
+using System.ComponentModel;
 using Terraria.ID;
+using Terraria.Localization;
 using Terraria.ModLoader.Config;
 
 namespace Arenas.Core.Configs;
@@ -71,6 +72,23 @@ internal sealed class ArenasConfig : ArenasServerConfig
     [Expand(true)]
     [CustomModConfigItem(typeof(FightPresetListElement))]
     public List<BossFightPreset> FightPresets { get; set; } = ArenaDefaults.CreateFightPresets();
+
+    [Header("RoundTiming")]
+    [HeaderIcon(ItemID.Stopwatch)]
+    [ConfigIcon("IconCheckOn", "IconCheckOff", grayWhenOff: true)]
+    [DefaultValue(true)]
+    public bool UseFreezeCountdown { get; set; } = true;
+
+    [ConfigIcon(ItemID.IceRod)]
+    [RequiresField(nameof(UseFreezeCountdown))]
+    [DefaultValue(10)]
+    [Range(0, 300)]
+    public int FreezeCountdownSeconds { get; set; } = 10;
+
+    [ConfigIcon(ItemID.Stopwatch)]
+    [DefaultValue(30)]
+    [Range(5, 300)]
+    public int VotingDurationSeconds { get; set; } = 30;
 
     public override void OnLoaded()
     {

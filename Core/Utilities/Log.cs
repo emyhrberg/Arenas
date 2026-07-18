@@ -54,7 +54,7 @@ return;
         if (Main.netMode == NetmodeID.Server)
         {
             text += $"[SERVER/{fileName}]: {message}";
-            ChatHelper.SendChatMessageToClient(NetworkText.FromLiteral(text), color: Color.White, playerId: Main.LocalPlayer.whoAmI);
+            ChatHelper.BroadcastChatMessage(NetworkText.FromLiteral(text), Color.White);
         }
         else
         {

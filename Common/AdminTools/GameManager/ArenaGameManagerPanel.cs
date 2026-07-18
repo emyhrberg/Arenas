@@ -67,7 +67,7 @@ internal sealed class ArenaGameManagerPanel : UIDraggablePanel
     private void StartRound() { ArenaGameManagerNetHandler.Request(ArenaGameManagerNetHandler.ActionType.StartRound, preset.Index, (int)countdown.Value, (int)roundTime.Value); selectionTouched = false; }
     private static void Request(ArenaGameManagerNetHandler.ActionType type) => ArenaGameManagerNetHandler.Request(type);
     private static int SecondsLeft() => Math.Max(0, (int)Math.Ceiling(ArenaRoundSystem.RemainingTicks / 60f));
-    private static ArenaTimingConfig TimingConfig => ModContent.GetInstance<ArenaTimingConfig>();
+    private static ArenasConfig TimingConfig => ModContent.GetInstance<ArenasConfig>();
     private static int DefaultCountdownSeconds() => TimingConfig.UseFreezeCountdown ? TimingConfig.FreezeCountdownSeconds : 0;
     private static bool InArena() => ArenaWorldSystem.Active;
     private static bool PlayersReady() => Main.player.Any(player => player?.active == true);

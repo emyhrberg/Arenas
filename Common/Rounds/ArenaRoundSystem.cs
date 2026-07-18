@@ -179,7 +179,7 @@ internal sealed class ArenaRoundSystem : ModSystem
     internal static Point TeamSpawn(Team team)
     {
         ArenaLayout layout = ArenaWorldSystem.Layout;
-        return layout?.TeamSpawn(team) ?? ArenaGeneratorRegistry.StagingLobby.Center;
+        return layout?.TeamSpawn(team) ?? new Point(Math.Max(1, Main.maxTilesX / 2), Math.Max(1, Main.maxTilesY / 2));
     }
 
     public static void RequestVote(int index)
@@ -282,7 +282,7 @@ internal sealed class ArenaRoundSystem : ModSystem
     }
 
     private static ArenasConfig Config => ModContent.GetInstance<ArenasConfig>();
-    private static ArenaTimingConfig TimingConfig => ModContent.GetInstance<ArenaTimingConfig>();
+    private static ArenasConfig TimingConfig => Config;
     private static bool IsTeam(Player p, Team team) => p?.active == true && (Team)p.team == team;
     internal static void AssignBalancedTeams()
     {
@@ -471,12 +471,13 @@ internal sealed class ArenaRoundSystem : ModSystem
 
     private static void HoldPlayersInLobby()
     {
-        Rectangle lobby = new(ArenaGeneratorRegistry.StagingLobby.X * 16, ArenaGeneratorRegistry.StagingLobby.Y * 16,
-            ArenaGeneratorRegistry.StagingLobby.Width * 16, ArenaGeneratorRegistry.StagingLobby.Height * 16);
+        Rectangle lobbyTiles = ArenaWorldSystem.Layout?.StagingLobby
+            ?? new Rectangle(Math.Max(1, Main.maxTilesX / 2 - 10), Math.Max(1, Main.maxTilesY / 2 - 10), 20, 20);
+        Rectangle lobby = new(lobbyTiles.X * 16, lobbyTiles.Y * 16, lobbyTiles.Width * 16, lobbyTiles.Height * 16);
         foreach (Player player in Main.player.Where(p => p?.active == true))
         {
             player.AddBuff(BuffID.Frozen, 2); player.immune = true; player.immuneTime = 2; player.noFallDmg = true; player.velocity = Vector2.Zero;
-            if (!lobby.Contains(player.Center.ToPoint())) Teleport(player, ArenaGeneratorRegistry.StagingLobby.Center);
+            if (!lobby.Contains(player.Center.ToPoint())) Teleport(player, lobbyTiles.Center);
         }
     }
 
@@ -644,7 +645,7 @@ internal sealed class ArenaRoundSystem : ModSystem
 
     private static int DefaultRoundTicks() => Math.Max(1, GetPresetOrDefault(0)?.RoundDurationSeconds ?? 600) * 60;
 
-    private static Point ResolveBossSpawn() => ArenaWorldSystem.Layout?.BossSpawn ?? ArenaGeneratorRegistry.ArenaArea.Center;
+    private static Point ResolveBossSpawn() => ArenaWorldSystem.Layout?.BossSpawn ?? new Point(Math.Max(1, Main.maxTilesX / 2), Math.Max(1, Main.maxTilesY / 2));
 
     private static void Teleport(Player player, Point tile)
     {
