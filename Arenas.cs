@@ -19,7 +19,7 @@ public sealed class Arenas : Mod
         EndScreen,
         PlayerStatus,
         ArenaSubworld,
-        SubworldManager,
+        //SubworldManager,
         Sandbox,
         MapReveal
     }
@@ -48,9 +48,9 @@ public sealed class Arenas : Mod
             case ArenasPacketType.ArenaSubworld:
                 Common.ArenaSubworldCoordinator.HandlePacket(reader, whoAmI);
                 break;
-            case ArenasPacketType.SubworldManager:
-                Common.AdminTools.SubworldManager.SubworldManagerNetHandler.HandlePacket(reader, whoAmI);
-                break;
+            //case ArenasPacketType.SubworldManager:
+            //    Common.AdminTools.SubworldManager.SubworldManagerNetHandler.HandlePacket(reader, whoAmI);
+            //    break;
             case ArenasPacketType.Sandbox:
                 Common.Sandbox.SandboxNetHandler.HandlePacket(reader, whoAmI);
                 break;

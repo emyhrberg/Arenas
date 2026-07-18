@@ -30,10 +30,10 @@ internal sealed class AdminQuickbarSystem : ModSystem
             "Balance teams and start arenas", 31,
             () => ModContent.GetInstance<ArenaGameManagerUISystem>().Toggle(),
             () => ModContent.GetInstance<ArenaGameManagerUISystem>().IsActive);
-        Add(mod, WorldOwner, "subworld_manager", "Arenas : Subworld Manager",
-            "Move players between worlds", 30,
-            () => ModContent.GetInstance<SubworldManagerUISystem>().Toggle(),
-            () => ModContent.GetInstance<SubworldManagerUISystem>().IsActive);
+        //Add(mod, WorldOwner, "subworld_manager", "Arenas : Subworld Manager",
+        //    "Move players between worlds", 30,
+        //    () => ModContent.GetInstance<SubworldManagerUISystem>().Toggle(),
+        //    () => ModContent.GetInstance<SubworldManagerUISystem>().IsActive);
     }
 
     private static void Add(Mod mod, string owner, string key, string title, string tooltip, int order, Action toggle, Func<bool> active)

@@ -55,7 +55,7 @@ public sealed class ArenasSubworld : Subworld
         Log.Debug($"[WorldGen1] Running preset selection. preset={request.PresetIndex}, boss={preset.Boss.DisplayName}, generator={generator.Kind}, seed={request.Seed}.");
         selectedGenerator = generator;
         selectedGeometry = ArenaGeneratorRegistry.ResolveGeometry(preset);
-        Log.Debug($"[WorldGen1] Geometry world={selectedGeometry.WorldWidth}x{selectedGeometry.WorldHeight} arena=({selectedGeometry.ArenaLeft},{selectedGeometry.ArenaTop})..({selectedGeometry.ArenaRight},{selectedGeometry.ArenaBottom}) boss=({selectedGeometry.BossAreaX},{selectedGeometry.BossAreaY},{selectedGeometry.BossAreaWidth},{selectedGeometry.BossAreaHeight}) borders={selectedGeometry.BlueBorderX}/{selectedGeometry.RedBorderX}");
+        Log.Debug($"[WorldGen1] Geometry world={selectedGeometry.WorldWidth}x{selectedGeometry.WorldHeight} arena=({selectedGeometry.ArenaLeft},{selectedGeometry.ArenaTop})..({selectedGeometry.ArenaRight},{selectedGeometry.ArenaBottom}) bossX={selectedGeometry.BossAreaX} bossWidth={selectedGeometry.BossAreaWidth} bossHeight=full-arena borders={selectedGeometry.BlueBorderX}/{selectedGeometry.RedBorderX}");
         if (Main.maxTilesX != selectedGeometry.WorldWidth || Main.maxTilesY != selectedGeometry.WorldHeight)
             throw new InvalidOperationException($"Subworld Library created {Main.maxTilesX}x{Main.maxTilesY}, but preset '{ArenaRoundSystem.PresetName(preset)}' requested {selectedGeometry.WorldWidth}x{selectedGeometry.WorldHeight}");
         if (generator.Kind != ArenaGeneratorKind.SandboxWorld)

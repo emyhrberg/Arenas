@@ -116,7 +116,7 @@ internal sealed class ArenaGenerationSelfTestSystem : ModSystem
         ArenaGeometryConfig geometry = ArenaGeometryDefaults.Create(kind);
         geometry.WorldWidth = 900; geometry.WorldHeight = 650;
         geometry.ArenaLeft = 30; geometry.ArenaRight = 870; geometry.ArenaTop = 50; geometry.ArenaBottom = 620;
-        geometry.BossAreaX += 25; geometry.BossAreaY += 20;
+        geometry.BossAreaX += 25;
         geometry.BlueBorderX += 25; geometry.RedBorderX += 25;
         geometry.RedSpawnX += 25; geometry.RedSpawnY += 20;
         geometry.BlueSpawnX += 25; geometry.BlueSpawnY += 20;

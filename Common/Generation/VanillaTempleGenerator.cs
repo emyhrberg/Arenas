@@ -27,7 +27,9 @@ internal static class VanillaTempleGenerator
             GenVars.configuration = VanillaGenPassRunner.Configuration;
             Main.maxTilesX = VanillaSmallWorldWidth;
             int templeX = layout.BossArea.Center.X;
-            int templeY = Math.Clamp(layout.BossArea.Top - 70, layout.ArenaArea.Top + 50, layout.ArenaArea.Bottom - 260);
+            // BossArea is the full-height logical confinement column. Anchor Temple generation to the
+            // configured boss spawn so widening confinement vertically does not move the Temple.
+            int templeY = Math.Clamp(layout.BossSpawn.Y - 240, layout.ArenaArea.Top + 50, layout.ArenaArea.Bottom - 260);
             Log.Debug($"[WorldGen2.Temple] Running the full vanilla WorldGen.makeTemple at ({templeX},{templeY}) with small-world room scaling. seed={seed}");
             WorldGen.makeTemple(templeX, templeY);
             Log.Debug($"[WorldGen2.Temple] Vanilla Temple complete. rooms={GenVars.tRooms}, bounds=({GenVars.tLeft},{GenVars.tTop})-({GenVars.tRight},{GenVars.tBottom})");
@@ -83,7 +85,7 @@ internal static class VanillaTempleGenerator
             return;
         }
 
-        Rectangle room = CenteredRoom(layout.BossArea.Center, Math.Min(32, layout.BossArea.Width - 4), Math.Min(24, layout.BossArea.Height - 4), layout.BossArea);
+        Rectangle room = CenteredRoom(layout.BossSpawn, Math.Min(32, layout.BossArea.Width - 4), Math.Min(24, layout.BossArea.Height - 4), layout.BossArea);
         Log.Debug($"[WorldGen2.Temple] No suitable vanilla room intersected BossArea; carving a compact fallback Temple chamber {room}");
         ClearSpawnRoom(room, templeWalls: true);
         PlaceTempleFloor(room);

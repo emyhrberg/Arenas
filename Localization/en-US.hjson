@@ -10,6 +10,11 @@ Mods: {
 			ArenaGameManagerPanel.Title: Arenas Game Manager
 		}
 
+		Map: {
+			RedTeamSpawn: Red Team Spawn
+			BlueTeamSpawn: Blue Team Spawn
+		}
+
 		Configs: {
 			ArenasClientConfig: {
 				DisplayName: Interface
@@ -146,19 +151,9 @@ Mods: {
 					Tooltip: Boss area left edge
 				}
 
-				BossAreaY: {
-					Label: Boss Area Y
-					Tooltip: Boss area top edge
-				}
-
 				BossAreaWidth: {
 					Label: Boss Area Width
-					Tooltip: Boss movement width
-				}
-
-				BossAreaHeight: {
-					Label: Boss Area Height
-					Tooltip: Boss movement height
+					Tooltip: Boss movement width across the full arena height
 				}
 
 				BlueBorderX: {

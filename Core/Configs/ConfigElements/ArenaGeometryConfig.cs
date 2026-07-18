@@ -35,14 +35,8 @@ public sealed class ArenaGeometryConfig
     [ConfigIcon(ItemID.DirtBlock), DefaultValue(325), Range(4, 1500)]
     public int BossAreaX { get; set; } = 325;
 
-    [ConfigIcon(ItemID.DirtBlock), DefaultValue(80), Range(4, 900)]
-    public int BossAreaY { get; set; } = 80;
-
     [ConfigIcon(ItemID.DirtBlock), DefaultValue(200), Range(40, 1000)]
     public int BossAreaWidth { get; set; } = 200;
-
-    [ConfigIcon(ItemID.DirtBlock), DefaultValue(380), Range(40, 900)]
-    public int BossAreaHeight { get; set; } = 380;
 
     [ConfigIcon(ItemID.Ruler), DefaultValue(325), Range(4, 1500)]
     public int BlueBorderX { get; set; } = 325;
@@ -91,7 +85,7 @@ public sealed class ArenaGeometryConfig
         writer.Write(WorldWidth); writer.Write(WorldHeight);
         writer.Write(ArenaLeft); writer.Write(ArenaRight); writer.Write(ArenaTop); writer.Write(ArenaBottom);
         writer.Write(OuterBorderThickness);
-        writer.Write(BossAreaX); writer.Write(BossAreaY); writer.Write(BossAreaWidth); writer.Write(BossAreaHeight);
+        writer.Write(BossAreaX); writer.Write(BossAreaWidth);
         writer.Write(BlueBorderX); writer.Write(RedBorderX); writer.Write(TeamBorderWidth);
         writer.Write(RedSpawnX); writer.Write(RedSpawnY); writer.Write(BlueSpawnX); writer.Write(BlueSpawnY);
         writer.Write(BossSpawnX); writer.Write(BossSpawnY);
@@ -105,7 +99,7 @@ public sealed class ArenaGeometryConfig
         WorldWidth = reader.ReadInt32(), WorldHeight = reader.ReadInt32(),
         ArenaLeft = reader.ReadInt32(), ArenaRight = reader.ReadInt32(), ArenaTop = reader.ReadInt32(), ArenaBottom = reader.ReadInt32(),
         OuterBorderThickness = reader.ReadInt32(),
-        BossAreaX = reader.ReadInt32(), BossAreaY = reader.ReadInt32(), BossAreaWidth = reader.ReadInt32(), BossAreaHeight = reader.ReadInt32(),
+        BossAreaX = reader.ReadInt32(), BossAreaWidth = reader.ReadInt32(),
         BlueBorderX = reader.ReadInt32(), RedBorderX = reader.ReadInt32(), TeamBorderWidth = reader.ReadInt32(),
         RedSpawnX = reader.ReadInt32(), RedSpawnY = reader.ReadInt32(), BlueSpawnX = reader.ReadInt32(), BlueSpawnY = reader.ReadInt32(),
         BossSpawnX = reader.ReadInt32(), BossSpawnY = reader.ReadInt32(),
@@ -125,18 +119,18 @@ internal static class ArenaGeometryDefaults
         switch (kind)
         {
             case ArenaGeneratorKind.EyeSurface:
-                geometry.BossAreaX = 285; geometry.BossAreaY = 70; geometry.BossAreaWidth = 280; geometry.BossAreaHeight = 390;
+                geometry.BossAreaX = 285; geometry.BossAreaWidth = 280;
                 geometry.BlueBorderX = 285; geometry.RedBorderX = 565;
                 geometry.BossSpawnY = 90;
                 break;
             case ArenaGeneratorKind.PlanteraJungle:
-                geometry.BossAreaX = 285; geometry.BossAreaY = 150; geometry.BossAreaWidth = 280; geometry.BossAreaHeight = 320;
+                geometry.BossAreaX = 285; geometry.BossAreaWidth = 280;
                 geometry.BlueBorderX = 285; geometry.RedBorderX = 565;
                 geometry.RedSpawnY = geometry.BlueSpawnY = 329; geometry.BossSpawnY = 300;
                 geometry.AutoPlaceTeamSpawns = geometry.AutoPlaceBossSpawn = false;
                 break;
             case ArenaGeneratorKind.GolemTemple:
-                geometry.BossAreaX = 305; geometry.BossAreaY = 270; geometry.BossAreaWidth = 240; geometry.BossAreaHeight = 230;
+                geometry.BossAreaX = 305; geometry.BossAreaWidth = 240;
                 geometry.BlueBorderX = 305; geometry.RedBorderX = 545;
                 geometry.RedSpawnY = geometry.BlueSpawnY = 499; geometry.BossSpawnY = 440;
                 geometry.AutoPlaceTeamSpawns = false;

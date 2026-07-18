@@ -84,7 +84,7 @@ internal static class ArenaGeneratorRegistry
     internal static ArenaLayout Layout(ArenaGeneratorKind kind, ArenaGeometryConfig geometry, int seed)
     {
         Rectangle arena = new(geometry.ArenaLeft, geometry.ArenaTop, geometry.ArenaRight - geometry.ArenaLeft, geometry.ArenaBottom - geometry.ArenaTop);
-        Rectangle boss = new(geometry.BossAreaX, geometry.BossAreaY, geometry.BossAreaWidth, geometry.BossAreaHeight);
+        Rectangle boss = new(geometry.BossAreaX, arena.Top, geometry.BossAreaWidth, arena.Height);
         Point red = new(geometry.RedSpawnX, geometry.RedSpawnY), blue = new(geometry.BlueSpawnX, geometry.BlueSpawnY), bossSpawn = new(geometry.BossSpawnX, geometry.BossSpawnY);
         Rectangle redClearance = SpawnRoom(red, geometry.SpawnRoomWidth, geometry.SpawnRoomHeight);
         Rectangle blueClearance = SpawnRoom(blue, geometry.SpawnRoomWidth, geometry.SpawnRoomHeight);

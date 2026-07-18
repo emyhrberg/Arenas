@@ -152,9 +152,7 @@ internal sealed class ArenaGameManagerPanel : UIDraggablePanel
                 break;
             case GeometryPage.Boss:
                 AddGeometrySlider("Boss Area X", 4, draft.WorldWidth - 44, () => draft.BossAreaX, value => draft.BossAreaX = value, ref top);
-                AddGeometrySlider("Boss Area Y", 4, draft.WorldHeight - 44, () => draft.BossAreaY, value => draft.BossAreaY = value, ref top);
                 AddGeometrySlider("Boss Area Width", 40, Math.Min(1000, draft.WorldWidth - 8), () => draft.BossAreaWidth, value => draft.BossAreaWidth = value, ref top);
-                AddGeometrySlider("Boss Area Height", 40, Math.Min(900, draft.WorldHeight - 8), () => draft.BossAreaHeight, value => draft.BossAreaHeight = value, ref top);
                 AddGeometrySlider("Boss Spawn X", 4, draft.WorldWidth - 4, () => draft.BossSpawnX, value => draft.BossSpawnX = value, ref top);
                 AddGeometrySlider("Boss Spawn Y", 4, draft.WorldHeight - 4, () => draft.BossSpawnY, value => draft.BossSpawnY = value, ref top);
                 AddGeometrySlider("Blue Border X", 4, draft.WorldWidth - 4, () => draft.BlueBorderX, value => draft.BlueBorderX = value, ref top);

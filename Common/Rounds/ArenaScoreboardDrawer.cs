@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Arenas.Core;
+using Arenas.Core.Compat;
 using Terraria.Enums;
 using Terraria.GameContent;
 using Terraria.ID;
@@ -135,7 +136,7 @@ internal static class ArenaScoreboardDrawer
         if (SteamAvatarCache.TryGetAvatar(stats.PlayerId, out Texture2D avatar))
             DrawSteamAvatar(avatar, head, status);
         else if (player != null)
-            Main.MapPlayerRenderer.DrawPlayerHead(Main.Camera, player, head.Center.ToVector2() - new Vector2(4f, 0f), 1f, .6f * headSize / 26f, teamColor);
+            ErkySSCCompat.DrawUnfilteredPlayerHead(player, head.Center.ToVector2() - new Vector2(4f, 0f), 1f, .6f * headSize / 26f, teamColor);
 
         bool local = stats.PlayerId == Main.myPlayer;
         Color nameColor = local ? new Color(255, 244, 170) : status.Dead ? Color.White * .6f : Color.White;

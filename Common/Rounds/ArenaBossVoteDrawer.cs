@@ -1,6 +1,7 @@
 using Arenas.Core;
 using Arenas.Core.Configs;
 using Arenas.Core.Configs.ConfigElements;
+using Arenas.Core.Compat;
 using Arenas.Common.UI;
 using Microsoft.Xna.Framework.Graphics;
 using System;
@@ -90,7 +91,7 @@ internal static class ArenaBossVoteDrawer
             Rectangle tile = new((int)MathF.Round(start + step * i) - 10, row.Y + s(14), size, size);
             Color team = player.team > 0 && player.team < Main.teamColor.Length ? Main.teamColor[player.team] : Color.Gray;
             DrawPanel(tile, Color.Lerp(player.shirtColor, team, .25f), DarkEdge, s(6));
-            Main.MapPlayerRenderer.DrawPlayerHead(Main.Camera, player, tile.Center.ToVector2() - new Vector2(4f, 0f), 1f, .58f * scale, team);
+            ErkySSCCompat.DrawUnfilteredPlayerHead(player, tile.Center.ToVector2() - new Vector2(4f, 0f), 1f, .58f * scale, team);
             if (tile.Contains(mouse)) { Main.LocalPlayer.mouseInterface = true; Main.instance.MouseText(player.name); }
         }
     }

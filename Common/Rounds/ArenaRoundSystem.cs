@@ -208,6 +208,11 @@ internal sealed class ArenaRoundSystem : ModSystem
     internal static void ApplyState(RoundPhase phase, RoundResult result, int ticks, int preset, int localVote, bool paused, int nextGenerationId, float progress, ArenaLayout layout, List<int> counts, List<List<byte>> voters, List<RoundPlayerStats> entries)
     {
         Phase = phase; Result = result; RemainingTicks = ticks; CurrentPresetIndex = preset; LocalVote = localVote;
+        if (Main.netMode == NetmodeID.MultiplayerClient && phase != RoundPhase.Playing)
+        {
+            bossIndex = -1;
+            bossType = 0;
+        }
         IsTimerPaused = paused;
         generationId = nextGenerationId; remoteGenerationProgress = progress;
         if (layout != null) ArenaWorldSystem.ApplyNetworkLayout(layout);
@@ -728,18 +733,49 @@ internal sealed class ArenaRoundSystem : ModSystem
         return -1;
     }
 
+    internal static bool IsPrimaryRoundBoss(NPC npc)
+    {
+        if (npc == null || Phase != RoundPhase.Playing)
+            return false;
+        if (bossIndex >= 0)
+            return npc.whoAmI == bossIndex;
+
+        // The server owns bossIndex, but that private runtime index is not part of the
+        // round-state packet. Associate the configured primary when its NPC sync reaches
+        // a multiplayer client so client-side vanilla AI cannot locally despawn Golem.
+        if (Main.netMode == NetmodeID.MultiplayerClient && npc.active && npc.boss &&
+            TryGetCurrentPreset(out BossFightPreset preset) && npc.type == preset.Boss.Type)
+        {
+            bossIndex = npc.whoAmI;
+            bossType = npc.type;
+            return true;
+        }
+        return false;
+    }
+
     internal static bool IsRoundBoss(NPC npc)
     {
-        if (npc == null || Phase != RoundPhase.Playing || bossIndex < 0)
+        if (npc == null || Phase != RoundPhase.Playing)
             return false;
-        return npc.whoAmI == bossIndex || npc.realLife == bossIndex;
+        if (IsPrimaryRoundBoss(npc))
+            return true;
+        if (bossIndex < 0)
+            return false;
+        if (npc.realLife == bossIndex)
+            return true;
+        return bossType == NPCID.Golem && NPC.golemBoss == bossIndex && IsGolemPartType(npc.type);
     }
 
     internal static void NotifyBossKilled(NPC npc)
     {
-        if (IsRoundBoss(npc) || Phase == RoundPhase.Playing && npc?.boss == true && npc.type == bossType)
+        // Linked parts dying is normal for multipart bosses. The round ends only
+        // when the configured primary NPC is actually killed.
+        if (IsPrimaryRoundBoss(npc) || Phase == RoundPhase.Playing && npc?.boss == true && npc.type == bossType)
             bossDefeatedSignal = true;
     }
+
+    private static bool IsGolemPartType(int type) =>
+        type is NPCID.GolemHead or NPCID.GolemHeadFree or NPCID.GolemFistLeft or NPCID.GolemFistRight;
 
     private static void MaintainFightTime(FightTime time)
     {
@@ -813,7 +849,9 @@ internal sealed class ArenaRoundSystem : ModSystem
         {
             NPC npc = Main.npc[i];
             bool owned = roundBossIndex >= 0 && (i == roundBossIndex || npc?.realLife == roundBossIndex)
-                || roundBossType > 0 && npc?.boss == true && npc.type == roundBossType;
+                || roundBossType > 0 && npc?.boss == true && npc.type == roundBossType
+                || roundBossType == NPCID.Golem && roundBossIndex >= 0 && NPC.golemBoss == roundBossIndex
+                    && npc != null && IsGolemPartType(npc.type);
             if (npc?.active != true || !owned)
                 continue;
             npc.active = false;

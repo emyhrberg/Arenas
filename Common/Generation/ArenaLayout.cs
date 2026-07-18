@@ -62,6 +62,8 @@ internal sealed class ArenaLayout
         if (ArenaArea.Left != WorldWidth - ArenaArea.Right)
             throw new InvalidOperationException($"Arena X borders must mirror around world center {CenterX}: left={ArenaArea.Left}, right={ArenaArea.Right}, expected right={WorldWidth - ArenaArea.Left}");
         if (!Contains(ArenaArea, BossArea) || !Contains(ArenaArea, RedSpawnClearance) || !Contains(ArenaArea, BlueSpawnClearance)) throw new InvalidOperationException($"Boss area or spawn room lies outside arena {ArenaArea}");
+        if (Generator != ArenaGeneratorKind.SandboxWorld && (BossArea.Top != ArenaArea.Top || BossArea.Bottom != ArenaArea.Bottom))
+            throw new InvalidOperationException($"Boss area must span the full arena height: arena={ArenaArea}, boss={BossArea}");
         if (!RedSpawnClearance.Contains(RedSpawn) || !BlueSpawnClearance.Contains(BlueSpawn) || !BossArea.Contains(BossSpawn)) throw new InvalidOperationException("Red, Blue, or boss spawn lies outside its configured room");
         if (RedSpawnClearance.Intersects(BossArea) || BlueSpawnClearance.Intersects(BossArea) || RedSpawnClearance.Intersects(BlueSpawnClearance)) throw new InvalidOperationException("Spawn rooms and boss area may not overlap");
         if (BlueBorderX < ArenaArea.Left || RedBorderX > ArenaArea.Right || BlueBorderX >= RedBorderX)

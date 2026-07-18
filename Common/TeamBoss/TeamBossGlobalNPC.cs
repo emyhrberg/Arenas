@@ -27,8 +27,10 @@ internal sealed class TeamBossGlobalNPC : GlobalNPC
 
     private Team _pendingStrikeTeam;
     private Team _lastAppliedStrikeTeam;
+    private bool loggedArenaDespawnPrevention;
     public override void Load()
     {
+        On_NPC.AI += OnNPCAI;
         On_NPC.PlayerInteraction += OnNPCPlayerInteraction;
         On_NPC.StrikeNPC_HitInfo_bool_bool += OnNPCStrikeNPC;
         On_NetMessage.SendStrikeNPC += OnNetMessageSendStrikeNPC;
@@ -36,6 +38,7 @@ internal sealed class TeamBossGlobalNPC : GlobalNPC
 
     public override void Unload()
     {
+        On_NPC.AI -= OnNPCAI;
         On_NPC.PlayerInteraction -= OnNPCPlayerInteraction;
         On_NPC.StrikeNPC_HitInfo_bool_bool -= OnNPCStrikeNPC;
         On_NetMessage.SendStrikeNPC -= OnNetMessageSendStrikeNPC;
@@ -89,6 +92,28 @@ internal sealed class TeamBossGlobalNPC : GlobalNPC
     }
 
     public override void OnKill(NPC npc) => ArenaRoundSystem.NotifyBossKilled(npc);
+
+    private static void OnNPCAI(On_NPC.orig_AI orig, NPC self)
+    {
+        bool primaryRoundBoss = ArenaRoundSystem.IsPrimaryRoundBoss(self);
+        orig(self);
+
+        // Golem's vanilla AI directly sets active=false beyond 3000 pixels from its
+        // target. That bypasses CheckActive/timeLeft and happens immediately with the
+        // arena's distant team spawns. Restore any living primary boss before the NPC
+        // update completes; legitimate death still has life <= 0 and is never restored.
+        if (!primaryRoundBoss || self.active || self.life <= 0)
+            return;
+
+        self.active = true;
+        self.timeLeft = Math.Max(self.timeLeft, 3600);
+        TeamBossGlobalNPC global = self.GetGlobalNPC<TeamBossGlobalNPC>();
+        if (!global.loggedArenaDespawnPrevention)
+        {
+            global.loggedArenaDespawnPrevention = true;
+            Log.Warn($"[ArenaFlow8] Prevented vanilla boss AI despawn. type={self.type}, npcIndex={self.whoAmI}, target={self.target}");
+        }
+    }
 
     private static void OnNPCPlayerInteraction(On_NPC.orig_PlayerInteraction orig, NPC self, int player)
     {
