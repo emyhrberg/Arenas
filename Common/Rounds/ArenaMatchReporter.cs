@@ -1,13 +1,19 @@
-using Arenas.Common.Interop;
 using Arenas.Core.Configs.ConfigElements;
+using PvPHub.Common.Authentication;
+using PvPHub.Common.MainMenu.API;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.Json;
 using System.Threading.Tasks;
 using Terraria;
 using Terraria.Enums;
 using Terraria.ID;
+using Terraria.ModLoader;
+using CompletedMatchPayload = PvPHub.Common.MainMenu.API.MatchHistory.MatchApi.CompletedMatchPayload;
+using MatchApi = PvPHub.Common.MainMenu.API.MatchHistory.MatchApi;
+using MatchPayload = PvPHub.Common.MainMenu.API.MatchHistory.MatchApi.MatchPayload;
+using MatchPlayerPayload = PvPHub.Common.MainMenu.API.MatchHistory.MatchApi.MatchPlayerPayload;
+using MatchTeamPayload = PvPHub.Common.MainMenu.API.MatchHistory.MatchApi.MatchTeamPayload;
 
 namespace Arenas.Common.Rounds;
 
@@ -42,7 +48,7 @@ internal static class ArenaMatchReporter
         DateTime? startUtc = matchStartUtc;
         matchStartUtc = null;
 
-        if (Main.netMode == NetmodeID.MultiplayerClient || !startUtc.HasValue || !PvPHubApi.IsAvailable)
+        if (Main.netMode == NetmodeID.MultiplayerClient || !startUtc.HasValue)
             return;
 
         MatchPayload payload = BuildPayload(startUtc.Value, DateTime.UtcNow, result, scoreboard, bossType, roundToken);
@@ -52,8 +58,7 @@ internal static class ArenaMatchReporter
             return;
         }
 
-        string payloadJson = JsonSerializer.Serialize(payload, PvPHubApi.JsonOptions);
-        _ = PostSafeAsync(payloadJson);
+        _ = PostSafeAsync(payload);
     }
 
     private static MatchPayload BuildPayload(
@@ -73,7 +78,7 @@ internal static class ArenaMatchReporter
                 continue;
 
             Player player = Main.player[stats.PlayerId];
-            if (player?.active != true || !PvPHubApi.TryGetSteamId(player, out ulong steamId))
+            if (player?.active != true || !TryGetSteamId(player, out ulong steamId))
                 continue;
 
             players[steamId] = new MatchPlayerPayload(
@@ -137,40 +142,44 @@ internal static class ArenaMatchReporter
         return teams;
     }
 
-    private static async Task PostSafeAsync(string payloadJson)
+    private static async Task PostSafeAsync(MatchPayload payload)
     {
-        PvPHubApiResult result = await PvPHubApi.PostMatchAsync(payloadJson).ConfigureAwait(false);
-        if (!result.Success)
+        ApiResult<CompletedMatchPayload> result = await MatchApi.PostOfficialMatchAsync(payload).ConfigureAwait(false);
+        if (!result.IsSuccess)
         {
-            Log.Error($"Arenas match post failed. Status={result.StatusCode}, Error={result.Error}, Request={result.RequestSummary}");
+            Log.Error($"Arenas match post failed. Status={(int)result.Status}, Error={result.ErrorMessage}, Request={result.RequestSummary}");
             return;
         }
 
-        if (result.TryGetMatchId(out long matchId))
+        long matchId = result.Data?.Id ?? 0;
+        if (matchId > 0)
             Log.Info($"Arenas match posted successfully. MatchId={matchId}");
         else
             Log.Info("Arenas match posted successfully, but PvPHub returned no match id.");
     }
 
+    private static bool TryGetSteamId(Player player, out ulong steamId)
+    {
+        steamId = 0;
+        if (player?.active != true || Main.netMode != NetmodeID.Server || player.whoAmI is < 0 or >= Main.maxPlayers)
+            return false;
+
+        try
+        {
+            ulong? identity = ModContent.GetInstance<SteamAuthentication>()
+                .GetAuthenticatedIdentity((byte)player.whoAmI);
+            if (identity is not ulong id || id == 0 || id > long.MaxValue)
+                return false;
+
+            steamId = id;
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Log.Warn($"PvPHub Steam ID lookup failed for {player.name}: {ex.Message}");
+            return false;
+        }
+    }
+
     private static uint Clamp(long value) => (uint)Math.Clamp(value, 0L, uint.MaxValue);
-
-    private sealed record MatchPayload(
-        DateTime Start,
-        DateTime End,
-        string GameMode,
-        IDictionary<ulong, MatchPlayerPayload> Players,
-        IDictionary<string, string> Metrics,
-        List<MatchTeamPayload?> Teams);
-
-    private readonly record struct MatchPlayerPayload(
-        string Name,
-        uint Team,
-        uint Reward,
-        int Kills,
-        int Deaths,
-        bool Winner,
-        IDictionary<string, uint> Stats,
-        IDictionary<string, IDictionary<int, uint>> ItemStats);
-
-    private readonly record struct MatchTeamPayload(int Points, IList<short> Bosses);
 }

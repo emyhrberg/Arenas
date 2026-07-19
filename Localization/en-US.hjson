@@ -5,6 +5,7 @@ Mods: {
 		Tools: {
 			SubworldManagerPanel.Title: Arenas Subworld Manager
 			ArenaGameManagerPanel.Title: Arenas Game Manager
+			WorldGenManagerPanel.Title: Arenas World Gen Manager
 		}
 
 		Map: {

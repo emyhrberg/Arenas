@@ -5,12 +5,14 @@
 
 	<!-- General -->
 	<PropertyGroup>
-		
+		<!-- tModLoader dependency packaging writes shared files and cannot run concurrently. -->
+		<BuildInParallel>false</BuildInParallel>
 	</PropertyGroup>
 
 	<!-- References -->
 	<ItemGroup>
 		<ProjectReference Include="..\PvPFramework\PvPFramework.csproj" />
+		<ProjectReference Include="..\PvPHub\PvPHub.csproj" />
 
 		<!-- Add subworld library for subworld arenas-->
 		<Reference Include="SubworldLibrary">

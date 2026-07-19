@@ -1,5 +1,6 @@
 using Arenas.Common.AdminTools.GameManager;
 using Arenas.Common.AdminTools.SubworldManager;
+using Arenas.Common.AdminTools.WorldGenManager;
 using Arenas.Core;
 using System;
 
@@ -26,10 +27,20 @@ internal sealed class AdminQuickbarSystem : ModSystem
     {
         if (!TryGetErkySSC(out Mod mod))
             return;
+
+        // Arena Game Manager
         Add(mod, GameOwner, "arena_game_manager", "Arenas : Game Manager",
             "Balance teams and start arenas", 31,
             () => ModContent.GetInstance<ArenaGameManagerUISystem>().Toggle(),
             () => ModContent.GetInstance<ArenaGameManagerUISystem>().IsActive);
+
+        // World Gen Manager
+        Add(mod, GameOwner, "arena_world_gen_manager", "Arenas : World Gen Manager",
+            "Generate and modify the world", 32,
+            () => ModContent.GetInstance<WorldGenManagerUISystem>().Toggle(),
+            () => ModContent.GetInstance<WorldGenManagerUISystem>().IsActive);
+
+        // Subworld Manager
         //Add(mod, WorldOwner, "subworld_manager", "Arenas : Subworld Manager",
         //    "Move players between worlds", 30,
         //    () => ModContent.GetInstance<SubworldManagerUISystem>().Toggle(),
