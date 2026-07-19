@@ -10,6 +10,8 @@
 PvP Arenas for Terraria
 Read more: https://terrariamods.wiki.gg/wiki/ErkySSC
 
+Developer documentation: [controlled Arenas world generation](WORLD_GENERATION.md)
+
   <p align="center">
     <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=3639850705">Workshop Page</a>
   </p>

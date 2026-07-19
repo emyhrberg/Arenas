@@ -11,6 +11,7 @@ namespace Arenas.Common.Generation;
 
 internal enum ArenaGenerationStage : byte { Terrain, VanillaGeneration, Mirroring, Structures, Framing, Validating, Complete, Failed }
 
+[Obsolete("Compact per-preset worlds are deprecated. ArenasSubworld now uses ArenaWorldGenerationSystem and one reusable 4200x1200 world.")]
 internal sealed class ArenaGenerationJob
 {
     private const int MutationBudget = 8000;

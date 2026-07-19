@@ -8,17 +8,17 @@ namespace Arenas.Common.Rounds;
 
 internal static class ArenaEndScreenExtension
 {
-    public static EndScreenSummary CreateSummary(RoundResult result, IReadOnlyList<RoundPlayerStats> players)
+    public static EndScreenSummary CreateSummary(RoundResult result, Team winningTeam, IReadOnlyList<RoundPlayerStats> players)
     {
         EndScreenSummary summary = new();
-        uint reward = ArenaMatchReporter.CalculateReward(result);
 
         foreach (IGrouping<Team, RoundPlayerStats> team in players.Where(player => player.Team != Team.None)
                      .GroupBy(player => player.Team).OrderBy(team => team.Key))
         {
+            uint reward = ArenaMatchReporter.CalculateReward(result, team.Key, winningTeam);
             long bossDamage = team.Sum(player => player.BossDamage);
             summary.Scores.Add(new TeamScoreEntry(team.Key, (int)Math.Clamp(bossDamage, 0L, int.MaxValue)));
-            summary.Results[team.Key] = Result(result);
+            summary.Results[team.Key] = Result(result, team.Key, winningTeam);
 
             List<EndScreenPlayerStats> teamPlayers = team.OrderByDescending(player => player.BossDamage)
                 .ThenByDescending(player => player.Damage).ThenByDescending(player => player.Kills)
@@ -45,9 +45,10 @@ internal static class ArenaEndScreenExtension
         Clamp(player.Damage), 0, 0, 0, 0, 0, 0, Clamp(player.BossDamage), 0, 0, 0,
         "Arena Fighter", "Ready for the next round");
 
-    private static EndScreenResult Result(RoundResult result) => result switch
+    private static EndScreenResult Result(RoundResult result, Team team, Team winningTeam) => result switch
     {
-        RoundResult.BossDefeated => EndScreenResult.Victory,
+        RoundResult.BossDefeated when team == winningTeam => EndScreenResult.Victory,
+        RoundResult.BossDefeated => EndScreenResult.Defeat,
         RoundResult.AdminEnded => EndScreenResult.Tie,
         _ => EndScreenResult.Defeat
     };

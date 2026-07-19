@@ -19,7 +19,8 @@ public sealed class Arenas : Mod
         ArenaSubworld,
         //SubworldManager,
         Sandbox,
-        MapReveal
+        MapReveal,
+        WorldGenManager
     }
 
     public override void HandlePacket(BinaryReader reader, int whoAmI)
@@ -45,6 +46,9 @@ public sealed class Arenas : Mod
                 break;
             case ArenasPacketType.MapReveal:
                 Common.Generation.ArenaMapRevealNetHandler.HandlePacket(reader, whoAmI);
+                break;
+            case ArenasPacketType.WorldGenManager:
+                Common.AdminTools.WorldGenManager.WorldGenManagerNetHandler.HandlePacket(reader, whoAmI);
                 break;
         }
     }

@@ -249,6 +249,15 @@ internal sealed class ArenaBoundaryMapLayer : ModMapLayer
         if (room.Width <= 0 || room.Height <= 0)
             return;
 
+        Rectangle visibleRoom = room;
+        Rectangle? mapClip = context.ClippingRectangle;
+        if (mapClip is Rectangle clip)
+        {
+            visibleRoom = Rectangle.Intersect(room, clip);
+            if (visibleRoom.Width <= 0 || visibleRoom.Height <= 0)
+                return;
+        }
+
         Color teamColor = Main.teamColor[(int)team];
         int thickness = Math.Clamp((int)MathF.Round(context.MapScale * 2f), 2, 8);
         DrawTeamEdge(new Rectangle(room.Left, room.Top, room.Width, thickness), teamColor, vertical: false, reverse: false);
@@ -257,15 +266,38 @@ internal sealed class ArenaBoundaryMapLayer : ModMapLayer
         DrawTeamEdge(new Rectangle(room.Right - thickness, room.Top + thickness, thickness, Math.Max(0, room.Height - thickness * 2)), teamColor, vertical: true, reverse: true);
 
         Point mouse = Main.MouseScreen.ToPoint();
-        if (room.Contains(mouse))
+        if (visibleRoom.Contains(mouse))
             hoverText = label;
 
         if (!Main.mapFullscreen && room.Width < 48)
             return;
 
-        float widthScale = (room.Width + 100f) / Math.Max(1f, FontAssets.DeathText.Value.MeasureString(label).X);
+        Vector2 textSize = FontAssets.DeathText.Value.MeasureString(label);
+        float widthScale = (room.Width + 100f) / Math.Max(1f, textSize.X);
         float scale = Math.Clamp(widthScale, .28f, .58f);
-        Utils.DrawBorderStringBig(Main.spriteBatch, label, room.Center.ToVector2(), teamColor, scale, .5f, .5f);
+        Vector2 position = room.Center.ToVector2();
+
+        // MapOverlayDrawContext clips icons itself, but this label is a SpriteFont draw and
+        // bypasses that path. Keep its complete drawn bounds inside the minimap instead of
+        // restarting vanilla's SpriteBatch with a scissor state in the middle of its map pass.
+        if (mapClip is Rectangle labelClip)
+        {
+            const float outlinePadding = 4f;
+            float availableWidth = Math.Max(0f, labelClip.Width - outlinePadding * 2f);
+            float availableHeight = Math.Max(0f, labelClip.Height - outlinePadding * 2f);
+            scale = Math.Min(scale, Math.Min(availableWidth / Math.Max(1f, textSize.X),
+                availableHeight / Math.Max(1f, textSize.Y)));
+            if (scale < .12f)
+                return;
+
+            Vector2 halfSize = textSize * scale * .5f;
+            position.X = MathHelper.Clamp(position.X, labelClip.Left + outlinePadding + halfSize.X,
+                labelClip.Right - outlinePadding - halfSize.X);
+            position.Y = MathHelper.Clamp(position.Y, labelClip.Top + outlinePadding + halfSize.Y,
+                labelClip.Bottom - outlinePadding - halfSize.Y);
+        }
+
+        Utils.DrawBorderStringBig(Main.spriteBatch, label, position, teamColor, scale, .5f, .5f);
     }
 
     private static Rectangle ToMapRectangle(ref MapOverlayDrawContext context, Rectangle tiles)

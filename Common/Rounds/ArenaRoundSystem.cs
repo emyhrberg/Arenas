@@ -39,6 +39,7 @@ internal sealed class ArenaRoundSystem : ModSystem
     private static int bossIndex = -1, bossType, nextRoundTicks;
     private static int bossActiveTicks, bossMissingTicks, bossRespawnAttempts;
     private static bool bossDefeatedSignal;
+    private static bool winningAttributionExact;
     private static int generationId;
     private static float remoteGenerationProgress;
 
@@ -48,6 +49,8 @@ internal sealed class ArenaRoundSystem : ModSystem
 
     public static RoundPhase Phase { get; private set; }
     public static RoundResult Result { get; private set; }
+    public static Team WinningTeam { get; private set; } = Team.None;
+    public static int WinningPlayerId { get; private set; } = -1;
     public static int RemainingTicks { get; private set; }
     public static int CurrentPresetIndex { get; private set; }
     public static string CurrentRoundToken { get; private set; } = "";
@@ -76,13 +79,13 @@ internal sealed class ArenaRoundSystem : ModSystem
         inArena = true;
         if (Main.netMode == NetmodeID.MultiplayerClient)
         {
-            if (!ArenaWorldSystem.WorldReady || Phase is RoundPhase.Generating or RoundPhase.FreezeCountdown)
+            if (!ArenaWorldSystem.MatchReady || Phase is RoundPhase.Generating or RoundPhase.FreezeCountdown)
                 Main.LocalPlayer.AddBuff(BuffID.Frozen, 2);
             if (!IsTimerPaused && Phase != RoundPhase.Idle && RemainingTicks > 0) RemainingTicks--;
             return;
         }
 
-        if (!ArenaWorldSystem.WorldReady && Phase != RoundPhase.Generating)
+        if (!ArenaWorldSystem.MatchReady && Phase != RoundPhase.Generating)
         {
             HoldPlayersInLobby();
             return;
@@ -104,8 +107,7 @@ internal sealed class ArenaRoundSystem : ModSystem
 
     public static List<BossFightPreset> GetValidPresets() => (Config.FightPresets ?? [])
         .Where(p => p != null && p.Loadout != null && p.MaxHealth > 0 && p.MaxMana >= 0
-            && p.RoundDurationSeconds > 0 && (IsSandboxPreset(p) || p.Boss?.Type > 0)
-            && ArenaGeneratorRegistry.TryResolve(p, out _))
+            && p.RoundDurationSeconds > 0 && (IsSandboxPreset(p) || p.Boss?.Type > 0))
         .Take(MaxPresets)
         .ToList();
 
@@ -252,9 +254,11 @@ internal sealed class ArenaRoundSystem : ModSystem
 
     internal static int VoteFor(int playerId) => votes.TryGetValue(playerId, out int vote) ? vote : -1;
 
-    internal static void ApplyState(RoundPhase phase, RoundResult result, int ticks, int preset, int localVote, bool paused, int nextGenerationId, float progress, ArenaLayout layout, List<int> counts, List<List<byte>> voters, List<RoundPlayerStats> entries)
+    internal static void ApplyState(RoundPhase phase, RoundResult result, Team winningTeam, int winningPlayerId, int ticks, int preset, int localVote, bool paused, int nextGenerationId, float progress, ArenaLayout layout, List<int> counts, List<List<byte>> voters, List<RoundPlayerStats> entries)
     {
         Phase = phase; Result = result; RemainingTicks = ticks; CurrentPresetIndex = preset; LocalVote = localVote;
+        WinningTeam = winningTeam;
+        WinningPlayerId = winningPlayerId;
         if (Main.netMode == NetmodeID.MultiplayerClient && phase != RoundPhase.Playing)
         {
             bossIndex = -1;
@@ -288,7 +292,7 @@ internal sealed class ArenaRoundSystem : ModSystem
 
     internal static void AdminStartFight(int presetIndex, int countdownSeconds, int roundSeconds)
     {
-        if (Main.netMode == NetmodeID.MultiplayerClient || !ArenaWorldSystem.Active || !ArenaWorldSystem.WorldReady
+        if (Main.netMode == NetmodeID.MultiplayerClient || !ArenaWorldSystem.Active || !ArenaWorldSystem.MatchReady
             || Phase is not (RoundPhase.Ready or RoundPhase.FreezeCountdown or RoundPhase.Playing)
             || presetIndex != CurrentPresetIndex)
             return;
@@ -352,6 +356,23 @@ internal sealed class ArenaRoundSystem : ModSystem
         else if (Phase is RoundPhase.FreezeCountdown or RoundPhase.Playing) EndRound(RoundResult.AdminEnded);
     }
 
+    internal static void AbortForWorldRegeneration()
+    {
+        if (Main.netMode == NetmodeID.MultiplayerClient)
+            return;
+        if (Phase != RoundPhase.Idle)
+            Log.Info($"Aborting round state {Phase} because the Arenas world is being regenerated.");
+        SetIdle(RoundResult.AdminEnded);
+    }
+
+    internal static void MarkWorldGenerationFailed(string reason)
+    {
+        if (Main.netMode == NetmodeID.MultiplayerClient)
+            return;
+        Log.Error($"Arenas world bootstrap failed: {reason}");
+        SetIdle(RoundResult.GenerationFailed);
+    }
+
     private static ServerConfig Config => ModContent.GetInstance<ServerConfig>();
     internal static void AssignBalancedTeams()
     {
@@ -405,12 +426,10 @@ internal sealed class ArenaRoundSystem : ModSystem
         List<BossFightPreset> presets = GetValidPresets();
         bool validIndex = presetIndex >= 0 && presetIndex < presets.Count;
         bool playersReady = HasPlayers();
-        IArenaGenerator generator = null;
-        bool hasGenerator = validIndex && ArenaGeneratorRegistry.TryResolve(presets[presetIndex], out generator);
-        Log.Debug($"[ArenaFlow0] Begin generation requested preset={presetIndex} validPresets={presets.Count} playersReady={playersReady} generator={(hasGenerator ? generator.Kind.ToString() : "none")} netMode={Main.netMode}");
-        if (!playersReady || !validIndex || !hasGenerator)
+        Log.Debug($"[ArenaFlow0] Prepare reusable arena requested preset={presetIndex} validPresets={presets.Count} playersReady={playersReady} matchWorldReady={ArenaWorldSystem.MatchReady} netMode={Main.netMode}");
+        if (!playersReady || !validIndex)
         {
-            Log.Warn($"Arena start rejected: playersReady={playersReady}, validPreset={validIndex}, hasGenerator={hasGenerator}");
+            Log.Warn($"Arena start rejected: playersReady={playersReady}, validPreset={validIndex}");
             SetIdle();
             return;
         }
@@ -418,6 +437,7 @@ internal sealed class ArenaRoundSystem : ModSystem
         CleanupBoss();
         participants.Clear(); generationCandidates.Clear(); scoreboard.Clear(); CurrentRoundToken = "";
         CurrentPresetIndex = presetIndex; Phase = RoundPhase.Generating; Result = RoundResult.None; LocalVote = -1;
+        WinningTeam = Team.None; WinningPlayerId = -1; winningAttributionExact = false;
         IsTimerPaused = false; votes.Clear(); generationId++;
         RemainingTicks = 0;
         remoteGenerationProgress = 0f;
@@ -457,9 +477,22 @@ internal sealed class ArenaRoundSystem : ModSystem
         ArenaRoundNetHandler.SendStateToAll();
     }
 
+    internal static void PrepareExistingWorldRound(int presetIndex, int nextGenerationId)
+    {
+        if (Main.netMode == NetmodeID.MultiplayerClient || !ArenaWorldSystem.Active || !ArenaWorldSystem.MatchReady)
+            return;
+        List<BossFightPreset> presets = GetValidPresets();
+        if (presetIndex < 0 || presetIndex >= presets.Count)
+            return;
+
+        Log.Chat($"[Arena] Reusing the loaded 4200x1200 world for preset {presetIndex}; no world generation will run.");
+        PrepareSubworldRound(presetIndex, nextGenerationId);
+        MarkSubworldReady(presetIndex, nextGenerationId);
+    }
+
     internal static void MarkSubworldReady(int presetIndex, int nextGenerationId)
     {
-        if (Main.netMode == NetmodeID.MultiplayerClient || !ArenaWorldSystem.Active || !ArenaWorldSystem.WorldReady)
+        if (Main.netMode == NetmodeID.MultiplayerClient || !ArenaWorldSystem.Active || !ArenaWorldSystem.MatchReady)
             return;
 
         generationId = Math.Max(1, nextGenerationId);
@@ -606,6 +639,7 @@ internal sealed class ArenaRoundSystem : ModSystem
         CurrentRoundToken = Guid.NewGuid().ToString("N");
         int defaultCountdownTicks = Config.UseFreezeCountdown ? Math.Max(0, Config.FreezeCountdownSeconds) * 60 : 0;
         Phase = RoundPhase.FreezeCountdown; Result = RoundResult.None; RemainingTicks = countdownTicks >= 0 ? countdownTicks : defaultCountdownTicks; CurrentPresetIndex = presetIndex; LocalVote = -1;
+        WinningTeam = Team.None; WinningPlayerId = -1; winningAttributionExact = false;
         nextRoundTicks = playingTicks >= 0 ? playingTicks : preset.RoundDurationSeconds * 60; IsTimerPaused = false;
         votes.Clear(); scoreboard.Clear(); participants.Clear();
         foreach (RoundParticipant candidate in generationCandidates)
@@ -670,6 +704,7 @@ internal sealed class ArenaRoundSystem : ModSystem
         bossType = preset.Boss.Type;
         bossActiveTicks = bossMissingTicks = bossRespawnAttempts = 0;
         bossDefeatedSignal = false;
+        WinningTeam = Team.None; WinningPlayerId = -1; winningAttributionExact = false;
         if (!SpawnRoundBoss("initial")) { EndRound(RoundResult.SpawnFailed); return; }
         Phase = RoundPhase.Playing;
         ArenaMatchReporter.BeginMatch();
@@ -740,7 +775,12 @@ internal sealed class ArenaRoundSystem : ModSystem
         }
 
         bossMissingTicks = 0;
-        if (boss.life <= 0) { EndRound(RoundResult.BossDefeated); return; }
+        if (boss.life <= 0)
+        {
+            NotifyBossKilled(boss);
+            EndRound(RoundResult.BossDefeated);
+            return;
+        }
         MaintainBoss(boss);
         ConstrainBosses();
         if (!IsTimerPaused && RemainingTicks > 0)
@@ -827,12 +867,43 @@ internal sealed class ArenaRoundSystem : ModSystem
         return bossType == NPCID.Golem && NPC.golemBoss == bossIndex && IsGolemPartType(npc.type);
     }
 
-    internal static void NotifyBossKilled(NPC npc)
+    internal static void NotifyBossKilled(NPC npc, Player killer = null, Team reportedTeam = Team.None)
     {
-        // Linked parts dying is normal for multipart bosses. The round ends only
-        // when the configured primary NPC is actually killed.
-        if (IsPrimaryRoundBoss(npc) || Phase == RoundPhase.Playing && npc?.boss == true && npc.type == bossType)
-            bossDefeatedSignal = true;
+        if (Main.netMode == NetmodeID.MultiplayerClient || !IsPrimaryRoundBoss(npc))
+            return;
+
+        // Linked parts dying is normal for multipart bosses. Only the exact primary
+        // NPC created for this round may complete it.
+        bossDefeatedSignal = true;
+
+        bool exactAttribution = killer != null || reportedTeam != Team.None;
+        int playerId = -1;
+        Team resolvedTeam = Team.None;
+
+        if (killer?.active == true && TryGetParticipantTeam(killer.whoAmI, out Team participantTeam))
+        {
+            playerId = killer.whoAmI;
+            resolvedTeam = participantTeam;
+            if (reportedTeam != Team.None && reportedTeam != participantTeam)
+                Log.Warn($"Ignoring mismatched boss winner team {reportedTeam}; participant {killer.whoAmI} belongs to {participantTeam}.");
+        }
+        else if (npc.lastInteraction >= 0 && npc.lastInteraction < Main.maxPlayers
+                 && TryGetParticipantTeam(npc.lastInteraction, out Team interactionTeam))
+        {
+            playerId = npc.lastInteraction;
+            resolvedTeam = interactionTeam;
+            exactAttribution = false;
+        }
+
+        if (resolvedTeam is Team.Red or Team.Blue
+            && (WinningTeam == Team.None || !winningAttributionExact && exactAttribution))
+        {
+            WinningTeam = resolvedTeam;
+            WinningPlayerId = playerId;
+            winningAttributionExact = exactAttribution;
+        }
+
+        Log.Info($"Round boss defeated. npc={npc.whoAmI}, type={npc.type}, team={WinningTeam}, player={WinningPlayerId}, exact={winningAttributionExact}.");
     }
 
     private static bool IsGolemPartType(int type) =>
@@ -850,13 +921,20 @@ internal sealed class ArenaRoundSystem : ModSystem
 
     private static void EndRound(RoundResult result)
     {
+        if (result != RoundResult.BossDefeated)
+        {
+            WinningTeam = Team.None;
+            WinningPlayerId = -1;
+            winningAttributionExact = false;
+        }
+
         int life = bossIndex >= 0 && bossIndex < Main.maxNPCs && Main.npc[bossIndex] != null ? Main.npc[bossIndex].life : -1;
         bool active = bossIndex >= 0 && bossIndex < Main.maxNPCs && Main.npc[bossIndex]?.active == true;
-        Log.Debug($"[ArenaFlow9] Ending fight. result={result}, bossType={bossType}, bossIndex={bossIndex}, active={active}, life={life}, remainingTicks={RemainingTicks}, missingTicks={bossMissingTicks}, spawnAttempts={bossRespawnAttempts}");
+        Log.Debug($"[ArenaFlow9] Ending fight. result={result}, winningTeam={WinningTeam}, winningPlayer={WinningPlayerId}, bossType={bossType}, bossIndex={bossIndex}, active={active}, life={life}, remainingTicks={RemainingTicks}, missingTicks={bossMissingTicks}, spawnAttempts={bossRespawnAttempts}");
         Result = result;
         scoreboard.Clear(); scoreboard.AddRange(LiveStats());
-        EndScreenService.Present(ArenaEndScreenExtension.CreateSummary(result, scoreboard));
-        ArenaMatchReporter.EndMatch(result, scoreboard, bossType, CurrentRoundToken);
+        EndScreenService.Present(ArenaEndScreenExtension.CreateSummary(result, WinningTeam, scoreboard));
+        ArenaMatchReporter.EndMatch(result, WinningTeam, WinningPlayerId, scoreboard, bossType, CurrentRoundToken);
         CleanupBoss(); votes.Clear(); ResizeVotes(GetValidPresets().Count);
         int votingSeconds = Math.Max(1, Config.VotingDurationSeconds);
         Phase = RoundPhase.Voting; RemainingTicks = votingSeconds * 60; LocalVote = -1; IsTimerPaused = false;
@@ -885,6 +963,7 @@ internal sealed class ArenaRoundSystem : ModSystem
     {
         int defaultTicks = DefaultRoundTicks();
         CleanupBoss(); Phase = RoundPhase.Idle; Result = result; RemainingTicks = defaultTicks; CurrentPresetIndex = 0; LocalVote = -1;
+        WinningTeam = Team.None; WinningPlayerId = -1; winningAttributionExact = false;
         CurrentRoundToken = "";
         IsTimerPaused = false; nextRoundTicks = defaultTicks;
         remoteGenerationProgress = 0f;
@@ -897,6 +976,7 @@ internal sealed class ArenaRoundSystem : ModSystem
         if (cleanup && Main.netMode != NetmodeID.MultiplayerClient) CleanupBoss();
         ArenaRoundNetHandler.ResetClientState();
         Phase = RoundPhase.Idle; Result = RoundResult.None; RemainingTicks = DefaultRoundTicks(); CurrentPresetIndex = 0; LocalVote = -1; bossIndex = -1; bossType = 0;
+        WinningTeam = Team.None; WinningPlayerId = -1; winningAttributionExact = false;
         CurrentRoundToken = "";
         ArenaMatchReporter.Reset();
         IsTimerPaused = false; nextRoundTicks = RemainingTicks;

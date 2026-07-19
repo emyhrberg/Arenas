@@ -7,6 +7,7 @@ namespace Arenas.Common.Generation;
 
 internal sealed class ArenaLayout
 {
+    public const int BorderClearanceThickness = 3;
     public ArenaGeneratorKind Generator { get; init; }
     public int Seed { get; init; }
     public int WorldWidth { get; init; }
@@ -38,29 +39,31 @@ internal sealed class ArenaLayout
 
         Point point = new(x, y);
         Rectangle outer = ArenaArea;
-        outer.Inflate(OuterBorderThickness, OuterBorderThickness);
-        if (outer.Contains(point) && !ArenaArea.Contains(point))
-            return true;
-
-        return false;
+        outer.Inflate(OuterBorderThickness + BorderClearanceThickness,
+            OuterBorderThickness + BorderClearanceThickness);
+        Rectangle inner = ArenaArea;
+        inner.Inflate(-BorderClearanceThickness, -BorderClearanceThickness);
+        return outer.Contains(point) && !inner.Contains(point);
     }
 
     public void Validate(int worldWidth, int worldHeight)
     {
         if (WorldWidth != worldWidth || WorldHeight != worldHeight)
             throw new InvalidOperationException($"Layout world size {WorldWidth}x{WorldHeight} does not match the loaded Tilemap {worldWidth}x{worldHeight}");
-        if (WorldWidth is < 700 or > 1600 || WorldHeight is < 500 or > 1000 || (WorldWidth & 1) != 0)
-            throw new InvalidOperationException($"Arena world size must be an even width from 700..1600 and a height from 500..1000, got {WorldWidth}x{WorldHeight}");
+        if (WorldWidth != ArenasSubworld.FixedWidth || WorldHeight != ArenasSubworld.FixedHeight)
+            throw new InvalidOperationException($"The reusable Arenas world must be exactly {ArenasSubworld.FixedWidth}x{ArenasSubworld.FixedHeight}, got {WorldWidth}x{WorldHeight}");
         Rectangle world = new(0, 0, worldWidth, worldHeight);
-        Rectangle outer = ArenaArea; outer.Inflate(OuterBorderThickness, OuterBorderThickness);
-        if (OuterBorderThickness is < 1 or > 10 || TeamBorderWidth is < 1 or > 10)
-            throw new InvalidOperationException($"Border thickness must be 1..10 tiles, got outer={OuterBorderThickness}, team={TeamBorderWidth}");
+        Rectangle outer = ArenaArea;
+        outer.Inflate(OuterBorderThickness + BorderClearanceThickness,
+            OuterBorderThickness + BorderClearanceThickness);
+        if (Generator != ArenaGeneratorKind.SandboxWorld && OuterBorderThickness != 3)
+            throw new InvalidOperationException($"The Arenas perimeter must be exactly 3 tiles thick, got {OuterBorderThickness}");
+        if (TeamBorderWidth is < 1 or > 10)
+            throw new InvalidOperationException($"Team border thickness must be 1..10 tiles, got {TeamBorderWidth}");
         if (ArenaArea.Width < 100 || ArenaArea.Height < 100 || BossArea.Width < 40 || BossArea.Height < 40
-            || RedSpawnClearance.Width < 10 || RedSpawnClearance.Height < 8 || BlueSpawnClearance.Width < 10 || BlueSpawnClearance.Height < 8)
+            || RedSpawnClearance.Width < 10 || RedSpawnClearance.Height < 3 || BlueSpawnClearance.Width < 10 || BlueSpawnClearance.Height < 3)
             throw new InvalidOperationException($"Arena, boss area, or spawn room is too small: arena={ArenaArea}, boss={BossArea}, redRoom={RedSpawnClearance}, blueRoom={BlueSpawnClearance}");
         if (!Contains(world, outer) || !Contains(world, StagingLobby)) throw new InvalidOperationException($"Arena {ArenaArea}, outer frame {outer}, or staging lobby {StagingLobby} is outside {WorldWidth}x{WorldHeight}");
-        if (ArenaArea.Left != WorldWidth - ArenaArea.Right)
-            throw new InvalidOperationException($"Arena X borders must mirror around world center {CenterX}: left={ArenaArea.Left}, right={ArenaArea.Right}, expected right={WorldWidth - ArenaArea.Left}");
         if (!Contains(ArenaArea, BossArea) || !Contains(ArenaArea, RedSpawnClearance) || !Contains(ArenaArea, BlueSpawnClearance)) throw new InvalidOperationException($"Boss area or spawn room lies outside arena {ArenaArea}");
         if (Generator != ArenaGeneratorKind.SandboxWorld && (BossArea.Top != ArenaArea.Top || BossArea.Bottom != ArenaArea.Bottom))
             throw new InvalidOperationException($"Boss area must span the full arena height: arena={ArenaArea}, boss={BossArea}");

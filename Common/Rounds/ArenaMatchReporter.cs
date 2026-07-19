@@ -31,9 +31,10 @@ internal static class ArenaMatchReporter
 
     public static void Reset() => matchStartUtc = null;
 
-    public static uint CalculateReward(RoundResult result)
+    public static uint CalculateReward(RoundResult result, Team team, Team winningTeam)
     {
-        if (result != RoundResult.BossDefeated || !ArenaRoundSystem.TryGetCurrentPreset(out BossFightPreset preset))
+        if (result != RoundResult.BossDefeated || team == Team.None || team != winningTeam
+            || !ArenaRoundSystem.TryGetCurrentPreset(out BossFightPreset preset))
             return 0;
 
         return (uint)Math.Max(0, preset.VictoryGemReward);
@@ -41,6 +42,8 @@ internal static class ArenaMatchReporter
 
     public static void EndMatch(
         RoundResult result,
+        Team winningTeam,
+        int winningPlayerId,
         IReadOnlyList<RoundPlayerStats> scoreboard,
         int bossType,
         string roundToken)
@@ -51,7 +54,7 @@ internal static class ArenaMatchReporter
         if (Main.netMode == NetmodeID.MultiplayerClient || !startUtc.HasValue)
             return;
 
-        MatchPayload payload = BuildPayload(startUtc.Value, DateTime.UtcNow, result, scoreboard, bossType, roundToken);
+        MatchPayload payload = BuildPayload(startUtc.Value, DateTime.UtcNow, result, winningTeam, winningPlayerId, scoreboard, bossType, roundToken);
         if (payload.Players.Count == 0)
         {
             Log.Warn("Arenas match post skipped because no participants had authenticated PvPHub Steam IDs.");
@@ -65,11 +68,12 @@ internal static class ArenaMatchReporter
         DateTime startUtc,
         DateTime endUtc,
         RoundResult result,
+        Team winningTeam,
+        int winningPlayerId,
         IReadOnlyList<RoundPlayerStats> scoreboard,
         int bossType,
         string roundToken)
     {
-        uint reward = CalculateReward(result);
         Dictionary<ulong, MatchPlayerPayload> players = [];
 
         foreach (RoundPlayerStats stats in scoreboard)
@@ -81,13 +85,14 @@ internal static class ArenaMatchReporter
             if (player?.active != true || !TryGetSteamId(player, out ulong steamId))
                 continue;
 
+            bool won = result == RoundResult.BossDefeated && stats.Team == winningTeam;
             players[steamId] = new MatchPlayerPayload(
                 stats.Name,
                 (uint)stats.Team,
-                reward,
+                CalculateReward(result, stats.Team, winningTeam),
                 stats.Kills,
                 stats.Deaths,
-                result == RoundResult.BossDefeated,
+                won,
                 new Dictionary<string, uint>
                 {
                     ["damage_dealt"] = Clamp(stats.Damage),
@@ -104,6 +109,8 @@ internal static class ArenaMatchReporter
             ["result"] = result.ToString(),
             ["boss_type"] = bossType.ToString(),
             ["boss_name"] = bossName,
+            ["winning_team"] = winningTeam.ToString(),
+            ["winning_player_id"] = winningPlayerId.ToString(),
             ["round_token"] = roundToken ?? ""
         };
 
@@ -113,12 +120,13 @@ internal static class ArenaMatchReporter
             GameMode,
             players,
             metrics,
-            BuildTeams(scoreboard, result, bossType));
+            BuildTeams(scoreboard, result, winningTeam, bossType));
     }
 
     private static List<MatchTeamPayload?> BuildTeams(
         IReadOnlyList<RoundPlayerStats> scoreboard,
         RoundResult result,
+        Team winningTeam,
         int bossType)
     {
         List<MatchTeamPayload?> teams = [null, null, null, null, null, null, null];
@@ -132,7 +140,7 @@ internal static class ArenaMatchReporter
                 teams.Add(null);
 
             List<short> bosses = [];
-            if (result == RoundResult.BossDefeated && bossType is > 0 and <= short.MaxValue)
+            if (result == RoundResult.BossDefeated && team.Key == winningTeam && bossType is > 0 and <= short.MaxValue)
                 bosses.Add((short)bossType);
 
             long bossDamage = team.Sum(player => player.BossDamage);

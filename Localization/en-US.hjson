@@ -90,6 +90,11 @@ Mods: {
 					Label: Time Of Day
 					Tooltip: Day or night
 				}
+
+				VictoryGemReward: {
+					Label: Victory Gem Reward
+					Tooltip: ""
+				}
 			}
 
 			Loadout: {
@@ -150,36 +155,36 @@ Mods: {
 			}
 
 			ArenaGeneratorKind: {
-				Tooltip: ""
+				Tooltip: Legacy preset category. Boss presets reuse the same generated Arenas world; only Sandbox changes round behavior.
 
 				Auto: {
 					Label: Auto
-					Tooltip: Match the boss
+					Tooltip: Reuse the shared Arenas combat region
 				}
 
 				KingSlimeSurface: {
 					Label: King Slime Surface
-					Tooltip: Forest arena
+					Tooltip: Legacy category; does not regenerate terrain
 				}
 
 				EyeSurface: {
 					Label: Eye Surface
-					Tooltip: Night sky arena
+					Tooltip: Legacy category; does not regenerate terrain
 				}
 
 				PlanteraJungle: {
 					Label: Plantera Jungle
-					Tooltip: Underground Jungle arena
+					Tooltip: Legacy category; the shared arena already supplies Jungle and Temple biome tiles
 				}
 
 				GolemTemple: {
 					Label: Golem Temple
-					Tooltip: Jungle Temple arena
+					Tooltip: Legacy category; the shared arena already supplies Jungle and Temple biome tiles
 				}
 
 				SandboxWorld: {
 					Label: Sandbox World
-					Tooltip: Custom world and every loadout
+					Tooltip: Use the shared Arenas world without a boss round or forced loadout
 				}
 			}
 

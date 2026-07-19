@@ -1,8 +1,8 @@
-displayName = Arenas
+displayName = PvP Arenas
 author = Erky
 version = 0.1
 side = both
 modReferences = SubworldLibrary, PvPFramework, PvPHub
 buildIgnore = *.csproj, *.user, *.md, obj\*, bin\*, .vs\*, Assets\Old\*, Assets\Workshop\*, Assets\Custom\Old\*, *.psd
-sortAfter = PvPHub
-loadAfter = PvPHub
+sortAfter = PvPHub, PvPFramework
+loadAfter = PvPHub, PvPFramework

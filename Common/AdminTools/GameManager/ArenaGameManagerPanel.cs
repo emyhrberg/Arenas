@@ -113,7 +113,7 @@ internal sealed class ArenaGameManagerPanel : UIDraggablePanel
 
     private void AddControls(ArenaManagerSection section)
     {
-        section.Add(new ArenaManagerButton(() => InArena() ? "Change Arena" : "Create & Enter Arena", Ass.IconArenas, PrepareArena, CanPrepareArena, PrepareArenaReason), 38);
+        section.Add(new ArenaManagerButton(() => InArena() ? "Prepare Preset" : "Enter Arenas", Ass.IconArenas, PrepareArena, CanPrepareArena, PrepareArenaReason), 38);
         section.Add(new ArenaManagerButton(() => ArenaRoundSystem.Phase is RoundPhase.FreezeCountdown or RoundPhase.Playing ? "Restart Fight" : "Start Fight", Ass.IconStartGame, StartFight, CanStartFight, StartFightReason), 76);
         section.Add(new ArenaManagerButton(() => "Balance Teams", Ass.IconArenas, () => Request(ArenaGameManagerNetHandler.ActionType.BalanceTeams), CanBalance, () => "Shuffle Red and Blue"), 114);
         section.Add(new ArenaManagerButton(() => ArenaRoundSystem.IsTimerPaused ? "Resume Timer" : "Pause Timer", Ass.IconArenas, () => Request(ArenaGameManagerNetHandler.ActionType.TogglePause), () => InArena() && FreezeOrPlaying(ArenaRoundSystem.Phase), () => "Pause or resume the timer"), 152);
@@ -134,14 +134,14 @@ internal sealed class ArenaGameManagerPanel : UIDraggablePanel
     private static bool InArena() => ArenaWorldSystem.Active;
     private static bool PlayersReady() => Main.player.Any(player => player?.active == true);
     private bool CanPrepareArena() => (!SubworldSystem.AnyActive() || InArena()) && !ArenaSubworldCoordinator.IsTransitioning && ArenaRoundSystem.GetValidPresets().Count > 0 && PlayersReady();
-    private bool CanStartFight() => InArena() && ArenaWorldSystem.WorldReady && !ArenaSubworldCoordinator.IsTransitioning && PlayersReady()
+    private bool CanStartFight() => InArena() && ArenaWorldSystem.MatchReady && !ArenaSubworldCoordinator.IsTransitioning && PlayersReady()
         && preset.Index == ArenaRoundSystem.CurrentPresetIndex && !ArenaRoundSystem.IsSandboxPreset(SelectedPreset)
         && ArenaRoundSystem.Phase is RoundPhase.Ready or RoundPhase.FreezeCountdown or RoundPhase.Playing;
     private static bool CanBalance() => (!SubworldSystem.AnyActive() || InArena())
         && ArenaRoundSystem.Phase is RoundPhase.Idle or RoundPhase.Ready
         && !ArenaSubworldCoordinator.IsTransitioning;
-    private string PrepareArenaReason() => SubworldSystem.AnyActive() && !InArena() ? "Return to the main world" : ArenaSubworldCoordinator.IsTransitioning ? "Changing arena" : ArenaRoundSystem.GetValidPresets().Count == 0 ? "Add a boss fight" : !PlayersReady() ? "Waiting for players" : ArenaRoundSystem.IsSandboxPreset(SelectedPreset) ? "Create the Sandbox world" : "Create this arena and move everyone into it";
-    private string StartFightReason() => !InArena() ? "Create and enter an arena first" : !ArenaWorldSystem.WorldReady ? "Arena is still loading" : preset.Index != ArenaRoundSystem.CurrentPresetIndex ? "Create this selected arena first" : ArenaRoundSystem.IsSandboxPreset(SelectedPreset) ? "Sandbox has no boss fight" : !PlayersReady() ? "Waiting for players" : "Start the countdown in the current arena";
+    private string PrepareArenaReason() => SubworldSystem.AnyActive() && !InArena() ? "Return to the main world" : ArenaSubworldCoordinator.IsTransitioning ? "Arenas is restarting" : ArenaRoundSystem.GetValidPresets().Count == 0 ? "Add a boss fight" : !PlayersReady() ? "Waiting for players" : InArena() ? "Prepare this preset in the existing world (no regeneration)" : "Enter the persistent Arenas world; generate it once if needed";
+    private string StartFightReason() => !InArena() ? "Enter Arenas first" : !ArenaWorldSystem.MatchReady ? "A complete Arenas world is required" : preset.Index != ArenaRoundSystem.CurrentPresetIndex ? "Prepare this selected preset first" : ArenaRoundSystem.IsSandboxPreset(SelectedPreset) ? "Sandbox has no boss fight" : !PlayersReady() ? "Waiting for players" : "Start the countdown in the current arena";
     private static bool FreezeOrPlaying(RoundPhase phase) => phase is RoundPhase.FreezeCountdown or RoundPhase.Playing;
     private static string AdvanceText() => ArenaRoundSystem.Phase == RoundPhase.FreezeCountdown ? "Start Fight" : ArenaRoundSystem.Phase == RoundPhase.Voting ? "End Voting" : "Next Phase";
     private static string AdvanceTooltip() => ArenaRoundSystem.Phase == RoundPhase.FreezeCountdown ? "Skip the countdown" : "End voting now";
