@@ -49,7 +49,7 @@ internal static class ArenaGeneratorRegistry
 
     public static IArenaGenerator Emergency { get; } = new EmergencyFlatArenaGenerator();
 
-    public static ArenaGeometryConfig ResolveGeometry(BossFightPreset preset) => ArenaGeometryDefaults.Resolve(preset, ResolveKind(preset));
+    public static ArenaGeometryConfig ResolveGeometry(BossFightPreset preset) => ArenaGeometryDefaults.Resolve(ResolveKind(preset));
 
     public static void ValidateGeometry(BossFightPreset preset, ArenaGeometryConfig geometry)
     {

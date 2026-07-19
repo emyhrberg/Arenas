@@ -1,8 +1,6 @@
 Mods: {
 	Arenas: {
-		Keybinds: {
-			SandboxMenu.DisplayName: Sandbox Menu
-		}
+		Keybinds.SandboxMenu.DisplayName: Sandbox Menu
 
 		Tools: {
 			SubworldManagerPanel.Title: Arenas Subworld Manager
@@ -15,8 +13,9 @@ Mods: {
 		}
 
 		Configs: {
-			ArenasClientConfig: {
-				DisplayName: Interface
+			ClientConfig: {
+				DisplayName: Arenas Client Config
+				Headers.UI: UI
 
 				ShowTopScoreboard: {
 					Label: Top Scoreboard
@@ -24,17 +23,17 @@ Mods: {
 				}
 			}
 
-			ArenasConfig: {
-				DisplayName: Fight Presets
+			ServerConfig: {
+				DisplayName: Arenas Server Config
 
 				Headers: {
-					FightPresets: Fight Presets
-					RoundTiming: Round Timing Header
+					BossFights: Boss Fights
+					RoundTiming: Round Timing
 				}
 
 				FightPresets: {
-					Label: Fight Presets
-					Tooltip: Bosses, arenas, and gear
+					Label: Boss Fights
+					Tooltip: Bosses, battle rules, and starting gear
 				}
 
 				UseFreezeCountdown: {
@@ -56,11 +55,6 @@ Mods: {
 			BossFightPreset: {
 				Tooltip: ""
 
-				Name: {
-					Label: Preset Name
-					Tooltip: Fight name
-				}
-
 				Boss: {
 					Label: Boss
 					Tooltip: ""
@@ -69,11 +63,6 @@ Mods: {
 				ArenaGenerator: {
 					Label: Arena Generator
 					Tooltip: Arena world style
-				}
-
-				Arena: {
-					Label: Arena Settings
-					Tooltip: World size, fight bounds, spawns, and team lines
 				}
 
 				MaxHealth: {
@@ -97,127 +86,8 @@ Mods: {
 				}
 
 				Time: {
-					Label: Time
+					Label: Time Of Day
 					Tooltip: Day or night
-				}
-			}
-
-			ArenaGeometryConfig: {
-				Tooltip: ""
-
-				Enabled: {
-					Label: Custom Arena
-					Tooltip: Use these settings instead of generator defaults
-				}
-
-				WorldWidth: {
-					Label: World Width
-					Tooltip: Arena subworld width in tiles
-				}
-
-				WorldHeight: {
-					Label: World Height
-					Tooltip: Arena subworld height in tiles
-				}
-
-				ArenaLeft: {
-					Label: Arena Left
-					Tooltip: Inner left edge
-				}
-
-				ArenaRight: {
-					Label: Arena Right
-					Tooltip: Inner right edge mirrored from the left
-				}
-
-				ArenaTop: {
-					Label: Arena Top
-					Tooltip: Inner top edge
-				}
-
-				ArenaBottom: {
-					Label: Arena Bottom
-					Tooltip: Inner bottom edge
-				}
-
-				OuterBorderThickness: {
-					Label: Outer Border
-					Tooltip: Lihzahrd Brick frame width
-				}
-
-				BossAreaX: {
-					Label: Boss Area X
-					Tooltip: Boss area left edge
-				}
-
-				BossAreaWidth: {
-					Label: Boss Area Width
-					Tooltip: Boss movement width across the full arena height
-				}
-
-				BlueBorderX: {
-					Label: Blue Border X
-					Tooltip: Left edge Blue cannot cross
-				}
-
-				RedBorderX: {
-					Label: Red Border X
-					Tooltip: Right edge Red cannot cross
-				}
-
-				TeamBorderWidth: {
-					Label: Team Line Width
-					Tooltip: Gradient line width in tiles
-				}
-
-				RedSpawnX: {
-					Label: Red Spawn X
-					Tooltip: Red spawn column
-				}
-
-				RedSpawnY: {
-					Label: Red Spawn Y
-					Tooltip: Red spawn floor
-				}
-
-				BlueSpawnX: {
-					Label: Blue Spawn X
-					Tooltip: Blue spawn column
-				}
-
-				BlueSpawnY: {
-					Label: Blue Spawn Y
-					Tooltip: Blue spawn floor
-				}
-
-				BossSpawnX: {
-					Label: Boss Spawn X
-					Tooltip: Boss spawn column
-				}
-
-				BossSpawnY: {
-					Label: Boss Spawn Y
-					Tooltip: Boss spawn floor
-				}
-
-				SpawnRoomWidth: {
-					Label: Spawn Room Width
-					Tooltip: Cleared team spawn width
-				}
-
-				SpawnRoomHeight: {
-					Label: Spawn Room Height
-					Tooltip: Cleared team spawn height
-				}
-
-				AutoPlaceTeamSpawns: {
-					Label: Auto Team Ground
-					Tooltip: Move team spawns onto generated ground
-				}
-
-				AutoPlaceBossSpawn: {
-					Label: Auto Boss Spot
-					Tooltip: Move the boss into a generated fight room
 				}
 			}
 

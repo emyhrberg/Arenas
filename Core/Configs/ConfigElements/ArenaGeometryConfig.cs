@@ -110,8 +110,7 @@ public sealed class ArenaGeometryConfig
 
 internal static class ArenaGeometryDefaults
 {
-    public static ArenaGeometryConfig Resolve(BossFightPreset preset, ArenaGeneratorKind kind) =>
-        kind == ArenaGeneratorKind.SandboxWorld ? Create(kind) : preset?.Arena is { Enabled: true } custom ? custom.Clone() : Create(kind);
+    public static ArenaGeometryConfig Resolve(ArenaGeneratorKind kind) => Create(kind);
 
     public static ArenaGeometryConfig Create(ArenaGeneratorKind kind)
     {

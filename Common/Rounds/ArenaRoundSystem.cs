@@ -2,6 +2,8 @@ using Arenas.Core.Configs;
 using Arenas.Core.Configs.ConfigElements;
 using Arenas.Common.Generation;
 using Arenas.Common.LoadoutSelector;
+using PvPFramework.Common.EndScreen;
+using PvPFramework.Common.Scoreboard;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -107,8 +109,8 @@ internal sealed class ArenaRoundSystem : ModSystem
         .Take(MaxPresets)
         .ToList();
 
-    public static string PresetName(BossFightPreset preset) => !string.IsNullOrWhiteSpace(preset?.Name)
-        ? preset.Name.Trim()
+    public static string PresetName(BossFightPreset preset) => IsSandboxPreset(preset)
+        ? "Sandbox"
         : preset?.Boss?.DisplayName ?? "Boss";
     public static bool IsSandboxPreset(BossFightPreset preset) => preset?.ArenaGenerator == ArenaGeneratorKind.SandboxWorld;
     public static bool IsSandboxActive => ArenaWorldSystem.Active && Phase == RoundPhase.Sandbox
@@ -350,7 +352,7 @@ internal sealed class ArenaRoundSystem : ModSystem
         else if (Phase is RoundPhase.FreezeCountdown or RoundPhase.Playing) EndRound(RoundResult.AdminEnded);
     }
 
-    private static ArenasConfig Config => ModContent.GetInstance<ArenasConfig>();
+    private static ServerConfig Config => ModContent.GetInstance<ServerConfig>();
     internal static void AssignBalancedTeams()
     {
         if (Main.netMode == NetmodeID.MultiplayerClient)
@@ -599,6 +601,7 @@ internal sealed class ArenaRoundSystem : ModSystem
         BossFightPreset preset = presets[presetIndex];
         bool selectClass = PostMechKits.Supports(preset);
 
+        EndScreenService.Hide();
         CleanupBoss();
         CurrentRoundToken = Guid.NewGuid().ToString("N");
         int defaultCountdownTicks = Config.UseFreezeCountdown ? Math.Max(0, Config.FreezeCountdownSeconds) * 60 : 0;
@@ -851,6 +854,7 @@ internal sealed class ArenaRoundSystem : ModSystem
         Log.Debug($"[ArenaFlow9] Ending fight. result={result}, bossType={bossType}, bossIndex={bossIndex}, active={active}, life={life}, remainingTicks={RemainingTicks}, missingTicks={bossMissingTicks}, spawnAttempts={bossRespawnAttempts}");
         Result = result;
         scoreboard.Clear(); scoreboard.AddRange(LiveStats());
+        EndScreenService.Present(ArenaEndScreenExtension.CreateSummary(result, scoreboard));
         CleanupBoss(); votes.Clear(); ResizeVotes(GetValidPresets().Count);
         int votingSeconds = Math.Max(1, Config.VotingDurationSeconds);
         Phase = RoundPhase.Voting; RemainingTicks = votingSeconds * 60; LocalVote = -1; IsTimerPaused = false;
@@ -962,10 +966,11 @@ internal sealed class ArenaRoundSystem : ModSystem
         foreach (RoundParticipant participant in participants)
         {
             Player player = Main.player[participant.PlayerId];
-            ArenaRoundPlayer stats = player?.GetModPlayer<ArenaRoundPlayer>();
+            ArenaRoundPlayer arenaPlayer = player?.GetModPlayer<ArenaRoundPlayer>();
 
-            if (player?.active == true && stats != null && stats.CharacterKeyOrFallback() == participant.CharacterKey)
+            if (player?.active == true && arenaPlayer != null && arenaPlayer.CharacterKeyOrFallback() == participant.CharacterKey)
             {
+                ScoreboardEntry stats = ScoreboardService.GetPlayerStats(player);
                 participant.Name = player.name;
                 participant.Snapshot = new RoundPlayerStats(
                     participant.PlayerId,
@@ -974,7 +979,7 @@ internal sealed class ArenaRoundSystem : ModSystem
                     stats.Kills,
                     stats.Deaths,
                     stats.Damage,
-                    stats.BossDamage);
+                    arenaPlayer.BossDamage);
             }
 
             result.Add(participant.Snapshot with

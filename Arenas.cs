@@ -16,7 +16,6 @@ public sealed class Arenas : Mod
         ArenaRound,
         TeamBoss,
         ArenaGameManager,
-        EndScreen,
         ArenaSubworld,
         //SubworldManager,
         Sandbox,

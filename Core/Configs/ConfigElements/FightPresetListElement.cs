@@ -46,7 +46,7 @@ internal sealed class FightPresetListElement : ListElement
         expanded = true;
         pendingChanges = true;
         EnsureValueMember();
-        TextDisplayFunction = () => $"{Label ?? "Fight Presets"} ({(Data as IList)?.Count ?? 0})";
+        TextDisplayFunction = () => $"{Label ?? "Boss Fights"} ({(Data as IList)?.Count ?? 0})";
     }
 
     protected override void SetupList()
@@ -126,7 +126,6 @@ internal sealed class FightPresetListElement : ListElement
             }
 
             preset.Boss ??= new NPCDefinition();
-            preset.Arena ??= new ArenaGeometryConfig();
             preset.Loadout ??= new Loadout();
         }
     }

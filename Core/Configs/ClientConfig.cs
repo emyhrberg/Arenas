@@ -3,10 +3,12 @@ using Terraria.ModLoader.Config;
 
 namespace Arenas.Core.Configs;
 
-internal sealed class ArenasClientConfig : ModConfig
+internal sealed class ClientConfig : ModConfig
 {
     public override ConfigScope Mode => ConfigScope.ClientSide;
 
-    [ConfigIcon("IconCheckOn", "IconCheckOff"), DefaultValue(true)]
+    [Header("UI")]
+    [ConfigIcon("IconCheckOn", "IconCheckOff", grayWhenOff: true)]
+    [DefaultValue(true)]
     public bool ShowTopScoreboard { get; set; } = true;
 }

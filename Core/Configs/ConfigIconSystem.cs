@@ -5,6 +5,7 @@ using System;
 using System.Collections;
 using System.Reflection;
 using Terraria.GameContent;
+using Terraria.Localization;
 using Terraria.ModLoader.Config.UI;
 using Terraria.UI;
 using Terraria.UI.Chat;
@@ -44,23 +45,34 @@ internal sealed class ConfigIconSystem : ModSystem
         object item, int order, object list, Type arrayType, int index)
     {
         Tuple<UIElement, UIElement> result = orig(parent, ref top, member, item, order, list, arrayType, index);
-        ConfigIconAttribute icon = member?.MemberInfo?.GetCustomAttribute<ConfigIconAttribute>(true);
+        MemberInfo memberInfo = member?.MemberInfo;
+        ConfigIconAttribute icon = memberInfo?.GetCustomAttribute<ConfigIconAttribute>(true);
         Asset<Texture2D> on = GetTexture(icon);
-        if (result?.Item2 == null || on == null)
+        if (result?.Item2 == null)
             return result;
 
-        ConfigElement config = FindConfig(result.Item2);
-        result.Item2.Append(new ConfigIconImage(on, GetOffTexture(icon), GetBool(item, member.MemberInfo))
+        if (on != null)
         {
-            Left = { Pixels = 8f },
-            VAlign = .5f
-        });
+            ConfigElement config = FindConfig(result.Item2);
+            result.Item2.Append(new ConfigIconImage(on, GetOffTexture(icon), GetBool(item, memberInfo), icon.GrayWhenOff)
+            {
+                Left = { Pixels = 8f },
+                VAlign = .5f
+            });
 
-        if (config != null)
-        {
-            config.DrawLabel = false;
-            result.Item2.Append(new ConfigIconLabel(config));
+            if (config != null)
+            {
+                config.DrawLabel = false;
+                result.Item2.Append(new ConfigIconLabel(config));
+            }
         }
+
+        if (memberInfo?.GetCustomAttribute<RequiresFieldAttribute>(true) is { } requires
+            && GetBool(item, requires.FieldName) is { } requiredEnabled)
+        {
+            result.Item2.Append(new RequiresFieldOverlay(requiredEnabled, GetRequiredLabel(item?.GetType(), requires.FieldName)));
+        }
+
         return result;
     }
 
@@ -84,6 +96,37 @@ internal sealed class ConfigIconSystem : ModSystem
         _ => null
     };
 
+    private static Func<bool> GetBool(object owner, string memberName)
+    {
+        if (owner == null || string.IsNullOrWhiteSpace(memberName))
+            return null;
+
+        const BindingFlags flags = BindingFlags.Instance | BindingFlags.Public;
+        Type type = owner.GetType();
+        if (type.GetField(memberName, flags) is { FieldType: { } fieldType } field && fieldType == typeof(bool))
+            return () => (bool)field.GetValue(owner);
+        if (type.GetProperty(memberName, flags) is { PropertyType: { } propertyType, CanRead: true } property && propertyType == typeof(bool))
+            return () => (bool)property.GetValue(owner);
+        return null;
+    }
+
+    private static string GetRequiredLabel(Type ownerType, string memberName)
+    {
+        string key = $"Mods.Arenas.Configs.{ownerType?.Name}.{memberName}.Label";
+        string localized = Language.GetTextValue(key);
+        if (!string.IsNullOrWhiteSpace(localized) && localized != key)
+            return localized;
+
+        string label = "";
+        foreach (char character in memberName ?? "")
+        {
+            if (label.Length > 0 && char.IsUpper(character) && !char.IsWhiteSpace(label[^1]))
+                label += ' ';
+            label += character;
+        }
+        return label;
+    }
+
     private static ConfigElement FindConfig(UIElement element)
     {
         if (element is ConfigElement config)
@@ -94,7 +137,7 @@ internal sealed class ConfigIconSystem : ModSystem
         return null;
     }
 
-    private sealed class ConfigIconImage(Asset<Texture2D> on, Asset<Texture2D> off, Func<bool> enabled) : UIElement
+    private sealed class ConfigIconImage(Asset<Texture2D> on, Asset<Texture2D> off, Func<bool> enabled, bool grayWhenOff) : UIElement
     {
         public override void OnInitialize()
         {
@@ -105,10 +148,12 @@ internal sealed class ConfigIconSystem : ModSystem
 
         protected override void DrawSelf(SpriteBatch spriteBatch)
         {
-            Texture2D texture = (off != null && enabled?.Invoke() == false ? off : on).Value;
+            bool isOff = enabled?.Invoke() == false;
+            Texture2D texture = (off != null && isOff ? off : on).Value;
             Rectangle box = GetDimensions().ToRectangle();
             float scale = Math.Min(box.Width / (float)texture.Width, box.Height / (float)texture.Height);
-            spriteBatch.Draw(texture, box.Center.ToVector2(), null, Color.White * .85f, 0f, texture.Size() * .5f, scale, SpriteEffects.None, 0f);
+            Color color = isOff && grayWhenOff ? Color.Gray : Color.White;
+            spriteBatch.Draw(texture, box.Center.ToVector2(), null, color * .85f, 0f, texture.Size() * .5f, scale, SpriteEffects.None, 0f);
         }
     }
 
@@ -123,11 +168,80 @@ internal sealed class ConfigIconSystem : ModSystem
 
         protected override void DrawSelf(SpriteBatch spriteBatch)
         {
-            string label = owner.TextDisplayFunction?.Invoke() ?? owner.MemberInfo?.Name ?? "";
+            string label = CollapseDuplicateWords(owner.TextDisplayFunction?.Invoke() ?? owner.MemberInfo?.Name ?? "");
             CalculatedStyle box = owner.GetDimensions();
             ChatManager.DrawColorCodedStringWithShadow(spriteBatch, FontAssets.ItemStack.Value, label,
                 new Vector2(box.X + TextLeft, box.Y + 8f), Color.White, 0f, Vector2.Zero,
                 new Vector2(.8f), Math.Max(20f, box.Width - TextLeft - 8f), 2f);
+        }
+
+        private static string CollapseDuplicateWords(string value)
+        {
+            string[] words = value.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (words.Length < 2)
+                return value;
+
+            int write = 1;
+            for (int read = 1; read < words.Length; read++)
+            {
+                if (!string.Equals(words[read], words[write - 1], StringComparison.OrdinalIgnoreCase))
+                    words[write++] = words[read];
+            }
+
+            for (int phraseLength = 1; phraseLength * 2 <= write; phraseLength++)
+            {
+                bool repeated = true;
+                for (int i = 0; i < phraseLength; i++)
+                    repeated &= string.Equals(words[i], words[i + phraseLength], StringComparison.OrdinalIgnoreCase);
+                if (!repeated)
+                    continue;
+
+                for (int i = phraseLength * 2; i < write; i++)
+                    words[i - phraseLength] = words[i];
+                write -= phraseLength;
+                break;
+            }
+
+            return string.Join(' ', words, 0, write);
+        }
+    }
+
+    private sealed class RequiresFieldOverlay(Func<bool> enabled, string requiredLabel) : UIElement
+    {
+        public override void OnInitialize()
+        {
+            Width.Set(0f, 1f);
+            Height.Set(0f, 1f);
+            IgnoresMouseInteraction = IsEnabled();
+        }
+
+        public override void Update(GameTime gameTime)
+        {
+            IgnoresMouseInteraction = IsEnabled();
+            if (!IgnoresMouseInteraction && ContainsPoint(Main.MouseScreen))
+                UIModConfig.Tooltip = $"[c/FF8080:Locked: Requires {requiredLabel} to be enabled]";
+            base.Update(gameTime);
+        }
+
+        protected override void DrawSelf(SpriteBatch spriteBatch)
+        {
+            if (IsEnabled())
+                return;
+
+            Rectangle box = GetDimensions().ToRectangle();
+            spriteBatch.Draw(TextureAssets.MagicPixel.Value, box, Color.Black * .48f);
+        }
+
+        private bool IsEnabled()
+        {
+            try
+            {
+                return enabled();
+            }
+            catch
+            {
+                return true;
+            }
         }
     }
 }

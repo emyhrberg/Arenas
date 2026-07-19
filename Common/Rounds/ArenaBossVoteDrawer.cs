@@ -38,7 +38,7 @@ internal static class ArenaBossVoteDrawer
         Text("Choose the next boss \u2014 majority wins!", new Vector2(panel.Center.X, panel.Y + S(72)), Color.White, 1.02f * scale, panel.Width - S(40));
 
         Rectangle track = new(panel.X + S(24), panel.Y + S(104), panel.Width - S(48), S(22));
-        int votingSeconds = Math.Max(1, ModContent.GetInstance<ArenasConfig>().VotingDurationSeconds);
+        int votingSeconds = Math.Max(1, ModContent.GetInstance<ServerConfig>().VotingDurationSeconds);
         float progress = Math.Clamp(ArenaRoundSystem.RemainingTicks / (votingSeconds * 60f), 0f, 1f);
         DrawProgressBar(track, progress);
 

@@ -1,6 +1,7 @@
 using System;
 using Arenas.Common.Generation;
 using Arenas.Common.LoadoutSelector;
+using PvPFramework.Common.Scoreboard;
 using Terraria.DataStructures;
 using Terraria.ID;
 using Terraria.ModLoader.IO;
@@ -12,19 +13,9 @@ internal sealed class ArenaRoundPlayer : ModPlayer
     private const string ErkySscTag = "ErkySSC";
     private const string StatsTag = "Arenas";
 
-    public int Kills { get; private set; }
-    public int Deaths { get; private set; }
-    public long Damage { get; private set; }
-    public long BossDamage { get; private set; }
     internal ArenaClass SelectedClass { get; private set; }
     internal string CharacterKey { get; private set; } = "";
-
-    public override void PostHurt(Player.HurtInfo info)
-    {
-        if (Main.netMode == NetmodeID.MultiplayerClient || !info.PvP || ArenaRoundSystem.Phase != RoundPhase.Playing) return;
-        int attacker = info.DamageSource.SourcePlayerIndex;
-        if (attacker != Player.whoAmI) RecordDamage(attacker, info.Damage);
-    }
+    internal long BossDamage { get; private set; }
 
     public override void Kill(double damage, int hitDirection, bool pvp, PlayerDeathReason damageSource)
     {
@@ -35,9 +26,6 @@ internal sealed class ArenaRoundPlayer : ModPlayer
             if (Main.netMode == NetmodeID.Server)
                 ArenaRoundNetHandler.SendClassState(Player.whoAmI, ArenaClass.None, ArenaRoundSystem.CurrentPresetIndex);
         }
-        Deaths++;
-        int killer = damageSource.SourcePlayerIndex;
-        if (pvp && killer != Player.whoAmI && ArenaRoundSystem.IsParticipant(killer)) Main.player[killer].GetModPlayer<ArenaRoundPlayer>().Kills++;
     }
 
     public override void PreUpdate()
@@ -96,11 +84,13 @@ internal sealed class ArenaRoundPlayer : ModPlayer
 
     internal void ResetStats()
     {
-        Kills = Deaths = 0;
-        Damage = BossDamage = 0;
-        if (ModLoader.TryGetMod("PvPFramework", out Mod framework))
-            try { framework.Call("ResetScoreboardStats", Player.whoAmI); } catch { }
+        ScoreboardService.ResetPlayer(Player);
+        BossDamage = 0;
     }
+
+    internal void SetBossDamage(long damage) => BossDamage = Math.Max(0L, damage);
+    internal void AddBossDamage(uint damage) =>
+        BossDamage = BossDamage > long.MaxValue - damage ? long.MaxValue : BossDamage + damage;
     internal void SetSelectedClass(ArenaClass arenaClass) => SelectedClass = arenaClass;
 
     internal string CharacterKeyOrFallback() => string.IsNullOrEmpty(CharacterKey)
@@ -112,19 +102,20 @@ internal sealed class ArenaRoundPlayer : ModPlayer
         if (Main.netMode == NetmodeID.MultiplayerClient || player == null || root == null)
             return false;
 
-        ArenaRoundPlayer stats = player.GetModPlayer<ArenaRoundPlayer>();
-        stats.CharacterKey = characterKey ?? "";
+        ArenaRoundPlayer arenaPlayer = player.GetModPlayer<ArenaRoundPlayer>();
+        arenaPlayer.CharacterKey = characterKey ?? "";
+        ScoreboardEntry stats = ScoreboardService.GetPlayerStats(player);
 
         TagCompound ssc = root.ContainsKey(ErkySscTag) ? root.GetCompound(ErkySscTag) : [];
         ssc[StatsTag] = new TagCompound
         {
             ["version"] = 1,
-            ["characterKey"] = stats.CharacterKey,
+            ["characterKey"] = arenaPlayer.CharacterKey,
             ["roundToken"] = ArenaRoundSystem.CurrentRoundToken,
             ["kills"] = stats.Kills,
             ["deaths"] = stats.Deaths,
             ["damage"] = stats.Damage,
-            ["bossDamage"] = stats.BossDamage
+            ["bossDamage"] = arenaPlayer.BossDamage
         };
 
         root[ErkySscTag] = ssc;
@@ -158,25 +149,10 @@ internal sealed class ArenaRoundPlayer : ModPlayer
             !reassociated)
             return true;
 
-        stats.Kills = Math.Max(0, saved.GetInt("kills"));
-        stats.Deaths = Math.Max(0, saved.GetInt("deaths"));
-        stats.Damage = Math.Max(0L, saved.Get<long>("damage"));
-        stats.BossDamage = Math.Max(0L, saved.Get<long>("bossDamage"));
+        ScoreboardService.SetPlayerStats(player, saved.GetInt("kills"), saved.GetInt("deaths"), saved.Get<long>("damage"));
+        stats.SetBossDamage(saved.Get<long>("bossDamage"));
         ArenaRoundNetHandler.SendStateToAll();
         return true;
-    }
-
-    internal static void RecordDamage(int playerId, int damage)
-    {
-        if (damage <= 0 || ArenaRoundSystem.Phase != RoundPhase.Playing || !ArenaRoundSystem.IsParticipant(playerId)) return;
-        Main.player[playerId].GetModPlayer<ArenaRoundPlayer>().Damage += damage;
-    }
-
-    internal static void RecordBossDamage(int playerId, int damage)
-    {
-        RecordDamage(playerId, damage);
-        if (damage > 0 && ArenaRoundSystem.Phase == RoundPhase.Playing && ArenaRoundSystem.IsParticipant(playerId))
-            Main.player[playerId].GetModPlayer<ArenaRoundPlayer>().BossDamage += damage;
     }
 
     public override void SyncPlayer(int toWho, int fromWho, bool newPlayer)

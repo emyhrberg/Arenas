@@ -10,6 +10,7 @@
 
 	<!-- References -->
 	<ItemGroup>
+		<ProjectReference Include="..\PvPFramework\PvPFramework.csproj" />
 
 		<!-- Add subworld library for subworld arenas-->
 		<Reference Include="SubworldLibrary">

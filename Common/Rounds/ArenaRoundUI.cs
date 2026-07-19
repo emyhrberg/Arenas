@@ -24,7 +24,7 @@ internal sealed class ArenaRoundUI : ModSystem
     {
         if (!ArenaWorldSystem.Active)
         {
-            if (ModContent.GetInstance<ArenasClientConfig>().ShowTopScoreboard)
+            if (ModContent.GetInstance<ClientConfig>().ShowTopScoreboard)
                 DrawTopScoreboard(true);
             return true;
         }
@@ -34,7 +34,7 @@ internal sealed class ArenaRoundUI : ModSystem
         {
             ArenaBossVoteDrawer.Draw(260);
         }
-        if (ModContent.GetInstance<ArenasClientConfig>().ShowTopScoreboard)
+        if (ModContent.GetInstance<ClientConfig>().ShowTopScoreboard)
             DrawTopScoreboard(false);
         if (ArenaRoundSystem.Phase == RoundPhase.FreezeCountdown) DrawCountdown();
         return true;

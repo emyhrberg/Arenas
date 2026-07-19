@@ -10,17 +10,11 @@ public enum ArenaGeneratorKind { Auto, KingSlimeSurface, EyeSurface, PlanteraJun
 
 public sealed class BossFightPreset
 {
-    [DefaultValue("")]
-    public string Name { get; set; } = "";
-
     [ConfigIcon(ItemID.SuspiciousLookingEye)]
     public NPCDefinition Boss { get; set; } = new();
 
     [ConfigIcon(ItemID.DirtBlock), DefaultValue(ArenaGeneratorKind.Auto)]
     public ArenaGeneratorKind ArenaGenerator { get; set; } = ArenaGeneratorKind.Auto;
-
-    [ConfigIcon(ItemID.Ruler), Expand(false)]
-    public ArenaGeometryConfig Arena { get; set; } = new();
 
     [ConfigIcon(ItemID.LifeCrystal), DefaultValue(500), Range(1, 10000)]
     public int MaxHealth { get; set; } = 500;
