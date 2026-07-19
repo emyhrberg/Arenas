@@ -13,8 +13,8 @@ namespace Arenas.Common;
 
 /// <summary>
 /// The single logical Arenas world. In multiplayer its child server stays alive and is
-/// reused by every match. It is restarted only for an explicit World Gen Manager action,
-/// crash recovery, or the first complete bootstrap.
+/// reused while rounds use the same preset biome. It is regenerated when the preset biome
+/// changes, for an explicit World Gen Manager action, or during crash recovery.
 /// </summary>
 public sealed class ArenasSubworld : Subworld
 {

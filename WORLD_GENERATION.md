@@ -1,8 +1,9 @@
 # Arenas controlled world generation
 
-`ArenasSubworld` is one logical, reusable 4200x1200 world. In multiplayer it runs in
-Subworld Library's child server process. Boss presets and votes reuse that process and do
-not generate a new world.
+`ArenasSubworld` is one logical 4200x1200 world. In multiplayer it runs in Subworld
+Library's child server process. Repeated rounds with the same fight preset reuse that
+process and terrain. Selecting a preset for a different biome restarts generation so the
+arena can follow that preset's natural terrain.
 
 ## Admin workflow
 
@@ -45,16 +46,21 @@ are inserted, and `totalWeight` is recalculated.
 
 The three custom passes are:
 
-1. **Arenas: Reserve Combat Region**, immediately after `Terrain`. It creates the deterministic
-   layout and adds its rectangle to `GenVars.structures`.
-2. **Arenas: Build Combat Region**, immediately before `Final Cleanup`. It removes conflicting
-   chests, signs, tile entities, tiles, walls, and liquids in that rectangle, then builds the
-   protected frame, biome walls/floor, spawn rooms, and platforms.
+1. **Arenas: Reserve Combat Region**, immediately after `Terrain`. It deliberately defers
+   placement because the natural Jungle and Temple do not exist yet; it does not reserve or
+   flatten biome terrain.
+2. **Arenas: Build Combat Region**, immediately before `Final Cleanup`. It resolves the fight
+   preset against the completed vanilla world—Plantera selects the underground Jungle and
+   Golem selects the vanilla Temple. It preserves the natural arena interior and background
+   walls. The only stamping is a three-tile Lihzahrd-brick perimeter with three tile-clear
+   bands immediately inside and outside it. Team spawns occupy the bottom inner-clearance band.
 3. **Arenas: Validate Combat Region**, immediately after `Final Cleanup`. It checks all layout
-   invariants, frames the edited region, and republishes the authoritative spawn.
+   invariants and every border/clearance tile, frames the edited perimeter, and republishes the
+   authoritative spawn.
 
-The combat region is late-stamped because not every vanilla pass honors `StructureMap`.
-Reserving early reduces conflicts; rebuilding late guarantees the arena itself is deterministic.
+The perimeter is late-stamped so vanilla first produces complete, natural biome terrain and
+structures. Arenas does not add platforms, floors, artificial biome walls, or a replacement
+arena interior.
 
 ## Adding another Arenas pass
 

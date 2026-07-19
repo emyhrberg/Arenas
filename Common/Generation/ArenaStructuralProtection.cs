@@ -2,7 +2,7 @@ using System;
 
 namespace Arenas.Common.Generation;
 
-/// <summary>Protects only the generated outer frame and boss-confinement frame.</summary>
+/// <summary>Keeps the 3-clear / 3-brick / 3-clear perimeter envelope intact.</summary>
 internal sealed class ArenaStructuralProtectionPlayer : ModPlayer
 {
     public override void Load()

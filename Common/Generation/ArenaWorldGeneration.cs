@@ -326,16 +326,10 @@ internal sealed class ArenaWorldGenerationSystem : ModSystem
         Log.Info($"Validated natural {GeneratedLayout.Generator} arena and framed perimeter {frame} in {Main.maxTilesX}x{Main.maxTilesY}.");
     }
 
-    internal static ArenaLayout CreateFixedLayout(int seed)
-    {
-        Rectangle arena = new(1420, 330, 1360, 600);
-        return CreateLayout(ArenaGeneratorKind.Auto, seed, arena, resolveNaturalBossSpawn: false);
-    }
-
     private static ArenaLayout CreatePresetLayout(int seed)
     {
         BossFightPreset preset = ArenaRoundSystem.GetPresetOrDefault(ArenaSubworldCoordinator.ActiveRequest.PresetIndex);
-        ArenaGeneratorKind kind = ArenaGeneratorRegistry.ResolveKind(preset);
+        ArenaGeneratorKind kind = ResolveGeneratorKind(preset);
         if (kind == ArenaGeneratorKind.SandboxWorld)
             kind = ArenaGeneratorKind.Auto;
 
@@ -347,10 +341,27 @@ internal sealed class ArenaWorldGenerationSystem : ModSystem
             _ => CreateCenteredRectangle(Main.spawnTileX, (int)Main.worldSurface + 120, 1360, 500)
         };
 
-        return CreateLayout(kind, seed, arena, resolveNaturalBossSpawn: true);
+        return CreateLayout(kind, seed, arena);
     }
 
-    private static ArenaLayout CreateLayout(ArenaGeneratorKind kind, int seed, Rectangle arena, bool resolveNaturalBossSpawn)
+    private static ArenaGeneratorKind ResolveGeneratorKind(BossFightPreset preset)
+    {
+        if (preset == null)
+            return ArenaGeneratorKind.Auto;
+        if (preset.ArenaGenerator != ArenaGeneratorKind.Auto)
+            return preset.ArenaGenerator;
+
+        return preset.Boss?.Type switch
+        {
+            NPCID.KingSlime => ArenaGeneratorKind.KingSlimeSurface,
+            NPCID.EyeofCthulhu => ArenaGeneratorKind.EyeSurface,
+            NPCID.Plantera => ArenaGeneratorKind.PlanteraJungle,
+            NPCID.Golem => ArenaGeneratorKind.GolemTemple,
+            _ => ArenaGeneratorKind.Auto
+        };
+    }
+
+    private static ArenaLayout CreateLayout(ArenaGeneratorKind kind, int seed, Rectangle arena)
     {
         int bossWidth = Math.Clamp(arena.Width * 3 / 10, 120, Math.Min(400, arena.Width - 240));
         Rectangle boss = new(arena.Center.X - bossWidth / 2, arena.Top, bossWidth, arena.Height);
@@ -363,14 +374,14 @@ internal sealed class ArenaWorldGenerationSystem : ModSystem
             && boss.Contains(GenVars.lAltarX, GenVars.lAltarY)
             ? new Point(GenVars.lAltarX, GenVars.lAltarY)
             : boss.Center;
-        Point bossSpawn = resolveNaturalBossSpawn ? FindOpenBossSpawn(boss, preferredBoss) : preferredBoss;
+        Point bossSpawn = FindOpenBossSpawn(boss, preferredBoss);
 
         return new ArenaLayout
         {
             Generator = kind,
             Seed = seed,
-            WorldWidth = Main.maxTilesX > 0 ? Main.maxTilesX : ArenasSubworld.FixedWidth,
-            WorldHeight = Main.maxTilesY > 0 ? Main.maxTilesY : ArenasSubworld.FixedHeight,
+            WorldWidth = Main.maxTilesX,
+            WorldHeight = Main.maxTilesY,
             ArenaArea = arena,
             BossArea = boss,
             RedSpawnClearance = redRoom,

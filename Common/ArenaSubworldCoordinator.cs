@@ -28,9 +28,9 @@ internal readonly record struct ArenaSubworldRequest(
 }
 
 /// <summary>
-/// Supervises one reusable Arenas child server. Match requests reuse the live child;
-/// generation requests evacuate every player, restart that child, and wait for its explicit
-/// ready message before allowing transfers.
+/// Supervises one Arenas child server. Match requests reuse it only while the selected
+/// preset uses the same generated arena; preset changes and explicit generation requests
+/// evacuate every player, restart that child, and wait for its ready message.
 /// </summary>
 internal sealed class ArenaSubworldCoordinator : ModSystem, ICopyWorldData
 {
@@ -131,7 +131,26 @@ internal sealed class ArenaSubworldCoordinator : ModSystem, ICopyWorldData
         {
             if (!ArenaWorldSystem.MatchReady)
                 return false;
-            ArenaRoundSystem.PrepareExistingWorldRound(presetIndex, generationId);
+
+            if (activeRequest.PresetIndex == presetIndex)
+            {
+                ArenaRoundSystem.PrepareExistingWorldRound(presetIndex, generationId);
+                return true;
+            }
+
+            CaptureActiveSubworldRoster();
+            ArenaRoundSystem.AbortForWorldRegeneration();
+            if (Main.netMode == NetmodeID.Server)
+            {
+                SendRegenerationRequestToMain(ArenaGenerationMode.Full, "", Main.rand.Next(),
+                    movePlayersAfterReady: true, presetIndex, countdownTicks, playingTicks, generationId);
+                Log.Chat($"[Arena] Preset changed from {activeRequest.PresetIndex} to {presetIndex}; regenerating in its natural biome.");
+                return true;
+            }
+
+            pendingRequest = NewRequest(presetIndex, countdownTicks, playingTicks, generationId,
+                ArenaGenerationMode.Full, "", movePlayersAfterReady: true);
+            BeginRestart(stopExisting: true);
             return true;
         }
 
@@ -145,7 +164,8 @@ internal sealed class ArenaSubworldCoordinator : ModSystem, ICopyWorldData
         ArenaSubworldRequest roundRequest = NewRequest(presetIndex, countdownTicks, playingTicks, generationId,
             ArenaGenerationMode.Full, "", movePlayersAfterReady: true);
 
-        if (Main.netMode == NetmodeID.Server && HasMatchReadyArenaServer)
+        if (Main.netMode == NetmodeID.Server && HasMatchReadyArenaServer
+            && activeRequest.PresetIndex == presetIndex)
         {
             pendingRequest = roundRequest with { WorldRequestId = activeRequest.WorldRequestId };
             SendPrepareRoundToSubserver(pendingRequest);
@@ -170,7 +190,8 @@ internal sealed class ArenaSubworldCoordinator : ModSystem, ICopyWorldData
         {
             CaptureActiveSubworldRoster();
             ArenaRoundSystem.AbortForWorldRegeneration();
-            SendRegenerationRequestToMain(mode, targetStep, seed);
+            SendRegenerationRequestToMain(mode, targetStep, seed,
+                movePlayersAfterReady: false, 0, -1, -1, Math.Max(1, ArenaRoundSystem.GenerationId));
             Log.Chat($"[WorldGen] Requested Arenas restart from the child server; evacuating players to Main.");
             return true;
         }
@@ -205,17 +226,19 @@ internal sealed class ArenaSubworldCoordinator : ModSystem, ICopyWorldData
             case Message.Heartbeat when !SubworldSystem.AnyActive():
                 int heartbeatRequest = reader.ReadInt32();
                 bool heartbeatReady = reader.ReadBoolean();
+                int heartbeatPreset = reader.ReadInt32();
                 if (heartbeatRequest == activeRequest.WorldRequestId || transitionState == TransitionState.None)
                 {
                     if (heartbeatRequest != activeRequest.WorldRequestId)
                     {
-                        activeRequest = activeRequest with { WorldRequestId = heartbeatRequest };
+                        activeRequest = activeRequest with { WorldRequestId = heartbeatRequest, PresetIndex = heartbeatPreset };
                         nextWorldRequestId = Math.Max(nextWorldRequestId, heartbeatRequest);
                         Log.Info($"Adopted an existing Arenas child after reload. request={heartbeatRequest}, matchReady={heartbeatReady}.");
                     }
                     lastHeartbeatTick = Main.GameUpdateCount;
                     arenaSubserverRunning = true;
                     arenaSubserverMatchReady = heartbeatReady;
+                    activeRequest = activeRequest with { PresetIndex = heartbeatPreset };
                 }
                 break;
         }
@@ -274,9 +297,15 @@ internal sealed class ArenaSubworldCoordinator : ModSystem, ICopyWorldData
         ArenaGenerationMode mode = (ArenaGenerationMode)reader.ReadByte();
         string target = reader.ReadString();
         int seed = reader.ReadInt32();
+        bool movePlayersAfterReady = reader.ReadBoolean();
+        int presetIndex = reader.ReadInt32();
+        int countdownTicks = reader.ReadInt32();
+        int playingTicks = reader.ReadInt32();
+        int generationId = reader.ReadInt32();
         ReadTransferredTeams(reader, replace: false);
         ArenaRoundSystem.AbortForWorldRegeneration();
-        pendingRequest = NewRequest(0, -1, -1, Math.Max(1, ArenaRoundSystem.GenerationId), mode, target, movePlayersAfterReady: false)
+        pendingRequest = NewRequest(presetIndex, countdownTicks, playingTicks, generationId,
+                mode, target, movePlayersAfterReady)
             with { Seed = seed };
         BeginRestart(stopExisting: true);
         WorldGenManagerNetHandler.ServerStarted(pendingRequest);
@@ -421,6 +450,7 @@ internal sealed class ArenaSubworldCoordinator : ModSystem, ICopyWorldData
                 writer.Write((byte)Message.Heartbeat);
                 writer.Write(activeRequest.WorldRequestId);
                 writer.Write(ArenaWorldSystem.MatchReady);
+                writer.Write(activeRequest.PresetIndex);
             }
             SubworldSystem.SendToMainServer(ModContent.GetInstance<Arenas>(), stream.ToArray());
         }
@@ -455,7 +485,8 @@ internal sealed class ArenaSubworldCoordinator : ModSystem, ICopyWorldData
         SubworldSystem.SendToSubserver(index, ModContent.GetInstance<Arenas>(), stream.ToArray());
     }
 
-    private static void SendRegenerationRequestToMain(ArenaGenerationMode mode, string target, int seed)
+    private static void SendRegenerationRequestToMain(ArenaGenerationMode mode, string target, int seed,
+        bool movePlayersAfterReady, int presetIndex, int countdownTicks, int playingTicks, int generationId)
     {
         using MemoryStream stream = new();
         using (BinaryWriter writer = new(stream, System.Text.Encoding.UTF8, true))
@@ -465,6 +496,11 @@ internal sealed class ArenaSubworldCoordinator : ModSystem, ICopyWorldData
             writer.Write((byte)mode);
             writer.Write(target ?? "");
             writer.Write(seed);
+            writer.Write(movePlayersAfterReady);
+            writer.Write(presetIndex);
+            writer.Write(countdownTicks);
+            writer.Write(playingTicks);
+            writer.Write(generationId);
             WriteTeams(writer);
         }
         SubworldSystem.SendToMainServer(ModContent.GetInstance<Arenas>(), stream.ToArray());
