@@ -1,7 +1,6 @@
 Mods: {
 	Arenas: {
 		Keybinds: {
-			Scoreboard.DisplayName: Scoreboard
 			SandboxMenu.DisplayName: Sandbox Menu
 		}
 

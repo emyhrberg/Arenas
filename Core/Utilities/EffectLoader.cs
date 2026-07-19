@@ -7,38 +7,6 @@ namespace Arenas.Core.Utilities;
 
 public class EffectLoader : ModSystem
 {
-    private const string GrayscalePath = "Arenas/Assets/Effects/Grayscale";
-
-    private static readonly Lazy<Effect> GrayscaleEffect = new(LoadGrayscaleEffect);
-
-    public static bool TryGetGrayscaleEffect(out Effect effect)
-    {
-        try
-        {
-            effect = GrayscaleEffect.Value;
-            return effect != null;
-        }
-        catch (Exception e)
-        {
-            Log.Warn($"Failed to load grayscale effect '{GrayscalePath}': {e.Message}");
-            effect = null;
-            return false;
-        }
-    }
-
-    private static Effect LoadGrayscaleEffect()
-    {
-        try
-        {
-            return ModContent.Request<Effect>(GrayscalePath, AssetRequestMode.ImmediateLoad).Value;
-        }
-        catch (Exception e)
-        {
-            Log.Warn($"Failed to load grayscale effect '{GrayscalePath}': {e.Message}");
-            return null;
-        }
-    }
-
     private const string LiquidGlassPath = "Arenas/Assets/Effects/LiquidGlass";
     private const string SpawnBoxBorderPath = "Arenas/Assets/Effects/SpawnBoxBorder";
 

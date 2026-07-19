@@ -8,8 +8,15 @@ namespace Arenas.Common.Rounds;
 internal static class LoadoutService
 {
     public static void Apply(Player player, BossFightPreset preset)
+        => Apply(player, preset?.Loadout ?? new Loadout(), preset?.MaxHealth ?? 100, preset?.MaxMana ?? 20, true, true);
+
+    public static void Apply(Player player, Loadout loadout, int maxHealth, int maxMana, bool revive, bool fillVitals)
     {
-        Loadout loadout = preset.Loadout ?? new Loadout();
+        bool wasDead = player.dead;
+        bool wasGhost = player.ghost;
+        int respawnTimer = player.respawnTimer;
+        int currentLife = player.statLife;
+        int currentMana = player.statMana;
         foreach (Item item in player.inventory) item.TurnToAir();
         foreach (Item item in player.armor) item.TurnToAir();
         foreach (Item item in player.miscEquips) item.TurnToAir();
@@ -30,10 +37,23 @@ internal static class LoadoutService
 
         player.miscEquips[4].SetDefaults(equipment.GrapplingHook?.Type ?? ItemID.None);
         player.miscEquips[3].SetDefaults(equipment.Mount?.Type ?? ItemID.None);
-        player.dead = player.ghost = false;
-        player.respawnTimer = 0;
-        player.statLife = player.statLifeMax = player.statLifeMax2 = Math.Max(1, preset.MaxHealth);
-        player.statMana = player.statManaMax = player.statManaMax2 = Math.Max(0, preset.MaxMana);
+        player.statLifeMax = player.statLifeMax2 = Math.Max(1, maxHealth);
+        player.statManaMax = player.statManaMax2 = Math.Max(0, maxMana);
+        if (revive)
+        {
+            player.dead = player.ghost = false;
+            player.respawnTimer = 0;
+            player.statLife = fillVitals ? player.statLifeMax : Math.Clamp(currentLife, 1, player.statLifeMax);
+            player.statMana = fillVitals ? player.statManaMax : Math.Clamp(currentMana, 0, player.statManaMax);
+        }
+        else
+        {
+            player.dead = wasDead;
+            player.ghost = wasGhost;
+            player.respawnTimer = respawnTimer;
+            player.statLife = currentLife;
+            player.statMana = currentMana;
+        }
 
         if (Main.netMode == NetmodeID.Server)
         {

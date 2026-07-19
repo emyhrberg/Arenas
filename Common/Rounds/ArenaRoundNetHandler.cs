@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using Arenas.Common.Generation;
+using Arenas.Common.LoadoutSelector;
 using Terraria.Enums;
 using Terraria.ID;
 
@@ -9,7 +10,7 @@ namespace Arenas.Common.Rounds;
 
 internal static class ArenaRoundNetHandler
 {
-    private enum Packet : byte { SyncState, CastVote, ApplyKit }
+    private enum Packet : byte { SyncState, CastVote, ApplyKit, SelectClass, ClassState }
 
     internal static void ResetClientState() => ArenaMapReveal.Cancel();
 
@@ -20,11 +21,16 @@ internal static class ArenaRoundNetHandler
             case Packet.SyncState when Main.netMode == NetmodeID.MultiplayerClient: ReadState(reader); break;
             case Packet.CastVote when Main.netMode == NetmodeID.Server: ArenaRoundSystem.CastVote(fromWho, reader.ReadByte()); break;
             case Packet.ApplyKit when Main.netMode == NetmodeID.MultiplayerClient: ArenaRoundSystem.ApplyKit(reader.ReadByte()); break;
+            case Packet.SelectClass when Main.netMode == NetmodeID.Server: ArenaRoundSystem.SelectClass(fromWho, (ArenaClass)reader.ReadByte()); break;
+            case Packet.ClassState when Main.netMode == NetmodeID.MultiplayerClient: ArenaRoundSystem.ApplyClassState((ArenaClass)reader.ReadByte(), reader.ReadByte()); break;
         }
     }
 
     public static void SendVote(int index) => Send(Packet.CastVote, p => p.Write((byte)index));
     public static void SendApplyKit(int playerId, int presetIndex) => Send(Packet.ApplyKit, p => p.Write((byte)presetIndex), playerId);
+    public static void SendClassRequest(ArenaClass arenaClass) => Send(Packet.SelectClass, p => p.Write((byte)arenaClass));
+    public static void SendClassState(int playerId, ArenaClass arenaClass, int presetIndex) =>
+        Send(Packet.ClassState, p => { p.Write((byte)arenaClass); p.Write((byte)presetIndex); }, playerId);
 
     public static void SendStateToAll()
     {

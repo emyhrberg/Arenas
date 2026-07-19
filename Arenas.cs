@@ -17,7 +17,6 @@ public sealed class Arenas : Mod
         TeamBoss,
         ArenaGameManager,
         EndScreen,
-        PlayerStatus,
         ArenaSubworld,
         //SubworldManager,
         Sandbox,
@@ -33,17 +32,8 @@ public sealed class Arenas : Mod
             case ArenasPacketType.ArenaRound:
                 Common.Rounds.ArenaRoundNetHandler.HandlePacket(reader, whoAmI);
                 break;
-            case ArenasPacketType.TeamBoss:
-                Common.TeamBoss.TeamBossNetHandler.HandlePacket(reader, whoAmI);
-                break;
             case ArenasPacketType.ArenaGameManager:
                 Common.AdminTools.GameManager.ArenaGameManagerNetHandler.HandlePacket(reader, whoAmI);
-                break;
-            case ArenasPacketType.EndScreen:
-                Common.EndScreen.EndScreenNetHandler.HandlePacket(reader, whoAmI);
-                break;
-            case ArenasPacketType.PlayerStatus:
-                ArenaPlayerStatusNetHandler.HandlePacket(reader, whoAmI);
                 break;
             case ArenasPacketType.ArenaSubworld:
                 Common.ArenaSubworldCoordinator.HandlePacket(reader, whoAmI);

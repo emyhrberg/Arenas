@@ -1,6 +1,7 @@
 using Arenas.Core.Configs;
 using Arenas.Core.Configs.ConfigElements;
 using Arenas.Common.Generation;
+using Arenas.Common.LoadoutSelector;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -112,6 +113,9 @@ internal sealed class ArenaRoundSystem : ModSystem
     public static bool IsSandboxPreset(BossFightPreset preset) => preset?.ArenaGenerator == ArenaGeneratorKind.SandboxWorld;
     public static bool IsSandboxActive => ArenaWorldSystem.Active && Phase == RoundPhase.Sandbox
         && TryGetCurrentPreset(out BossFightPreset preset) && IsSandboxPreset(preset);
+    public static bool IsLocalParticipant => TryGetParticipantTeam(Main.myPlayer, out _);
+    public static bool RequiresClassSelection => Phase is RoundPhase.FreezeCountdown or RoundPhase.Playing
+        && TryGetCurrentPreset(out BossFightPreset classPreset) && PostMechKits.Supports(classPreset);
     public static bool IsParticipant(int playerId)
     {
         if (playerId < 0 || playerId >= Main.maxPlayers)
@@ -191,6 +195,47 @@ internal sealed class ArenaRoundSystem : ModSystem
     {
         if (Main.netMode == NetmodeID.MultiplayerClient) ArenaRoundNetHandler.SendVote(index);
         else CastVote(Main.myPlayer, index);
+    }
+
+    internal static void RequestClass(ArenaClass arenaClass)
+    {
+        if (Main.netMode == NetmodeID.MultiplayerClient)
+            ArenaRoundNetHandler.SendClassRequest(arenaClass);
+        else
+            SelectClass(Main.myPlayer, arenaClass);
+    }
+
+    internal static void SelectClass(int playerId, ArenaClass arenaClass)
+    {
+        if (arenaClass is < ArenaClass.Melee or > ArenaClass.Summoner || !RequiresClassSelection
+            || !IsParticipant(playerId) || playerId < 0 || playerId >= Main.maxPlayers)
+            return;
+
+        Player player = Main.player[playerId];
+        if (player?.active != true || !TryGetCurrentPreset(out BossFightPreset preset)) return;
+        Loadout loadout = PostMechKits.Create(arenaClass);
+        if (loadout == null) return;
+
+        bool firstSelection = player.GetModPlayer<ArenaRoundPlayer>().SelectedClass == ArenaClass.None;
+        LoadoutService.Apply(player, loadout, preset.MaxHealth, preset.MaxMana, !player.dead, firstSelection);
+        player.GetModPlayer<ArenaRoundPlayer>().SetSelectedClass(arenaClass);
+        if (Main.netMode == NetmodeID.Server)
+            ArenaRoundNetHandler.SendClassState(playerId, arenaClass, CurrentPresetIndex);
+    }
+
+    internal static void ApplyClassState(ArenaClass arenaClass, int presetIndex)
+    {
+        ArenaRoundPlayer roundPlayer = Main.LocalPlayer.GetModPlayer<ArenaRoundPlayer>();
+        ArenaClass previousClass = roundPlayer.SelectedClass;
+        roundPlayer.SetSelectedClass(arenaClass);
+        if (arenaClass == ArenaClass.None) return;
+
+        List<BossFightPreset> presets = GetValidPresets();
+        if (presetIndex < 0 || presetIndex >= presets.Count || !PostMechKits.Supports(presets[presetIndex])) return;
+        Loadout loadout = PostMechKits.Create(arenaClass);
+        if (loadout != null)
+            LoadoutService.Apply(Main.LocalPlayer, loadout, presets[presetIndex].MaxHealth, presets[presetIndex].MaxMana,
+                !Main.LocalPlayer.dead, previousClass == ArenaClass.None);
     }
 
     internal static void CastVote(int playerId, int index)
@@ -522,9 +567,15 @@ internal sealed class ArenaRoundSystem : ModSystem
         player.team = (int)candidate.Team;
         player.GetModPlayer<ArenaRoundPlayer>().ResetStats();
         participants.Add(candidate);
-        LoadoutService.Apply(player, preset);
+        bool selectClass = PostMechKits.Supports(preset);
+        player.GetModPlayer<ArenaRoundPlayer>().SetSelectedClass(ArenaClass.None);
+        if (!selectClass) LoadoutService.Apply(player, preset);
         Teleport(player, TeamSpawn(candidate.Team));
-        if (Main.netMode == NetmodeID.Server) ArenaRoundNetHandler.SendApplyKit(player.whoAmI, CurrentPresetIndex);
+        if (Main.netMode == NetmodeID.Server)
+        {
+            if (selectClass) ArenaRoundNetHandler.SendClassState(player.whoAmI, ArenaClass.None, CurrentPresetIndex);
+            else ArenaRoundNetHandler.SendApplyKit(player.whoAmI, CurrentPresetIndex);
+        }
         ArenaRoundNetHandler.SendStateToAll();
         return true;
     }
@@ -546,6 +597,7 @@ internal sealed class ArenaRoundSystem : ModSystem
         List<BossFightPreset> presets = GetValidPresets();
         if (ArenaWorldSystem.Layout == null || presetIndex < 0 || presetIndex >= presets.Count) { SetIdle(); return; }
         BossFightPreset preset = presets[presetIndex];
+        bool selectClass = PostMechKits.Supports(preset);
 
         CleanupBoss();
         CurrentRoundToken = Guid.NewGuid().ToString("N");
@@ -567,9 +619,14 @@ internal sealed class ArenaRoundSystem : ModSystem
         {
             Player player = Main.player[entry.PlayerId];
             player.GetModPlayer<ArenaRoundPlayer>().ResetStats();
-            LoadoutService.Apply(player, preset);
+            player.GetModPlayer<ArenaRoundPlayer>().SetSelectedClass(ArenaClass.None);
+            if (!selectClass) LoadoutService.Apply(player, preset);
             Teleport(player, TeamSpawn(entry.Team));
-            if (Main.netMode == NetmodeID.Server) ArenaRoundNetHandler.SendApplyKit(entry.PlayerId, presetIndex);
+            if (Main.netMode == NetmodeID.Server)
+            {
+                if (selectClass) ArenaRoundNetHandler.SendClassState(entry.PlayerId, ArenaClass.None, presetIndex);
+                else ArenaRoundNetHandler.SendApplyKit(entry.PlayerId, presetIndex);
+            }
         }
 
         Log.Debug($"[ArenaFlow7] Applied preset loadout and teleported {participants.Count} participant(s); freezeTicks={RemainingTicks}.");
@@ -797,7 +854,6 @@ internal sealed class ArenaRoundSystem : ModSystem
         CleanupBoss(); votes.Clear(); ResizeVotes(GetValidPresets().Count);
         int votingSeconds = Math.Max(1, Config.VotingDurationSeconds);
         Phase = RoundPhase.Voting; RemainingTicks = votingSeconds * 60; LocalVote = -1; IsTimerPaused = false;
-        EndScreen.EndScreenSystem.SendMatchEndSnapshots();
         ArenaRoundNetHandler.SendStateToAll();
     }
 

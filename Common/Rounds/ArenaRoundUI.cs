@@ -1,6 +1,5 @@
 using Arenas.Core;
 using Arenas.Core.Configs;
-using Arenas.Common.EndScreen;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,11 +13,6 @@ namespace Arenas.Common.Rounds;
 internal sealed class ArenaRoundUI : ModSystem
 {
     private static float scorelineOpacity = 1f;
-    public static bool ScoreboardVisible { get; private set; }
-
-    public override void OnWorldLoad() => ScoreboardVisible = false;
-    public override void OnWorldUnload() => ScoreboardVisible = false;
-    internal static void SetScoreboardVisible(bool visible) => ScoreboardVisible = visible;
 
     public override void ModifyInterfaceLayers(List<GameInterfaceLayer> layers)
     {
@@ -32,19 +26,17 @@ internal sealed class ArenaRoundUI : ModSystem
         {
             if (ModContent.GetInstance<ArenasClientConfig>().ShowTopScoreboard)
                 DrawTopScoreboard(true);
-            if (ScoreboardVisible) DrawScoreboard();
             return true;
         }
         if (ArenaRoundSystem.Phase == RoundPhase.Generating)
             DrawGeneration();
         else if (ArenaRoundSystem.Phase == RoundPhase.Voting)
         {
-            if (!ModContent.GetInstance<EndScreenSystem>().IsVisible) ArenaBossVoteDrawer.Draw(260);
+            ArenaBossVoteDrawer.Draw(260);
         }
         if (ModContent.GetInstance<ArenasClientConfig>().ShowTopScoreboard)
             DrawTopScoreboard(false);
         if (ArenaRoundSystem.Phase == RoundPhase.FreezeCountdown) DrawCountdown();
-        if (ScoreboardVisible) DrawScoreboard();
         return true;
     }
 
@@ -82,7 +74,7 @@ internal sealed class ArenaRoundUI : ModSystem
         Rectangle bossIcon = new(timer.Center.X - iconSize / 2, timer.Center.Y - iconSize / 2, iconSize, iconSize);
         if (!mainWorld && bossType > 0)
             ArenaBossVoteDrawer.DrawBossHead(bossType, bossIcon, .34f * scorelineOpacity);
-        ArenaScoreboardDrawer.Text(TopStatus(), new Vector2(timer.Center.X, timer.Center.Y - 11),
+        Text(TopStatus(), new Vector2(timer.Center.X, timer.Center.Y - 11),
             Color.White * scorelineOpacity, 1.15f, timer.Width - 18);
         if (!mainWorld)
             DrawDamage(TeamBossDamage(Terraria.Enums.Team.Blue).ToString(), blue);
@@ -120,30 +112,17 @@ internal sealed class ArenaRoundUI : ModSystem
         Utils.DrawBorderStringBig(Main.spriteBatch, value, new Vector2(Main.screenWidth / 2, Main.screenHeight / 2), Color.White, 1.5f, .5f, .5f);
     }
 
-    private static void DrawScoreboard()
-    {
-        IReadOnlyList<RoundPlayerStats> players = ScoreboardPlayers();
-        int top = 200 + (ArenaRoundSystem.Phase == RoundPhase.Voting && ModContent.GetInstance<EndScreenSystem>().IsVisible ? 40 : 0);
-        int width = Math.Min(1280, Main.screenWidth - 40), height = Math.Min(ArenaScoreboardDrawer.MeasureHeight(players), Math.Max(1, Main.screenHeight - top - 20));
-        ArenaScoreboardDrawer.Draw(new Rectangle((Main.screenWidth - width) / 2, top, width, height), players);
-    }
-
     private static long TeamBossDamage(Terraria.Enums.Team team) => ArenaRoundSystem.Scoreboard.Where(p => p.Team == team).Sum(p => p.BossDamage);
 
     private static void DrawDamage(string text, Rectangle panel)
     {
-        ArenaScoreboardDrawer.Text(text, new(panel.Center.X, panel.Center.Y - 9), Color.White * scorelineOpacity, 1.05f, panel.Width - 8);
+        Text(text, new(panel.Center.X, panel.Center.Y - 9), Color.White * scorelineOpacity, 1.05f, panel.Width - 8);
     }
 
-    private static IReadOnlyList<RoundPlayerStats> ScoreboardPlayers()
+    private static void Text(string value, Vector2 position, Color color, float scale, float maxWidth, float anchor = .5f)
     {
-        List<RoundPlayerStats> players = ArenaRoundSystem.Scoreboard.ToList();
-        foreach (Player player in Main.player.Where(p => p?.active == true && (Team)p.team is Team.Red or Team.Blue))
-        {
-            if (players.Any(p => p.PlayerId == player.whoAmI)) continue;
-            ArenaRoundPlayer stats = player.GetModPlayer<ArenaRoundPlayer>();
-            players.Add(new((byte)player.whoAmI, (Team)player.team, player.name, stats.Kills, stats.Deaths, stats.Damage, stats.BossDamage));
-        }
-        return players;
+        float width = FontAssets.MouseText.Value.MeasureString(value).X * scale;
+        if (width > maxWidth) scale *= maxWidth / width;
+        Utils.DrawBorderString(Main.spriteBatch, value, position, color, scale, anchor);
     }
 }

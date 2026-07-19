@@ -1,7 +1,7 @@
 using System;
 using Arenas.Common.Generation;
+using Arenas.Common.LoadoutSelector;
 using Terraria.DataStructures;
-using Terraria.GameInput;
 using Terraria.ID;
 using Terraria.ModLoader.IO;
 
@@ -16,6 +16,7 @@ internal sealed class ArenaRoundPlayer : ModPlayer
     public int Deaths { get; private set; }
     public long Damage { get; private set; }
     public long BossDamage { get; private set; }
+    internal ArenaClass SelectedClass { get; private set; }
     internal string CharacterKey { get; private set; } = "";
 
     public override void PostHurt(Player.HurtInfo info)
@@ -28,9 +29,25 @@ internal sealed class ArenaRoundPlayer : ModPlayer
     public override void Kill(double damage, int hitDirection, bool pvp, PlayerDeathReason damageSource)
     {
         if (Main.netMode == NetmodeID.MultiplayerClient || !ArenaRoundSystem.IsParticipant(Player.whoAmI)) return;
+        if (ArenaRoundSystem.RequiresClassSelection)
+        {
+            SelectedClass = ArenaClass.None;
+            if (Main.netMode == NetmodeID.Server)
+                ArenaRoundNetHandler.SendClassState(Player.whoAmI, ArenaClass.None, ArenaRoundSystem.CurrentPresetIndex);
+        }
         Deaths++;
         int killer = damageSource.SourcePlayerIndex;
         if (pvp && killer != Player.whoAmI && ArenaRoundSystem.IsParticipant(killer)) Main.player[killer].GetModPlayer<ArenaRoundPlayer>().Kills++;
+    }
+
+    public override void PreUpdate()
+    {
+        bool participant = Main.netMode == NetmodeID.MultiplayerClient
+            ? ArenaRoundSystem.IsLocalParticipant
+            : ArenaRoundSystem.IsParticipant(Player.whoAmI);
+        if (ArenaWorldSystem.Active && Player.dead && SelectedClass == ArenaClass.None
+            && ArenaRoundSystem.RequiresClassSelection && participant)
+            Player.respawnTimer = 2;
     }
 
     public override void SetControls()
@@ -77,15 +94,14 @@ internal sealed class ArenaRoundPlayer : ModPlayer
             NetMessage.SendData(MessageID.TeleportEntity, number: 0, number2: Player.whoAmI, number3: position.X, number4: position.Y, number5: TeleportationStyleID.RodOfDiscord);
     }
 
-    public override void ProcessTriggers(TriggersSet triggersSet)
+    internal void ResetStats()
     {
-        if (Player.whoAmI != Main.myPlayer) return;
-        ModKeybind key = ModContent.GetInstance<Core.Keybinds>().Scoreboard;
-        if (key?.JustPressed == true) ArenaRoundUI.SetScoreboardVisible(true);
-        else if (key?.JustReleased == true) ArenaRoundUI.SetScoreboardVisible(false);
+        Kills = Deaths = 0;
+        Damage = BossDamage = 0;
+        if (ModLoader.TryGetMod("PvPFramework", out Mod framework))
+            try { framework.Call("ResetScoreboardStats", Player.whoAmI); } catch { }
     }
-
-    internal void ResetStats() { Kills = Deaths = 0; Damage = BossDamage = 0; }
+    internal void SetSelectedClass(ArenaClass arenaClass) => SelectedClass = arenaClass;
 
     internal string CharacterKeyOrFallback() => string.IsNullOrEmpty(CharacterKey)
         ? $"slot:{Player.whoAmI}:{Player.name}"

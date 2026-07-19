@@ -33,9 +33,9 @@ internal static class ArenaBossVoteDrawer
         DrawPanel(panel, PanelFill, PanelEdge, S(10));
 
         int seconds = Math.Max(0, (int)Math.Ceiling(ArenaRoundSystem.RemainingTicks / 60f));
-        ArenaScoreboardDrawer.Text($"Vote ends in {seconds}s", new Vector2(panel.Center.X, panel.Y - S(40) + 6), Color.White, 1.05f * scale, S(360));
+        Text($"Vote ends in {seconds}s", new Vector2(panel.Center.X, panel.Y - S(40) + 6), Color.White, 1.05f * scale, S(360));
         Utils.DrawBorderStringBig(Main.spriteBatch, "Boss Vote", new Vector2(panel.Center.X, panel.Y + S(20)), Yellow, .88f * scale, .5f, 0f);
-        ArenaScoreboardDrawer.Text("Choose the next boss \u2014 majority wins!", new Vector2(panel.Center.X, panel.Y + S(72)), Color.White, 1.02f * scale, panel.Width - S(40));
+        Text("Choose the next boss \u2014 majority wins!", new Vector2(panel.Center.X, panel.Y + S(72)), Color.White, 1.02f * scale, panel.Width - S(40));
 
         Rectangle track = new(panel.X + S(24), panel.Y + S(104), panel.Width - S(48), S(22));
         int votingSeconds = Math.Max(1, ModContent.GetInstance<ArenasConfig>().VotingDurationSeconds);
@@ -67,12 +67,12 @@ internal static class ArenaBossVoteDrawer
             DrawVoteState(icon, selected, hover, scale);
 
             Color nameColor = selected ? new Color(206, 255, 142) : hover ? Yellow : Color.White;
-            ArenaScoreboardDrawer.Text(ArenaRoundSystem.PresetName(presets[i]), new Vector2(row.X + S(82), row.Y + S(18)), nameColor, 1.05f * scale, S(300), 0f);
+            Text(ArenaRoundSystem.PresetName(presets[i]), new Vector2(row.X + S(82), row.Y + S(18)), nameColor, 1.05f * scale, S(300), 0f);
 
             Rectangle counter = new(row.Right - S(62), row.Y + S(11), S(54), S(42));
             DrawPanel(counter, new Color(6, 11, 35), DarkEdge, S(7));
             int count = i < ArenaRoundSystem.VoteCounts.Count ? ArenaRoundSystem.VoteCounts[i] : 0;
-            ArenaScoreboardDrawer.Text(count.ToString(), new Vector2(counter.Center.X, counter.Y + S(10)), count > 0 ? Yellow : Color.Gray, 1.05f * scale, counter.Width - S(8));
+            Text(count.ToString(), new Vector2(counter.Center.X, counter.Y + S(10)), count > 0 ? Yellow : Color.Gray, 1.05f * scale, counter.Width - S(8));
             DrawVoters(row, counter, ArenaRoundSystem.VotersFor(i), mouse, scale, S);
         }
     }
@@ -136,5 +136,12 @@ internal static class ArenaBossVoteDrawer
     {
         Utils.DrawSplicedPanel(Main.spriteBatch, PanelBackground, rectangle.X, rectangle.Y, rectangle.Width, rectangle.Height, corner, corner, corner, corner, fill);
         Utils.DrawSplicedPanel(Main.spriteBatch, PanelBorder, rectangle.X, rectangle.Y, rectangle.Width, rectangle.Height, corner, corner, corner, corner, edge);
+    }
+
+    internal static void Text(string value, Vector2 position, Color color, float scale, float maxWidth, float anchor = .5f)
+    {
+        float width = FontAssets.MouseText.Value.MeasureString(value).X * scale;
+        if (width > maxWidth) scale *= maxWidth / width;
+        Utils.DrawBorderString(Main.spriteBatch, value, position, color, scale, anchor);
     }
 }
