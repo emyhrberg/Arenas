@@ -672,6 +672,7 @@ internal sealed class ArenaRoundSystem : ModSystem
         bossDefeatedSignal = false;
         if (!SpawnRoundBoss("initial")) { EndRound(RoundResult.SpawnFailed); return; }
         Phase = RoundPhase.Playing;
+        ArenaMatchReporter.BeginMatch();
         RemainingTicks = Math.Max(60, nextRoundTicks);
         IsTimerPaused = false;
         ArenaRoundNetHandler.SendStateToAll();
@@ -855,6 +856,7 @@ internal sealed class ArenaRoundSystem : ModSystem
         Result = result;
         scoreboard.Clear(); scoreboard.AddRange(LiveStats());
         EndScreenService.Present(ArenaEndScreenExtension.CreateSummary(result, scoreboard));
+        ArenaMatchReporter.EndMatch(result, scoreboard, bossType, CurrentRoundToken);
         CleanupBoss(); votes.Clear(); ResizeVotes(GetValidPresets().Count);
         int votingSeconds = Math.Max(1, Config.VotingDurationSeconds);
         Phase = RoundPhase.Voting; RemainingTicks = votingSeconds * 60; LocalVote = -1; IsTimerPaused = false;
@@ -896,6 +898,7 @@ internal sealed class ArenaRoundSystem : ModSystem
         ArenaRoundNetHandler.ResetClientState();
         Phase = RoundPhase.Idle; Result = RoundResult.None; RemainingTicks = DefaultRoundTicks(); CurrentPresetIndex = 0; LocalVote = -1; bossIndex = -1; bossType = 0;
         CurrentRoundToken = "";
+        ArenaMatchReporter.Reset();
         IsTimerPaused = false; nextRoundTicks = RemainingTicks;
         remoteGenerationProgress = 0f; generationId = 0;
         votes.Clear(); voteCounts.Clear(); voteVoters.Clear(); participants.Clear(); generationCandidates.Clear(); scoreboard.Clear();

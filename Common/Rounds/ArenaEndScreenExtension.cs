@@ -11,6 +11,7 @@ internal static class ArenaEndScreenExtension
     public static EndScreenSummary CreateSummary(RoundResult result, IReadOnlyList<RoundPlayerStats> players)
     {
         EndScreenSummary summary = new();
+        uint reward = ArenaMatchReporter.CalculateReward(result);
 
         foreach (IGrouping<Team, RoundPlayerStats> team in players.Where(player => player.Team != Team.None)
                      .GroupBy(player => player.Team).OrderBy(team => team.Key))
@@ -31,6 +32,9 @@ internal static class ArenaEndScreenExtension
                 };
 
             summary.Players.AddRange(teamPlayers);
+
+            foreach (RoundPlayerStats player in team)
+                summary.PlayerRewards[player.PlayerId] = reward;
         }
 
         return summary;

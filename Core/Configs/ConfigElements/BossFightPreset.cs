@@ -25,6 +25,9 @@ public sealed class BossFightPreset
     [ConfigIcon(ItemID.Stopwatch), DefaultValue(600), Range(1, 3600)]
     public int RoundDurationSeconds { get; set; } = 600;
 
+    [ConfigIcon("IconGem"), DefaultValue(25), Range(0, 10000)]
+    public int VictoryGemReward { get; set; } = 25;
+
     [ConfigIcon(ItemID.GoldWatch), DefaultValue(FightTime.Unchanged)]
     public FightTime Time { get; set; } = FightTime.Unchanged;
 
