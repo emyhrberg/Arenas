@@ -314,6 +314,29 @@ internal sealed class RoundManager : ModSystem
         SetPhase(RoundPhase.FreezeCountdown, SecondsToTicks(countdownSeconds));
     }
 
+    internal static void SendArenaSections(Player player, ArenaLayout layout)
+    {
+        if (Main.netMode != NetmodeID.Server || player?.active != true || layout == null
+            || player.whoAmI < 0 || player.whoAmI >= Main.maxPlayers)
+            return;
+
+        Rectangle bounds = layout.ArenaBounds;
+        int minSectionX = Math.Max(0, bounds.Left / ArenaMapSystem.SectionWidth);
+        int maxSectionX = Math.Min((Main.maxTilesX - 1) / ArenaMapSystem.SectionWidth,
+            Math.Max(bounds.Left, bounds.Right - 1) / ArenaMapSystem.SectionWidth);
+        int minSectionY = Math.Max(0, bounds.Top / ArenaMapSystem.SectionHeight);
+        int maxSectionY = Math.Min((Main.maxTilesY - 1) / ArenaMapSystem.SectionHeight,
+            Math.Max(bounds.Top, bounds.Bottom - 1) / ArenaMapSystem.SectionHeight);
+        int sectionsPerPlayer = (maxSectionX - minSectionX + 1)
+            * (maxSectionY - minSectionY + 1);
+
+        for (int sectionY = minSectionY; sectionY <= maxSectionY; sectionY++)
+            for (int sectionX = minSectionX; sectionX <= maxSectionX; sectionX++)
+                NetMessage.SendSection(player.whoAmI, sectionX, sectionY);
+
+        Log.Chat($"Sent {sectionsPerPlayer} arena map sections to {player.name} ({player.whoAmI}); bounds={bounds}.");
+    }
+
     private void StartPlaying()
     {
         if (!TryGetSelectedPreset(out BossFightPreset preset) || currentLayout == null

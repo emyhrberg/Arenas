@@ -111,6 +111,8 @@ internal sealed class ArenaPlayer : ModPlayer
         if (player?.active != true || preset == null || layout == null)
             return;
 
+        RoundManager.SendArenaSections(player, layout);
+
         if (player.dead)
             player.Spawn(PlayerSpawnContext.ReviveFromDeath);
 

@@ -219,7 +219,7 @@ internal sealed class ArenaSpawnBoxMap : ModMapLayer
         const string label = "Arena";
         Rectangle rectangle = ToMapRectangle(ref context, tileArea);
         DynamicSpriteFont font = FontAssets.DeathText.Value;
-        float scale = context.MapScale * context.DrawScale * 4f;
+        float scale = context.MapScale * context.DrawScale * 1.33f;
         if (scale <= 0f)
             return;
 
@@ -282,7 +282,7 @@ internal sealed class ArenaSpawnBoxMap : ModMapLayer
     {
         DynamicSpriteFont font = FontAssets.DeathText.Value;
         Vector2 unscaledSize = font.MeasureString(label);
-        float scale = context.MapScale * context.DrawScale * 1.8f;
+        float scale = context.MapScale * context.DrawScale * .6f;
         if (scale <= 0f)
             return;
 
