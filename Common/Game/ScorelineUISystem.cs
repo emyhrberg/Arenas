@@ -45,7 +45,7 @@ internal sealed class ScorelineUISystem : ModSystem
 
         RoundManager manager = ModContent.GetInstance<RoundManager>();
         if (manager.CurrentPhase == RoundManager.RoundPhase.VotingOrEndScreen)
-            BossVoteDrawer.Draw(140);
+            BossVoteDrawer.Draw(120);
         if (manager.CurrentPhase == RoundManager.RoundPhase.FreezeCountdown)
             DrawCenterCountdown(manager);
 

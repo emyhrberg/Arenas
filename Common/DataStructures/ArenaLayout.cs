@@ -5,6 +5,8 @@ namespace Arenas.Common.DataStructures;
 
 internal sealed record ArenaLayout(Rectangle ArenaBounds, Point BlueSpawn, Point RedSpawn)
 {
+    internal const int SpawnBoxSize = 10;
+
     internal Rectangle BossBounds => new(
         ArenaBounds.X + ArenaBounds.Width / 4,
         ArenaBounds.Y,
@@ -12,6 +14,18 @@ internal sealed record ArenaLayout(Rectangle ArenaBounds, Point BlueSpawn, Point
         ArenaBounds.Height);
 
     internal Point BossSpawn => BossBounds.Center;
+
+    internal Rectangle RedSpawnBox => new(
+        ArenaBounds.Left,
+        RedSpawn.Y - SpawnBoxSize,
+        SpawnBoxSize,
+        SpawnBoxSize);
+
+    internal Rectangle BlueSpawnBox => new(
+        ArenaBounds.Right - SpawnBoxSize,
+        BlueSpawn.Y - SpawnBoxSize,
+        SpawnBoxSize,
+        SpawnBoxSize);
 
     internal Point PlayerSpawn(Team team) => team switch
     {

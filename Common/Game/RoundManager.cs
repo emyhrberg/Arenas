@@ -13,7 +13,7 @@ using Terraria.Net;
 
 namespace Arenas.Common.Game;
 
-/// <summary>Server-authoritative Milestone-2 King Slime round loop.</summary>
+/// <summary>Server-authoritative Arenas round loop.</summary>
 internal sealed class RoundManager : ModSystem
 {
     private const int TicksPerSecond = 60;
@@ -66,7 +66,7 @@ internal sealed class RoundManager : ModSystem
 
     internal int SelectedBossType => TryGetSelectedPreset(out BossFightPreset preset)
         ? preset.Boss.Type
-        : NPCID.KingSlime;
+        : NPCID.None;
 
     public override void PostUpdateEverything()
     {
@@ -121,7 +121,7 @@ internal sealed class RoundManager : ModSystem
         switch (currentPhase)
         {
             case RoundPhase.VotingOrEndScreen:
-                PrepareKingSlimeRound();
+                PrepareRound();
                 break;
             case RoundPhase.FreezeCountdown:
                 StartPlaying();
@@ -138,7 +138,7 @@ internal sealed class RoundManager : ModSystem
         if (presets != null && selectedPresetIndex >= 0 && selectedPresetIndex < presets.Count)
         {
             preset = presets[selectedPresetIndex];
-            return preset?.Boss?.Type == NPCID.KingSlime;
+            return BossVoteSystem.IsVotable(preset);
         }
 
         preset = null;
@@ -201,7 +201,7 @@ internal sealed class RoundManager : ModSystem
                 if (currentPhase == RoundPhase.FreezeCountdown)
                     StartPlaying();
                 else if (currentPhase is RoundPhase.WaitingForPlayers or RoundPhase.VotingOrEndScreen)
-                    PrepareKingSlimeRound();
+                    PrepareRound();
                 break;
 
             case AdminAction.EndRound:
@@ -223,7 +223,7 @@ internal sealed class RoundManager : ModSystem
 
             case AdminAction.EndVoting:
                 if (currentPhase == RoundPhase.VotingOrEndScreen)
-                    PrepareKingSlimeRound();
+                    PrepareRound();
                 break;
 
             case AdminAction.SetIdle:
@@ -257,12 +257,12 @@ internal sealed class RoundManager : ModSystem
         }
 
         ModContent.GetInstance<BossVoteSystem>().Reset();
-        selectedPresetIndex = FindKingSlimePreset();
+        selectedPresetIndex = FindFirstPlayablePreset();
         int seconds = Math.Max(1, ModContent.GetInstance<ServerConfig>().VotingDurationSeconds);
         SetPhase(RoundPhase.VotingOrEndScreen, SecondsToTicks(seconds));
     }
 
-    private void PrepareKingSlimeRound()
+    private void PrepareRound()
     {
         EndScreenService.Hide();
 
@@ -272,7 +272,7 @@ internal sealed class RoundManager : ModSystem
 
         if (!TryGetSelectedPreset(out BossFightPreset preset))
         {
-            Log.Warn("[M2-Prepare] No King Slime preset is configured; retrying after the intermission.");
+            Log.Warn("[M2-Prepare] No playable boss preset is configured; retrying after the intermission.");
             StartIntermission();
             return;
         }
@@ -349,14 +349,14 @@ internal sealed class RoundManager : ModSystem
         StartIntermission();
     }
 
-    private int FindKingSlimePreset()
+    private int FindFirstPlayablePreset()
     {
         var presets = ModContent.GetInstance<ServerConfig>().FightPresets;
         if (presets == null)
             return -1;
 
         for (int i = 0; i < presets.Count; i++)
-            if (presets[i]?.Boss?.Type == NPCID.KingSlime)
+            if (BossVoteSystem.IsVotable(presets[i]))
                 return i;
         return -1;
     }

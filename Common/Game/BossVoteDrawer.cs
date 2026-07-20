@@ -14,13 +14,13 @@ namespace Arenas.Common.Game;
 /// <summary>Draws the intermission boss vote panel above the end screen.</summary>
 internal static class BossVoteDrawer
 {
-    private const int DesignWidth = 600, HeaderHeight = 106, RowHeight = 56, RowGap = 4, BottomPadding = 10;
+    private const int DesignWidth = 520, HeaderHeight = 82, RowHeight = 46, RowGap = 3, BottomPadding = 8;
     private static readonly Color PanelFill = new(45, 61, 132), PanelEdge = new(70, 89, 165), RowFill = new(30, 43, 98), RowHover = new(68, 86, 158);
     private static readonly Color DarkEdge = new(6, 12, 38), Yellow = new(246, 216, 72), HoverEdge = new(244, 209, 74), Selected = new(104, 222, 72);
     private static Texture2D PanelBackground => Main.Assets.Request<Texture2D>("Images/UI/PanelBackground").Value;
     private static Texture2D PanelBorder => Main.Assets.Request<Texture2D>("Images/UI/PanelBorder").Value;
 
-    public static void Draw(int top = 140)
+    public static void Draw(int top = 120)
     {
         List<(int PresetIndex, BossFightPreset Preset)> presets = BossVoteSystem.VotablePresets();
         if (presets.Count == 0) return;
@@ -35,12 +35,12 @@ internal static class BossVoteDrawer
         Rectangle panel = new((Main.screenWidth - panelWidth) / 2, top, panelWidth, S(designHeight));
         DrawPanel(panel, PanelFill, PanelEdge, S(9));
 
-        int seconds = Math.Max(0, (int)Math.Ceiling(manager.RemainingTicks / 60f));
-        Text($"Vote ends in {seconds}s", new Vector2(panel.Center.X, panel.Y - S(32) + 4), Color.White, .92f * scale, S(300));
-        Utils.DrawBorderStringBig(Main.spriteBatch, "Boss Vote", new Vector2(panel.Center.X, panel.Y + S(16)), Yellow, .76f * scale, .5f, 0f);
-        Text("Choose the next boss — majority wins!", new Vector2(panel.Center.X, panel.Y + S(54)), Color.White, .88f * scale, panel.Width - S(32));
+        Utils.DrawBorderStringBig(Main.spriteBatch, "Boss Vote",
+            new Vector2(panel.Center.X, panel.Y + S(8)), Yellow, .68f * scale, .5f, 0f);
+        Text("Choose the next boss - majority wins!", new Vector2(panel.Center.X, panel.Y + S(38)),
+            Color.White, .78f * scale, panel.Width - S(28));
 
-        Rectangle track = new(panel.X + S(18), panel.Y + S(80), panel.Width - S(36), S(16));
+        Rectangle track = new(panel.X + S(14), panel.Y + S(62), panel.Width - S(28), S(12));
         int votingSeconds = Math.Max(1, ModContent.GetInstance<ServerConfig>().VotingDurationSeconds);
         float progress = Math.Clamp(manager.RemainingTicks / (votingSeconds * 60f), 0f, 1f);
         DrawProgressBar(track, progress);
@@ -50,7 +50,8 @@ internal static class BossVoteDrawer
         int localVote = voteSystem.LocalVote;
         for (int i = 0; i < presets.Count; i++)
         {
-            Rectangle row = new(panel.X + S(16), panel.Y + S(HeaderHeight + i * (RowHeight + RowGap)), panel.Width - S(32), S(RowHeight));
+            Rectangle row = new(panel.X + S(12), panel.Y + S(HeaderHeight + i * (RowHeight + RowGap)),
+                panel.Width - S(24), S(RowHeight));
             bool hover = row.Contains(mouse), selected = localVote == i;
             DrawPanel(row, hover && !selected ? RowHover : RowFill, selected ? Selected : hover ? HoverEdge : DarkEdge, S(7));
             if (hover)
@@ -59,18 +60,20 @@ internal static class BossVoteDrawer
                 if (Main.mouseLeft && Main.mouseLeftRelease) BossVoteSystem.RequestVote(i);
             }
 
-            Rectangle icon = new(row.X + S(10), row.Y + S(6), S(44), S(44));
-            DrawPanel(icon, new Color(34, 49, 111), DarkEdge, S(6));
+            Rectangle icon = new(row.X + S(8), row.Y + S(5), S(36), S(36));
+            DrawPanel(icon, new Color(34, 49, 111), DarkEdge, S(5));
             DrawBossHead(presets[i].Preset.Boss?.Type ?? 0, icon);
             DrawVoteState(icon, selected, hover, scale);
 
             Color nameColor = selected ? new Color(206, 255, 142) : hover ? Yellow : Color.White;
-            Text(PresetName(presets[i].Preset), new Vector2(row.X + S(66), row.Y + S(15)), nameColor, .9f * scale, S(250), 0f);
+            Text(PresetName(presets[i].Preset), new Vector2(row.X + S(54), row.Y + S(12)),
+                nameColor, .82f * scale, S(220), 0f);
 
-            Rectangle counter = new(row.Right - S(50), row.Y + S(8), S(42), S(40));
-            DrawPanel(counter, new Color(6, 11, 35), DarkEdge, S(6));
+            Rectangle counter = new(row.Right - S(42), row.Y + S(6), S(34), S(34));
+            DrawPanel(counter, new Color(6, 11, 35), DarkEdge, S(5));
             int count = voteSystem.VoteCount(i);
-            Text(count.ToString(), new Vector2(counter.Center.X, counter.Y + S(9)), count > 0 ? Yellow : Color.Gray, .9f * scale, counter.Width - S(8));
+            Text(count.ToString(), new Vector2(counter.Center.X, counter.Y + S(7)),
+                count > 0 ? Yellow : Color.Gray, .8f * scale, counter.Width - S(8));
             DrawVoters(row, counter, voteSystem.VotersFor(i), mouse, scale, S);
         }
     }
@@ -80,8 +83,9 @@ internal static class BossVoteDrawer
     private static void DrawVoters(Rectangle row, Rectangle counter, IReadOnlyList<byte> voters, Point mouse, float scale, Func<float, int> s)
     {
         if (voters.Count == 0) return;
-        int size = s(30), right = counter.X - s(7) - size, minimum = row.X + s(285);
-        float step = voters.Count == 1 ? 0f : Math.Min(s(34), Math.Max(0, right - minimum) / (float)(voters.Count - 1));
+        int size = s(26), right = counter.X - s(6) - size, minimum = row.X + s(245);
+        float step = voters.Count == 1 ? 0f : Math.Min(s(29),
+            Math.Max(0, right - minimum) / (float)(voters.Count - 1));
         float start = right - step * (voters.Count - 1);
         for (int i = 0; i < voters.Count; i++)
         {
@@ -89,10 +93,11 @@ internal static class BossVoteDrawer
             if (id < 0 || id >= Main.maxPlayers) continue;
             Player player = Main.player[id];
             if (player?.active != true) continue;
-            Rectangle tile = new((int)MathF.Round(start + step * i) - 8, row.Y + s(13), size, size);
+            Rectangle tile = new((int)MathF.Round(start + step * i) - 6, row.Y + s(10), size, size);
             Color team = player.team > 0 && player.team < Main.teamColor.Length ? Main.teamColor[player.team] : Color.Gray;
-            DrawPanel(tile, Color.Lerp(player.shirtColor, team, .25f), DarkEdge, s(6));
-            ErkySSCCompat.DrawUnfilteredPlayerHead(player, tile.Center.ToVector2() - new Vector2(4f, 0f), 1f, .5f * scale, team);
+            DrawPanel(tile, Color.Lerp(player.shirtColor, team, .25f), DarkEdge, s(5));
+            ErkySSCCompat.DrawUnfilteredPlayerHead(player,
+                tile.Center.ToVector2() - new Vector2(4f, 0f), 1f, .44f * scale, team);
             if (tile.Contains(mouse)) { Main.LocalPlayer.mouseInterface = true; Main.instance.MouseText(player.name); }
         }
     }

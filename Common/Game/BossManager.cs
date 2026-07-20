@@ -34,8 +34,6 @@ internal sealed class BossManager : ModSystem
         TeamBossNPC.BossDamageDealt += OnBossDamageDealt;
     }
 
-    public override void OnWorldLoad() => EnsureTeamBossConfigured(NPCID.KingSlime);
-
     public override void Unload()
     {
         TeamBossNPC.BossDefeatedByTeam -= OnBossDefeatedByTeam;
@@ -49,6 +47,7 @@ internal sealed class BossManager : ModSystem
 
         Cleanup();
         EnsureTeamBossConfigured(preset.Boss.Type);
+        PrepareBossEnvironment(preset.Boss.Type);
         roundArea = new Rectangle(layout.ArenaBounds.X * 16, layout.ArenaBounds.Y * 16,
             layout.ArenaBounds.Width * 16, layout.ArenaBounds.Height * 16);
         ClearRoundProjectiles();
@@ -75,6 +74,7 @@ internal sealed class BossManager : ModSystem
     {
         if (TryGetBoss(out NPC boss))
         {
+            MaintainBossEnvironment();
             missingTicks = 0;
             int target = FindTarget();
             if (target >= 0)
@@ -186,6 +186,28 @@ internal sealed class BossManager : ModSystem
             if (!player.dead && (Team)player.team is Team.Red or Team.Blue)
                 return player.whoAmI;
         return -1;
+    }
+
+    private static void PrepareBossEnvironment(int npcType)
+    {
+        if (npcType != NPCID.EyeofCthulhu)
+            return;
+
+        Main.dayTime = false;
+        Main.time = 0;
+        if (Main.netMode == NetmodeID.Server)
+            NetMessage.SendData(MessageID.WorldData);
+    }
+
+    private void MaintainBossEnvironment()
+    {
+        if (bossType != NPCID.EyeofCthulhu || !Main.dayTime)
+            return;
+
+        Main.dayTime = false;
+        Main.time = 0;
+        if (Main.netMode == NetmodeID.Server)
+            NetMessage.SendData(MessageID.WorldData);
     }
 
     private static void EnsureTeamBossConfigured(int npcType)

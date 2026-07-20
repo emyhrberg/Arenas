@@ -1,5 +1,6 @@
 using Arenas.Common.DataStructures;
 using Arenas.Core.Configs;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -13,7 +14,7 @@ internal sealed class BossVoteSystem : ModSystem
     private readonly Dictionary<int, int> votes = [];
     private readonly List<List<byte>> voters = [];
 
-    /// <summary>Presets that are actually playable this milestone, paired with their FightPresets index.</summary>
+    /// <summary>Valid configured presets, paired with their FightPresets index.</summary>
     internal static List<(int PresetIndex, BossFightPreset Preset)> VotablePresets()
     {
         List<(int, BossFightPreset)> result = [];
@@ -28,7 +29,8 @@ internal sealed class BossVoteSystem : ModSystem
     }
 
     internal static bool IsVotable(BossFightPreset preset) =>
-        preset?.Boss?.Type == NPCID.KingSlime && preset.ArenaKind == ArenaKind.WorldCenterSurface;
+        preset?.Boss?.Type > NPCID.None && preset.Boss.Type < NPCLoader.NPCCount
+        && Enum.IsDefined(preset.ArenaKind);
 
     internal IReadOnlyList<byte> VotersFor(int option) => option >= 0 && option < voters.Count ? voters[option] : [];
     internal int VoteCount(int option) => option >= 0 && option < voters.Count ? voters[option].Count : 0;
