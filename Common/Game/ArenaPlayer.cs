@@ -11,9 +11,19 @@ namespace Arenas.Common.Game;
 /// <summary>Applies round loadouts, spawn rules, freezing, and arena bounds.</summary>
 internal sealed class ArenaPlayer : ModPlayer
 {
+    private bool roundPrepared;
+
     internal long BossDamage { get; private set; }
 
-    public override void OnEnterWorld() => TeamBalancer.AssignJoiningPlayer(Player);
+    public override void Load() => On_Player.TrySwitchingLoadout += OnTrySwitchingLoadout;
+
+    public override void Unload() => On_Player.TrySwitchingLoadout -= OnTrySwitchingLoadout;
+
+    public override void OnEnterWorld()
+    {
+        roundPrepared = false;
+        TeamBalancer.AssignJoiningPlayer(Player);
+    }
 
     public override void SetControls()
     {
@@ -29,6 +39,17 @@ internal sealed class ArenaPlayer : ModPlayer
     public override void PostUpdate()
     {
         RoundManager manager = ModContent.GetInstance<RoundManager>();
+
+        if (manager.CurrentPhase is RoundManager.RoundPhase.WaitingForPlayers
+            or RoundManager.RoundPhase.VotingOrEndScreen)
+        {
+            roundPrepared = false;
+            if (HasCarriedItems(Player))
+                ClearCarriedItems(Player, sync: Main.netMode == NetmodeID.Server);
+            if (Player.whoAmI == Main.myPlayer && !Main.mouseItem.IsAir)
+                Main.mouseItem.TurnToAir();
+        }
+
         if (manager.CurrentPhase is RoundManager.RoundPhase.Generating or RoundManager.RoundPhase.FreezeCountdown)
         {
             Player.AddBuff(BuffID.Frozen, 2);
@@ -40,7 +61,15 @@ internal sealed class ArenaPlayer : ModPlayer
 
         if ((manager.CurrentPhase is RoundManager.RoundPhase.FreezeCountdown or RoundManager.RoundPhase.Playing)
             && ((Team)Player.team is Team.Red or Team.Blue))
+        {
+            if (Main.netMode != NetmodeID.MultiplayerClient && !roundPrepared
+                && manager.CurrentLayout != null
+                && manager.TryGetSelectedPreset(out BossFightPreset preset))
+                Prepare(Player, preset, manager.CurrentLayout);
+
             Player.hostile = true;
+            KeepInsideArena(manager.CurrentLayout);
+        }
     }
 
     public override void OnRespawn()
@@ -53,6 +82,7 @@ internal sealed class ArenaPlayer : ModPlayer
 
         ApplyLoadout(Player, preset);
         Teleport(Player, manager.CurrentLayout.PlayerSpawn((Team)Player.team));
+        roundPrepared = true;
     }
 
     internal static void Prepare(Player player, BossFightPreset preset, ArenaLayout layout)
@@ -63,10 +93,12 @@ internal sealed class ArenaPlayer : ModPlayer
         if (player.dead)
             player.Spawn(PlayerSpawnContext.ReviveFromDeath);
 
-        player.GetModPlayer<ArenaPlayer>().ResetBossDamage();
+        ArenaPlayer arenaPlayer = player.GetModPlayer<ArenaPlayer>();
+        arenaPlayer.ResetBossDamage();
         ScoreboardService.ResetPlayer(player);
         ApplyLoadout(player, preset);
         Teleport(player, layout.PlayerSpawn((Team)player.team));
+        arenaPlayer.roundPrepared = true;
         player.hostile = true;
 
         if (Main.netMode == NetmodeID.Server)
@@ -80,26 +112,148 @@ internal sealed class ArenaPlayer : ModPlayer
 
         foreach (Player player in Main.player)
         {
-            if (player?.active != true || !player.hostile
-                || (Team)player.team is not (Team.Red or Team.Blue))
+            if (player?.active != true)
                 continue;
 
-            player.hostile = false;
-            if (Main.netMode == NetmodeID.Server)
-                NetMessage.SendData(MessageID.TogglePVP, -1, -1, null, player.whoAmI);
+            player.GetModPlayer<ArenaPlayer>().roundPrepared = false;
+            ClearCarriedItems(player, sync: Main.netMode == NetmodeID.Server);
+            if (player.hostile && (Team)player.team is Team.Red or Team.Blue)
+            {
+                player.hostile = false;
+                if (Main.netMode == NetmodeID.Server)
+                    NetMessage.SendData(MessageID.TogglePVP, -1, -1, null, player.whoAmI);
+            }
         }
+    }
+
+    private static void OnTrySwitchingLoadout(On_Player.orig_TrySwitchingLoadout orig,
+        Player player, int loadoutIndex)
+    {
+        RoundManager.RoundPhase phase = ModContent.GetInstance<RoundManager>().CurrentPhase;
+        if (phase is RoundManager.RoundPhase.Generating or RoundManager.RoundPhase.FreezeCountdown
+            or RoundManager.RoundPhase.Playing)
+            return;
+
+        orig(player, loadoutIndex);
+    }
+
+    private static bool HasCarriedItems(Player player)
+    {
+        if (HasItems(player.inventory) || HasItems(player.armor) || HasItems(player.dye)
+            || HasItems(player.miscEquips) || HasItems(player.miscDyes) || !player.trashItem.IsAir)
+            return true;
+
+        if (player.Loadouts != null)
+            foreach (var loadout in player.Loadouts)
+                if (loadout != null && (HasItems(loadout.Armor) || HasItems(loadout.Dye)))
+                    return true;
+
+        return false;
+    }
+
+    private static bool HasItems(Item[] items)
+    {
+        if (items == null)
+            return false;
+        foreach (Item item in items)
+            if (item?.IsAir == false)
+                return true;
+        return false;
+    }
+
+    private static void ClearCarriedItems(Player player, bool sync)
+    {
+        Clear(player.inventory);
+        Clear(player.armor);
+        Clear(player.dye);
+        Clear(player.miscEquips);
+        Clear(player.miscDyes);
+        player.trashItem.TurnToAir();
+
+        if (player.Loadouts != null)
+            foreach (var loadout in player.Loadouts)
+            {
+                if (loadout == null)
+                    continue;
+                Clear(loadout.Armor);
+                Clear(loadout.Dye);
+            }
+
+        if (sync)
+            SyncEquipment(player);
+    }
+
+    private static void Clear(Item[] items)
+    {
+        if (items == null)
+            return;
+        foreach (Item item in items)
+            item?.TurnToAir();
+    }
+
+    private static void SyncEquipment(Player player)
+    {
+        if (Main.netMode != NetmodeID.Server)
+            return;
+
+        SyncItems(player, player.inventory, PlayerItemSlotID.Inventory0);
+        SyncItems(player, player.armor, PlayerItemSlotID.Armor0);
+        SyncItems(player, player.dye, PlayerItemSlotID.Dye0);
+        SyncItems(player, player.miscEquips, PlayerItemSlotID.Misc0);
+        SyncItems(player, player.miscDyes, PlayerItemSlotID.MiscDye0);
+
+        if (player.Loadouts != null && player.Loadouts.Length >= 3)
+        {
+            SyncItems(player, player.Loadouts[0].Armor, PlayerItemSlotID.Loadout1_Armor_0);
+            SyncItems(player, player.Loadouts[0].Dye, PlayerItemSlotID.Loadout1_Dye_0);
+            SyncItems(player, player.Loadouts[1].Armor, PlayerItemSlotID.Loadout2_Armor_0);
+            SyncItems(player, player.Loadouts[1].Dye, PlayerItemSlotID.Loadout2_Dye_0);
+            SyncItems(player, player.Loadouts[2].Armor, PlayerItemSlotID.Loadout3_Armor_0);
+            SyncItems(player, player.Loadouts[2].Dye, PlayerItemSlotID.Loadout3_Dye_0);
+        }
+    }
+
+    private static void SyncItems(Player player, Item[] items, int firstSlot)
+    {
+        if (items == null)
+            return;
+        for (int i = 0; i < items.Length; i++)
+            NetMessage.SendData(MessageID.SyncEquipment, number: player.whoAmI,
+                number2: firstSlot + i, number3: items[i]?.prefix ?? 0);
     }
 
     internal void AddBossDamage(uint damage) =>
         BossDamage = BossDamage > long.MaxValue - damage ? long.MaxValue : BossDamage + damage;
 
+    private void KeepInsideArena(ArenaLayout layout)
+    {
+        if (layout == null || Player.dead || Player.ghost)
+            return;
+
+        Rectangle area = ArenaSpawnBoxes.TileToWorld(layout.ArenaBounds);
+        float maxX = Math.Max(area.Left, area.Right - Player.width);
+        float maxY = Math.Max(area.Top, area.Bottom - Player.height);
+        Vector2 position = new(
+            MathHelper.Clamp(Player.position.X, area.Left, maxX),
+            MathHelper.Clamp(Player.position.Y, area.Top, maxY));
+        if (position == Player.position)
+            return;
+
+        if (position.X != Player.position.X)
+            Player.velocity.X = 0f;
+        if (position.Y != Player.position.Y)
+            Player.velocity.Y = 0f;
+        Player.position = position;
+
+        if (Main.netMode == NetmodeID.Server)
+            NetMessage.SendData(MessageID.PlayerControls, -1, -1, null, Player.whoAmI);
+    }
+
     private void ResetBossDamage() => BossDamage = 0;
 
     private static void ApplyLoadout(Player player, BossFightPreset preset)
     {
-        foreach (Item item in player.inventory) item.TurnToAir();
-        foreach (Item item in player.armor) item.TurnToAir();
-        foreach (Item item in player.miscEquips) item.TurnToAir();
+        ClearCarriedItems(player, sync: false);
 
         Loadout loadout = preset.Loadout ?? new Loadout();
         ItemDefinition[] equipped =
@@ -143,10 +297,7 @@ internal sealed class ArenaPlayer : ModPlayer
         if (Main.netMode != NetmodeID.Server)
             return;
 
-        int equipmentSlots = player.inventory.Length + player.armor.Length + player.dye.Length
-            + player.miscEquips.Length + player.miscDyes.Length;
-        for (int slot = 0; slot < equipmentSlots; slot++)
-            NetMessage.SendData(MessageID.SyncEquipment, number: player.whoAmI, number2: slot);
+        SyncEquipment(player);
         NetMessage.SendData(MessageID.PlayerLifeMana, number: player.whoAmI);
         NetMessage.SendData(MessageID.PlayerMana, number: player.whoAmI);
     }
