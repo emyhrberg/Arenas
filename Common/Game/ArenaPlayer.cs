@@ -11,6 +11,10 @@ namespace Arenas.Common.Game;
 /// <summary>Applies round loadouts, spawn rules, freezing, and arena bounds.</summary>
 internal sealed class ArenaPlayer : ModPlayer
 {
+    internal long BossDamage { get; private set; }
+
+    public override void OnEnterWorld() => TeamBalancer.AssignJoiningPlayer(Player);
+
     public override void SetControls()
     {
         RoundManager manager = ModContent.GetInstance<RoundManager>();
@@ -30,6 +34,7 @@ internal sealed class ArenaPlayer : ModPlayer
             Player.AddBuff(BuffID.Frozen, 2);
             Player.immune = true;
             Player.immuneTime = Math.Max(Player.immuneTime, 2);
+            Player.immuneNoBlink = true;
             Player.velocity = Vector2.Zero;
         }
 
@@ -55,6 +60,10 @@ internal sealed class ArenaPlayer : ModPlayer
         if (player?.active != true || preset == null || layout == null)
             return;
 
+        if (player.dead)
+            player.Spawn(PlayerSpawnContext.ReviveFromDeath);
+
+        player.GetModPlayer<ArenaPlayer>().ResetBossDamage();
         ScoreboardService.ResetPlayer(player);
         ApplyLoadout(player, preset);
         Teleport(player, layout.PlayerSpawn((Team)player.team));
@@ -81,11 +90,13 @@ internal sealed class ArenaPlayer : ModPlayer
         }
     }
 
+    internal void AddBossDamage(uint damage) =>
+        BossDamage = BossDamage > long.MaxValue - damage ? long.MaxValue : BossDamage + damage;
+
+    private void ResetBossDamage() => BossDamage = 0;
+
     private static void ApplyLoadout(Player player, BossFightPreset preset)
     {
-        if (player.dead)
-            player.Spawn(PlayerSpawnContext.ReviveFromDeath);
-
         foreach (Item item in player.inventory) item.TurnToAir();
         foreach (Item item in player.armor) item.TurnToAir();
         foreach (Item item in player.miscEquips) item.TurnToAir();

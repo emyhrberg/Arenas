@@ -30,7 +30,7 @@ Mods: {
 				Headers: {
 					BossFights: Boss Fights
 					RoundTime: Round Time
-					GemRewards: Gem Rewards Header
+					GemRewards: Gem Rewards
 				}
 
 				FightPresets: {

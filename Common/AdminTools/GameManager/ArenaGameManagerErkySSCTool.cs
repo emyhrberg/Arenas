@@ -24,8 +24,8 @@ internal sealed class ArenaGameManagerErkySSCTool : ModSystem
             return;
 
         // Arena Game Manager
-        Add(mod, GameOwner, "arena_game_manager", "Arenas : Game Manager",
-            "Balance teams and start arenas", 31,
+        Add(mod, GameOwner, "arena_game_manager", "Arenas: Game Manager",
+            "Start and end rounds and voting", 31,
             () => ModContent.GetInstance<ArenaGameManagerUISystem>().Toggle(),
             () => ModContent.GetInstance<ArenaGameManagerUISystem>().IsActive);
     }

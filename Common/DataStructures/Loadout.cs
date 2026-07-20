@@ -1,6 +1,4 @@
 using Arenas.Common.DataStructures.LoadoutItems;
-using Arenas.Core.Configs;
-using PvPFramework.Core.Configs.ConfigElements;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -12,19 +10,15 @@ namespace Arenas.Common.DataStructures;
 
 public class Loadout
 {
-    [ConfigIcon(ItemID.IronHelmet)]
     [CustomModConfigItem(typeof(LoadoutArmorElement))]
     public LoadoutArmor Armor { get; set; } = new();
 
-    [ConfigIcon(ItemID.HermesBoots)]
     [CustomModConfigItem(typeof(LoadoutAccessoriesElement))]
     public LoadoutAccessories Accessories { get; set; } = new();
 
-    [ConfigIcon(ItemID.GrapplingHook)]
     [CustomModConfigItem(typeof(LoadoutEquipmentElement))]
     public LoadoutEquipment Equipment { get; set; } = new();
 
-    [ConfigIcon(ItemID.GoldChest)]
     [CustomModConfigItem(typeof(LoadoutInventoryListElement))]
     public List<LoadoutItem> Inventory { get; set; } = [];
 }

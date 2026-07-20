@@ -28,11 +28,19 @@ internal sealed class BossManager : ModSystem
 
     internal int BossIndex => bossIndex;
 
-    public override void Load() => TeamBossNPC.BossDefeatedByTeam += OnBossDefeatedByTeam;
+    public override void Load()
+    {
+        TeamBossNPC.BossDefeatedByTeam += OnBossDefeatedByTeam;
+        TeamBossNPC.BossDamageDealt += OnBossDamageDealt;
+    }
 
     public override void OnWorldLoad() => EnsureTeamBossConfigured(NPCID.KingSlime);
 
-    public override void Unload() => TeamBossNPC.BossDefeatedByTeam -= OnBossDefeatedByTeam;
+    public override void Unload()
+    {
+        TeamBossNPC.BossDefeatedByTeam -= OnBossDefeatedByTeam;
+        TeamBossNPC.BossDamageDealt -= OnBossDamageDealt;
+    }
 
     internal bool TrySpawn(BossFightPreset preset, ArenaLayout layout)
     {
@@ -134,6 +142,22 @@ internal sealed class BossManager : ModSystem
             return;
 
         ModContent.GetInstance<RoundManager>().NotifyBossDefeated(player, team);
+    }
+
+    private void OnBossDamageDealt(Player player, uint damage, int itemType)
+    {
+        if (Main.netMode == NetmodeID.MultiplayerClient || damage == 0 || player?.active != true
+            || ModContent.GetInstance<RoundManager>().CurrentPhase != RoundManager.RoundPhase.Playing
+            || (Team)player.team is not (Team.Red or Team.Blue) || !TryGetBoss(out NPC boss))
+            return;
+
+        Team team = (Team)player.team;
+        TeamBossNPC teamBoss = boss.GetGlobalNPC<TeamBossNPC>();
+        long remaining = teamBoss.TeamLife.TryGetValue(team, out int teamLife)
+            ? Math.Max(0, teamLife)
+            : boss.lifeMax;
+        uint appliedDamage = (uint)Math.Min(damage, remaining);
+        player.GetModPlayer<ArenaPlayer>().AddBossDamage(appliedDamage);
     }
 
     private bool TryGetBoss(out NPC boss)

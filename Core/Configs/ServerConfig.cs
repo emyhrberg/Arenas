@@ -1,6 +1,6 @@
 using Arenas.Common.DataStructures;
+using Arenas.Common.DataStructures.ConfigElements;
 using Arenas.Core.Compat;
-using PvPFramework.Core.Configs.ConfigElements;
 using System.Collections.Generic;
 using System.ComponentModel;
 using Terraria.ID;
@@ -15,29 +15,26 @@ internal sealed class ServerConfig : ModConfig
 
     #region Fields
     [Header("BossFights")]
-    [ConfigIcon(ItemID.KingSlimeBossBag)]
     [Expand(true)]
-    //[CustomModConfigItem(typeof(FightPresetListElement))]
+    [CustomModConfigItem(typeof(BossFightPresetListElement))]
     public List<BossFightPreset> FightPresets = ServerConfigDefaults.CreateFightPresets();
 
     [Header("RoundTime")]
 
-    [ConfigIcon(ItemID.Stopwatch), DefaultValue(600), Range(1, 3600)]
+    [DefaultValue(600), Range(1, 3600)]
     public int RoundDurationSeconds = 600;
 
-    [ConfigIcon(ItemID.Stopwatch)]
     [DefaultValue(10)]
     [Range(0, 300)]
     public int FreezeCountdownSeconds = 10;
 
-    [ConfigIcon(ItemID.Stopwatch)]
     [DefaultValue(30)]
     [Range(5, 300)]
     public int VotingDurationSeconds = 30;
 
     [Header("GemRewards")]
 
-    [ConfigIcon(nameof(Ass.IconGem)), DefaultValue(25), Range(0, 150)]
+    [DefaultValue(25), Range(0, 150)]
     public int VictoryGemReward = 25;
     #endregion
 

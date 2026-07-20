@@ -1,5 +1,43 @@
+using Arenas.Common.Game;
+using Arenas.Core.Compat;
+using System;
+using System.IO;
+using Terraria.ID;
+
 namespace Arenas;
 
 public sealed class Arenas : Mod
 {
+    internal enum PacketType : byte
+    {
+        CastVote,
+        AdminRoundAction
+    }
+
+    public override void HandlePacket(BinaryReader reader, int whoAmI)
+    {
+        PacketType type = (PacketType)reader.ReadByte();
+        if (Main.netMode != NetmodeID.Server)
+            return;
+
+        switch (type)
+        {
+            case PacketType.CastVote:
+                ModContent.GetInstance<BossVoteSystem>().CastVote(whoAmI, reader.ReadByte());
+                break;
+
+            case PacketType.AdminRoundAction:
+                RoundManager.AdminAction action = (RoundManager.AdminAction)reader.ReadByte();
+                if (!Enum.IsDefined(action))
+                    return;
+                if (!ErkySSCCompat.IsAdmin(whoAmI, out string reason))
+                {
+                    Log.Warn($"Rejected Arenas Game Manager action from player {whoAmI}: {reason}");
+                    return;
+                }
+
+                ModContent.GetInstance<RoundManager>().ExecuteAdminAction(action, whoAmI);
+                break;
+        }
+    }
 }

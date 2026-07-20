@@ -27,6 +27,16 @@ internal sealed class RoundManager : ModSystem
         Playing
     }
 
+    internal enum AdminAction : byte
+    {
+        StartRound,
+        EndRound,
+        StartVoting,
+        EndVoting,
+        SetIdle,
+        AutoBalanceTeams
+    }
+
     private enum RoundEndReason : byte
     {
         BossDefeated,
@@ -34,12 +44,14 @@ internal sealed class RoundManager : ModSystem
         BossDespawned,
         SpawnFailed,
         ArenaUnavailable,
-        NoPlayers
+        NoPlayers,
+        AdminEnded
     }
 
     private RoundPhase currentPhase = RoundPhase.WaitingForPlayers;
     private int remainingTicks;
     private bool timerPaused;
+    private bool idleHeld;
     private int selectedPresetIndex = -1;
     private ArenaLayout currentLayout;
     private Team pendingWinningTeam;
@@ -48,6 +60,7 @@ internal sealed class RoundManager : ModSystem
     internal RoundPhase CurrentPhase => currentPhase;
     internal int RemainingTicks => remainingTicks;
     internal bool IsTimerPaused => timerPaused;
+    internal bool IsIdleHeld => idleHeld;
     internal int SelectedPresetIndex => selectedPresetIndex;
     internal ArenaLayout CurrentLayout => currentLayout;
 
@@ -70,9 +83,12 @@ internal sealed class RoundManager : ModSystem
             return;
         }
 
+        TeamBalancer.AssignUnassignedPlayers();
+
         if (currentPhase == RoundPhase.WaitingForPlayers)
         {
-            StartIntermission();
+            if (!idleHeld)
+                StartIntermission();
             return;
         }
 
@@ -158,8 +174,89 @@ internal sealed class RoundManager : ModSystem
         SyncState();
     }
 
+    internal static void RequestAdminAction(AdminAction action)
+    {
+        if (Main.netMode == NetmodeID.MultiplayerClient)
+        {
+            ModPacket packet = ModContent.GetInstance<Arenas>().GetPacket();
+            packet.Write((byte)Arenas.PacketType.AdminRoundAction);
+            packet.Write((byte)action);
+            packet.Send();
+            return;
+        }
+
+        ModContent.GetInstance<RoundManager>().ExecuteAdminAction(action, Main.myPlayer);
+    }
+
+    internal void ExecuteAdminAction(AdminAction action, int playerId)
+    {
+        if (Main.netMode == NetmodeID.MultiplayerClient)
+            return;
+
+        Log.Info($"[M2-Admin] player={playerId}, action={action}, phase={currentPhase}.");
+        switch (action)
+        {
+            case AdminAction.StartRound:
+                idleHeld = false;
+                if (currentPhase == RoundPhase.FreezeCountdown)
+                    StartPlaying();
+                else if (currentPhase is RoundPhase.WaitingForPlayers or RoundPhase.VotingOrEndScreen)
+                    PrepareKingSlimeRound();
+                break;
+
+            case AdminAction.EndRound:
+                if (currentPhase == RoundPhase.Playing)
+                    FinishRound(RoundEndReason.AdminEnded);
+                break;
+
+            case AdminAction.StartVoting:
+                idleHeld = false;
+                if (currentPhase == RoundPhase.Playing)
+                    FinishRound(RoundEndReason.AdminEnded);
+                else if (currentPhase is not (RoundPhase.VotingOrEndScreen or RoundPhase.Generating))
+                {
+                    ModContent.GetInstance<BossManager>().Cleanup();
+                    ArenaPlayer.ReleaseAll();
+                    StartIntermission();
+                }
+                break;
+
+            case AdminAction.EndVoting:
+                if (currentPhase == RoundPhase.VotingOrEndScreen)
+                    PrepareKingSlimeRound();
+                break;
+
+            case AdminAction.SetIdle:
+                if (currentPhase == RoundPhase.Generating)
+                    break;
+                ModContent.GetInstance<BossManager>().Cleanup();
+                ArenaPlayer.ReleaseAll();
+                EndScreenService.Hide();
+                pendingWinningTeam = Team.None;
+                pendingWinningPlayer = -1;
+                idleHeld = true;
+                selectedPresetIndex = -1;
+                currentLayout = null;
+                SetPhase(RoundPhase.WaitingForPlayers, 0);
+                break;
+
+            case AdminAction.AutoBalanceTeams:
+                if (currentPhase is RoundPhase.WaitingForPlayers or RoundPhase.VotingOrEndScreen)
+                    TeamBalancer.AutoBalanceTeams();
+                break;
+        }
+    }
+
     private void StartIntermission()
     {
+        TeamBalancer.AssignUnassignedPlayers();
+        if (!TeamBalancer.AllActivePlayersAssigned())
+        {
+            SetPhase(RoundPhase.WaitingForPlayers, 0);
+            return;
+        }
+
+        ModContent.GetInstance<BossVoteSystem>().Reset();
         selectedPresetIndex = FindKingSlimePreset();
         int seconds = Math.Max(1, ModContent.GetInstance<ServerConfig>().VotingDurationSeconds);
         SetPhase(RoundPhase.VotingOrEndScreen, SecondsToTicks(seconds));
@@ -168,6 +265,10 @@ internal sealed class RoundManager : ModSystem
     private void PrepareKingSlimeRound()
     {
         EndScreenService.Hide();
+
+        int votedPreset = ModContent.GetInstance<BossVoteSystem>().ResolveWinner();
+        if (votedPreset >= 0)
+            selectedPresetIndex = votedPreset;
 
         if (!TryGetSelectedPreset(out BossFightPreset preset))
         {
@@ -181,7 +282,7 @@ internal sealed class RoundManager : ModSystem
             .ToArray();
         if (participants.Length == 0)
         {
-            Log.Warn("[M2-Prepare] No player is on Red or Blue. Team assignment is intentionally deferred to M3.");
+            Log.Warn("[M2-Prepare] No active Red or Blue players were available after automatic assignment.");
             StartIntermission();
             return;
         }
@@ -241,7 +342,8 @@ internal sealed class RoundManager : ModSystem
             return;
         }
 
-        if (reason is RoundEndReason.BossDefeated or RoundEndReason.TimeExpired or RoundEndReason.BossDespawned)
+        if (reason is RoundEndReason.BossDefeated or RoundEndReason.TimeExpired
+            or RoundEndReason.BossDespawned or RoundEndReason.AdminEnded)
             ArenaEndScreen.Present(winningTeam, winningPlayer);
 
         StartIntermission();
@@ -307,6 +409,7 @@ internal sealed class RoundManager : ModSystem
         currentPhase = RoundPhase.WaitingForPlayers;
         remainingTicks = 0;
         timerPaused = false;
+        idleHeld = false;
         selectedPresetIndex = -1;
         currentLayout = null;
         pendingWinningTeam = Team.None;
@@ -322,6 +425,7 @@ internal sealed class RoundManager : ModSystem
         currentPhase = RoundPhase.WaitingForPlayers;
         remainingTicks = 0;
         timerPaused = false;
+        idleHeld = false;
         selectedPresetIndex = -1;
         currentLayout = null;
     }
@@ -331,6 +435,7 @@ internal sealed class RoundManager : ModSystem
         writer.Write((byte)currentPhase);
         writer.Write(remainingTicks);
         writer.Write(timerPaused);
+        writer.Write(idleHeld);
         writer.Write(selectedPresetIndex);
         writer.Write(currentLayout != null);
         currentLayout?.Write(writer);
@@ -341,6 +446,7 @@ internal sealed class RoundManager : ModSystem
         currentPhase = (RoundPhase)reader.ReadByte();
         remainingTicks = Math.Max(0, reader.ReadInt32());
         timerPaused = reader.ReadBoolean();
+        idleHeld = reader.ReadBoolean();
         selectedPresetIndex = reader.ReadInt32();
         currentLayout = reader.ReadBoolean() ? ArenaLayout.Read(reader) : null;
     }
