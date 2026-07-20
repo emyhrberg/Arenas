@@ -1,6 +1,7 @@
 using Arenas.Common.Game;
 using Microsoft.Xna.Framework.Graphics;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using Terraria.Audio;
 using Terraria.Enums;

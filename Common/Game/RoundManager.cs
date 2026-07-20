@@ -229,6 +229,8 @@ internal sealed class RoundManager : ModSystem
             case AdminAction.SetIdle:
                 if (currentPhase == RoundPhase.Generating)
                     break;
+                bool wasAlreadyWaiting = currentPhase == RoundPhase.WaitingForPlayers;
+                bool wasAlreadyIdle = idleHeld;
                 ModContent.GetInstance<BossManager>().Cleanup();
                 ArenaPlayer.ReleaseAll();
                 EndScreenService.Hide();
@@ -238,6 +240,8 @@ internal sealed class RoundManager : ModSystem
                 selectedPresetIndex = -1;
                 currentLayout = null;
                 SetPhase(RoundPhase.WaitingForPlayers, 0);
+                if (Main.netMode == NetmodeID.SinglePlayer && wasAlreadyWaiting && !wasAlreadyIdle)
+                    Main.NewText("Idle", Color.Lerp(Color.LightGray, Color.LightSteelBlue, .45f));
                 break;
 
             case AdminAction.AutoBalanceTeams:
@@ -365,6 +369,7 @@ internal sealed class RoundManager : ModSystem
     private void SetPhase(RoundPhase newPhase, int durationTicks)
     {
         RoundPhase oldPhase = currentPhase;
+        bool wasIdleHeld = idleHeld;
         currentPhase = newPhase;
         remainingTicks = Math.Max(0, durationTicks);
         timerPaused = false;
@@ -372,7 +377,33 @@ internal sealed class RoundManager : ModSystem
         int players = Main.player.Count(player => player?.active == true);
         Log.Info($"[M2-Phase] {oldPhase} -> {newPhase}; ticks={remainingTicks}, preset={selectedPresetIndex}, players={players}.");
         UpdateFreezeTime(newPhase != RoundPhase.Playing);
+        if (Main.netMode == NetmodeID.SinglePlayer)
+            AnnouncePhaseChange(oldPhase, newPhase, remainingTicks, wasIdleHeld, idleHeld);
         SyncState();
+    }
+
+    private static void AnnouncePhaseChange(
+        RoundPhase oldPhase,
+        RoundPhase newPhase,
+        int ticks,
+        bool wasIdleHeld,
+        bool isIdleHeld)
+    {
+        if (Main.dedServ)
+            return;
+
+        if (oldPhase == RoundPhase.Playing && newPhase != RoundPhase.Playing)
+            Main.NewText("Game has ended!", Color.Lerp(Color.Gold, Color.LightGoldenrodYellow, .35f));
+
+        if (newPhase == RoundPhase.FreezeCountdown && oldPhase != RoundPhase.FreezeCountdown)
+        {
+            int seconds = Math.Max(1, (ticks + TicksPerSecond - 1) / TicksPerSecond);
+            Main.NewText($"Game starting in {seconds} seconds", Color.Lerp(Color.LimeGreen, Color.Aquamarine, .3f));
+        }
+
+        if (newPhase == RoundPhase.WaitingForPlayers
+            && (oldPhase != RoundPhase.WaitingForPlayers || isIdleHeld != wasIdleHeld))
+            Main.NewText("Idle", Color.Lerp(Color.LightGray, Color.LightSteelBlue, .45f));
     }
 
     private void TickClientTimer()
@@ -444,11 +475,14 @@ internal sealed class RoundManager : ModSystem
 
     public override void NetReceive(BinaryReader reader)
     {
+        RoundPhase oldPhase = currentPhase;
+        bool wasIdleHeld = idleHeld;
         currentPhase = (RoundPhase)reader.ReadByte();
         remainingTicks = Math.Max(0, reader.ReadInt32());
         timerPaused = reader.ReadBoolean();
         idleHeld = reader.ReadBoolean();
         selectedPresetIndex = reader.ReadInt32();
         currentLayout = reader.ReadBoolean() ? ArenaLayout.Read(reader) : null;
+        AnnouncePhaseChange(oldPhase, currentPhase, remainingTicks, wasIdleHeld, idleHeld);
     }
 }

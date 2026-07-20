@@ -211,6 +211,26 @@ internal sealed class ArenaSpawnBoxMap : ModMapLayer
             new Color(255, 196, 72) * .55f, 2);
         DrawMapArea(ref context, manager.CurrentLayout.BossBounds,
             new Color(255, 132, 24), 2);
+        DrawArenaLabel(ref context, manager.CurrentLayout.ArenaBounds);
+    }
+
+    private static void DrawArenaLabel(ref MapOverlayDrawContext context, Rectangle tileArea)
+    {
+        const string label = "Arena";
+        Rectangle rectangle = ToMapRectangle(ref context, tileArea);
+        DynamicSpriteFont font = FontAssets.DeathText.Value;
+        float scale = context.MapScale * context.DrawScale * 4f;
+        if (scale <= 0f)
+            return;
+
+        Vector2 textSize = font.MeasureString(label) * scale;
+        Vector2 position = new(
+            rectangle.Center.X - textSize.X / 2f,
+            rectangle.Top - textSize.Y - Math.Max(5f, 6f * context.DrawScale));
+        Main.spriteBatch.DrawString(font, label, position + new Vector2(3f, 3f),
+            Color.Black * .9f, 0f, Vector2.Zero, scale, SpriteEffects.None, 0f);
+        Main.spriteBatch.DrawString(font, label, position, new Color(255, 196, 72),
+            0f, Vector2.Zero, scale, SpriteEffects.None, 0f);
     }
 
     private static void DrawMapArea(ref MapOverlayDrawContext context, Rectangle tileArea,
@@ -262,16 +282,14 @@ internal sealed class ArenaSpawnBoxMap : ModMapLayer
     {
         DynamicSpriteFont font = FontAssets.DeathText.Value;
         Vector2 unscaledSize = font.MeasureString(label);
-        float scale = context.MapScale * context.DrawScale * .6f;
-        float availableWidth = Math.Max(1f, rectangle.Width - 4f);
-        float availableHeight = Math.Max(1f, rectangle.Height - 4f);
-        scale = Math.Min(scale, Math.Min(availableWidth / unscaledSize.X,
-            availableHeight / unscaledSize.Y));
+        float scale = context.MapScale * context.DrawScale * 1.8f;
         if (scale <= 0f)
             return;
 
         Vector2 textSize = unscaledSize * scale;
-        Vector2 position = rectangle.Center.ToVector2() - textSize / 2f;
+        Vector2 position = new(
+            rectangle.Center.X - textSize.X / 2f,
+            rectangle.Top - textSize.Y - Math.Max(2f, 3f * context.DrawScale));
         Main.spriteBatch.DrawString(font, label, position + Vector2.One, Color.Black * .8f,
             0f, Vector2.Zero, scale, SpriteEffects.None, 0f);
         Main.spriteBatch.DrawString(font, label, position, color,

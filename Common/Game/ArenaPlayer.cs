@@ -12,16 +12,33 @@ namespace Arenas.Common.Game;
 internal sealed class ArenaPlayer : ModPlayer
 {
     private bool roundPrepared;
+    private bool arenaSpawnActive;
 
     internal long BossDamage { get; private set; }
 
-    public override void Load() => On_Player.TrySwitchingLoadout += OnTrySwitchingLoadout;
+    public override void Load()
+    {
+        On_Player.TrySwitchingLoadout += OnTrySwitchingLoadout;
+        On_Player.Spawn += OnPlayerSpawn;
+    }
 
-    public override void Unload() => On_Player.TrySwitchingLoadout -= OnTrySwitchingLoadout;
+    public override void Unload()
+    {
+        On_Player.TrySwitchingLoadout -= OnTrySwitchingLoadout;
+        On_Player.Spawn -= OnPlayerSpawn;
+    }
 
     public override void OnEnterWorld()
     {
         roundPrepared = false;
+        arenaSpawnActive = false;
+        RoundManager.RoundPhase phase = ModContent.GetInstance<RoundManager>().CurrentPhase;
+        if (phase is RoundManager.RoundPhase.WaitingForPlayers
+            or RoundManager.RoundPhase.VotingOrEndScreen)
+        {
+            Player.SpawnX = -1;
+            Player.SpawnY = -1;
+        }
         TeamBalancer.AssignJoiningPlayer(Player);
     }
 
@@ -44,6 +61,7 @@ internal sealed class ArenaPlayer : ModPlayer
             or RoundManager.RoundPhase.VotingOrEndScreen)
         {
             roundPrepared = false;
+            ResetArenaSpawn();
             if (HasCarriedItems(Player))
                 ClearCarriedItems(Player, sync: Main.netMode == NetmodeID.Server);
             if (Player.whoAmI == Main.myPlayer && !Main.mouseItem.IsAir)
@@ -62,6 +80,9 @@ internal sealed class ArenaPlayer : ModPlayer
         if ((manager.CurrentPhase is RoundManager.RoundPhase.FreezeCountdown or RoundManager.RoundPhase.Playing)
             && ((Team)Player.team is Team.Red or Team.Blue))
         {
+            if (manager.CurrentLayout != null)
+                SetArenaSpawn(manager.CurrentLayout.PlayerSpawn((Team)Player.team));
+
             if (Main.netMode != NetmodeID.MultiplayerClient && !roundPrepared
                 && manager.CurrentLayout != null
                 && manager.TryGetSelectedPreset(out BossFightPreset preset))
@@ -81,7 +102,7 @@ internal sealed class ArenaPlayer : ModPlayer
             return;
 
         ApplyLoadout(Player, preset);
-        Teleport(Player, manager.CurrentLayout.PlayerSpawn((Team)Player.team));
+        SetArenaSpawn(manager.CurrentLayout.PlayerSpawn((Team)Player.team));
         roundPrepared = true;
     }
 
@@ -94,6 +115,7 @@ internal sealed class ArenaPlayer : ModPlayer
             player.Spawn(PlayerSpawnContext.ReviveFromDeath);
 
         ArenaPlayer arenaPlayer = player.GetModPlayer<ArenaPlayer>();
+        arenaPlayer.SetArenaSpawn(layout.PlayerSpawn((Team)player.team));
         arenaPlayer.ResetBossDamage();
         ScoreboardService.ResetPlayer(player);
         ApplyLoadout(player, preset);
@@ -115,7 +137,9 @@ internal sealed class ArenaPlayer : ModPlayer
             if (player?.active != true)
                 continue;
 
-            player.GetModPlayer<ArenaPlayer>().roundPrepared = false;
+            ArenaPlayer arenaPlayer = player.GetModPlayer<ArenaPlayer>();
+            arenaPlayer.roundPrepared = false;
+            arenaPlayer.ResetArenaSpawn();
             ClearCarriedItems(player, sync: Main.netMode == NetmodeID.Server);
             if (player.hostile && (Team)player.team is Team.Red or Team.Blue)
             {
@@ -135,6 +159,24 @@ internal sealed class ArenaPlayer : ModPlayer
             return;
 
         orig(player, loadoutIndex);
+    }
+
+    private static void OnPlayerSpawn(On_Player.orig_Spawn orig, Player player,
+        PlayerSpawnContext context)
+    {
+        orig(player, context);
+
+        RoundManager manager = ModContent.GetInstance<RoundManager>();
+        Team team = (Team)player.team;
+        if (team is not (Team.Red or Team.Blue)
+            || manager.CurrentPhase is not (RoundManager.RoundPhase.Generating
+                or RoundManager.RoundPhase.FreezeCountdown or RoundManager.RoundPhase.Playing)
+            || manager.CurrentLayout == null)
+            return;
+
+        Point spawn = manager.CurrentLayout.PlayerSpawn(team);
+        player.GetModPlayer<ArenaPlayer>().SetArenaSpawn(spawn);
+        Teleport(player, spawn);
     }
 
     private static bool HasCarriedItems(Player player)
@@ -262,6 +304,23 @@ internal sealed class ArenaPlayer : ModPlayer
     }
 
     private void ResetBossDamage() => BossDamage = 0;
+
+    private void SetArenaSpawn(Point spawn)
+    {
+        arenaSpawnActive = true;
+        Player.SpawnX = spawn.X;
+        Player.SpawnY = spawn.Y;
+    }
+
+    private void ResetArenaSpawn()
+    {
+        if (!arenaSpawnActive)
+            return;
+
+        arenaSpawnActive = false;
+        Player.SpawnX = -1;
+        Player.SpawnY = -1;
+    }
 
     private static void ApplyLoadout(Player player, BossFightPreset preset)
     {

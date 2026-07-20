@@ -36,11 +36,11 @@ internal static class BossVoteDrawer
         DrawPanel(panel, PanelFill, PanelEdge, S(9));
 
         Utils.DrawBorderStringBig(Main.spriteBatch, "Boss Vote",
-            new Vector2(panel.Center.X, panel.Y + S(8)), Yellow, .68f * scale, .5f, 0f);
+            new Vector2(panel.Center.X, panel.Y + S(4)), Yellow, .68f * scale, .5f, 0f);
         Text("Choose the next boss - majority wins!", new Vector2(panel.Center.X, panel.Y + S(38)),
             Color.White, .78f * scale, panel.Width - S(28));
 
-        Rectangle track = new(panel.X + S(14), panel.Y + S(62), panel.Width - S(28), S(12));
+        Rectangle track = new(panel.X + S(14), panel.Y + S(58), panel.Width - S(28), S(20));
         int votingSeconds = Math.Max(1, ModContent.GetInstance<ServerConfig>().VotingDurationSeconds);
         float progress = Math.Clamp(manager.RemainingTicks / (votingSeconds * 60f), 0f, 1f);
         DrawProgressBar(track, progress);
@@ -97,7 +97,7 @@ internal static class BossVoteDrawer
             Color team = player.team > 0 && player.team < Main.teamColor.Length ? Main.teamColor[player.team] : Color.Gray;
             DrawPanel(tile, Color.Lerp(player.shirtColor, team, .25f), DarkEdge, s(5));
             ErkySSCCompat.DrawUnfilteredPlayerHead(player,
-                tile.Center.ToVector2() - new Vector2(4f, 0f), 1f, .44f * scale, team);
+                tile.Center.ToVector2() - new Vector2(2f, 2f), 1f, .5f * scale, team);
             if (tile.Contains(mouse)) { Main.LocalPlayer.mouseInterface = true; Main.instance.MouseText(player.name); }
         }
     }
