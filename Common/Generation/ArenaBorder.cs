@@ -11,6 +11,8 @@ internal static class ArenaBorder
 
     internal static void Place(ArenaLayout layout)
     {
+        // Disabled: arena boundaries are visual shader borders and must not mutate world tiles.
+        /*
         if (Main.netMode == NetmodeID.MultiplayerClient || layout == null)
             return;
 
@@ -36,6 +38,7 @@ internal static class ArenaBorder
         Frame(outer, bounds);
         Sync(outer);
         Log.Info($"Placed the {Thickness}-tile Lihzahrd Brick arena border around {bounds}.");
+        */
     }
 
     private static void Frame(Rectangle outer, Rectangle bounds)

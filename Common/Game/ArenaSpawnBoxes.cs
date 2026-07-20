@@ -95,47 +95,40 @@ internal sealed class ArenaSpawnBoxWorld : ModSystem
     private sealed class SpawnBoxInterfaceLayer()
         : GameInterfaceLayer("Arenas: Team Spawn Boxes", InterfaceScaleType.Game)
     {
+        private static readonly Color ArenaColor = new(255, 196, 72);
+        private static readonly Color BossColor = new(255, 132, 24);
+
         protected override bool DrawSelf()
         {
-            DrawBossArea(Main.spriteBatch);
-            DrawSpawnBox(Main.spriteBatch, ArenaSpawnBoxes.RedTileArea, Team.Red);
-            DrawSpawnBox(Main.spriteBatch, ArenaSpawnBoxes.BlueTileArea, Team.Blue);
+            if (!ArenaSpawnBoxes.Enabled)
+                return true;
+
+            RoundManager manager = ModContent.GetInstance<RoundManager>();
+            DrawAreaBorder(Main.spriteBatch, manager.CurrentLayout.ArenaBounds,
+                ArenaColor, .55f, ArenaSpawnBoxes.Thickness * (int)TileSize);
+            DrawAreaBorder(Main.spriteBatch, manager.CurrentLayout.BossBounds,
+                BossColor, 1f, 2);
+            DrawAreaBorder(Main.spriteBatch, ArenaSpawnBoxes.RedTileArea,
+                Main.teamColor[(int)Team.Red], .88f, ArenaSpawnBoxes.Thickness * (int)TileSize);
+            DrawAreaBorder(Main.spriteBatch, ArenaSpawnBoxes.BlueTileArea,
+                Main.teamColor[(int)Team.Blue], .88f, ArenaSpawnBoxes.Thickness * (int)TileSize);
             return true;
         }
 
-        private static void DrawBossArea(SpriteBatch spriteBatch)
-        {
-            if (!ArenaSpawnBoxes.Enabled)
-                return;
-
-            Rectangle rectangle = GetScreenRect(
-                ModContent.GetInstance<RoundManager>().CurrentLayout.BossBounds);
-            const int thickness = 2;
-            Color color = new Color(255, 132, 24) * .3f;
-            Texture2D pixel = TextureAssets.MagicPixel.Value;
-
-            spriteBatch.Draw(pixel, new Rectangle(rectangle.X, rectangle.Y, rectangle.Width, thickness), color);
-            spriteBatch.Draw(pixel, new Rectangle(rectangle.X, rectangle.Bottom - thickness,
-                rectangle.Width, thickness), color);
-            spriteBatch.Draw(pixel, new Rectangle(rectangle.X, rectangle.Y, thickness, rectangle.Height), color);
-            spriteBatch.Draw(pixel, new Rectangle(rectangle.Right - thickness, rectangle.Y,
-                thickness, rectangle.Height), color);
-        }
-
-        private static void DrawSpawnBox(SpriteBatch spriteBatch, Rectangle tileArea, Team team)
+        private static void DrawAreaBorder(SpriteBatch spriteBatch, Rectangle tileArea,
+            Color color, float opacity, int thickness)
         {
             if (Main.dedServ || Main.gameMenu || tileArea.Width <= 0 || tileArea.Height <= 0)
                 return;
 
             Rectangle inner = GetScreenRect(tileArea);
-            int thickness = ArenaSpawnBoxes.Thickness * (int)TileSize;
             if (inner.Width <= 0 || inner.Height <= 0 || thickness <= 0)
                 return;
 
             if (PvPFramework.Core.Utilities.EffectLoader.TryGetSpawnBoxBorderEffect(out Effect effect))
-                DrawShaderBorder(spriteBatch, inner, thickness, effect, team);
+                DrawShaderBorder(spriteBatch, inner, thickness, effect, color, opacity);
             else
-                DrawPixelBorder(spriteBatch, inner, thickness, team);
+                DrawPixelBorder(spriteBatch, inner, thickness, color * opacity);
         }
 
         private static Rectangle GetScreenRect(Rectangle area)
@@ -152,12 +145,8 @@ internal sealed class ArenaSpawnBoxWorld : ModSystem
                 (int)Math.Round(screenBottomRight.Y - screenTopLeft.Y));
         }
 
-        private static Color GetDrawColor(Team team) => Main.teamColor[(int)team];
-
-        private static float GetDrawOpacity() => .88f;
-
         private static void DrawShaderBorder(SpriteBatch sb, Rectangle inner, int thickness,
-            Effect effect, Team team)
+            Effect effect, Color color, float opacity)
         {
             Rectangle outer = inner;
             outer.Inflate(thickness, thickness);
@@ -165,8 +154,8 @@ internal sealed class ArenaSpawnBoxWorld : ModSystem
                 return;
 
             effect.Parameters["globalTime"]?.SetValue((float)Main.timeForVisualEffects);
-            effect.Parameters["borderColor"]?.SetValue(GetDrawColor(team).ToVector3());
-            effect.Parameters["opacity"]?.SetValue(GetDrawOpacity());
+            effect.Parameters["borderColor"]?.SetValue(color.ToVector3());
+            effect.Parameters["opacity"]?.SetValue(opacity);
             effect.Parameters["borderSize"]?.SetValue(new Vector2(
                 thickness / (float)outer.Width, thickness / (float)outer.Height));
             effect.Parameters["outerEdgeFade"]?.SetValue(.42f);
@@ -187,9 +176,8 @@ internal sealed class ArenaSpawnBoxWorld : ModSystem
                 DepthStencilState.None, Main.Rasterizer, null, Main.UIScaleMatrix);
         }
 
-        private static void DrawPixelBorder(SpriteBatch sb, Rectangle inner, int thickness, Team team)
+        private static void DrawPixelBorder(SpriteBatch sb, Rectangle inner, int thickness, Color color)
         {
-            Color color = GetDrawColor(team) * GetDrawOpacity();
             Texture2D pixel = TextureAssets.MagicPixel.Value;
             sb.Draw(pixel, new Rectangle(inner.X - thickness, inner.Y - thickness,
                 inner.Width + thickness * 2, thickness), color);
@@ -208,22 +196,29 @@ internal sealed class ArenaSpawnBoxMap : ModMapLayer
         if (Main.mapFullscreenScale < .5f)
             return;
 
-        DrawBossArea(ref context);
+        DrawArenaAreas(ref context);
         DrawBox(ref context, ArenaSpawnBoxes.RedTileArea, Team.Red, ref text);
         DrawBox(ref context, ArenaSpawnBoxes.BlueTileArea, Team.Blue, ref text);
     }
 
-    private static void DrawBossArea(ref MapOverlayDrawContext context)
+    private static void DrawArenaAreas(ref MapOverlayDrawContext context)
     {
         if (!ArenaSpawnBoxes.Enabled)
             return;
 
-        Rectangle rectangle = ToMapRectangle(ref context,
-            ModContent.GetInstance<RoundManager>().CurrentLayout.BossBounds);
-        if (!ClipToMinimap(ref rectangle))
-            return;
+        RoundManager manager = ModContent.GetInstance<RoundManager>();
+        DrawMapArea(ref context, manager.CurrentLayout.ArenaBounds,
+            new Color(255, 196, 72) * .55f, 2);
+        DrawMapArea(ref context, manager.CurrentLayout.BossBounds,
+            new Color(255, 132, 24), 1);
+    }
 
-        DrawBorder(rectangle, new Color(255, 132, 24) * .3f, 1);
+    private static void DrawMapArea(ref MapOverlayDrawContext context, Rectangle tileArea,
+        Color color, int thickness)
+    {
+        Rectangle rectangle = ToMapRectangle(ref context, tileArea);
+        if (ClipToMinimap(ref rectangle))
+            DrawBorder(rectangle, color, thickness);
     }
 
     private static void DrawBox(ref MapOverlayDrawContext context, Rectangle tileArea, Team team,
@@ -267,7 +262,7 @@ internal sealed class ArenaSpawnBoxMap : ModMapLayer
     {
         DynamicSpriteFont font = FontAssets.DeathText.Value;
         Vector2 unscaledSize = font.MeasureString(label);
-        float scale = context.MapScale * context.DrawScale * .3f;
+        float scale = context.MapScale * context.DrawScale * .6f;
         float availableWidth = Math.Max(1f, rectangle.Width - 4f);
         float availableHeight = Math.Max(1f, rectangle.Height - 4f);
         scale = Math.Min(scale, Math.Min(availableWidth / unscaledSize.X,

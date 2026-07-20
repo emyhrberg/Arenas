@@ -25,6 +25,7 @@ internal sealed class BossManager : ModSystem
     private int bossType;
     private int missingTicks;
     private Rectangle roundArea;
+    private Rectangle bossArea;
 
     internal int BossIndex => bossIndex;
 
@@ -32,12 +33,14 @@ internal sealed class BossManager : ModSystem
     {
         TeamBossNPC.BossDefeatedByTeam += OnBossDefeatedByTeam;
         TeamBossNPC.BossDamageDealt += OnBossDamageDealt;
+        On_NPC.TargetClosest += OnTargetClosest;
     }
 
     public override void Unload()
     {
         TeamBossNPC.BossDefeatedByTeam -= OnBossDefeatedByTeam;
         TeamBossNPC.BossDamageDealt -= OnBossDamageDealt;
+        On_NPC.TargetClosest -= OnTargetClosest;
     }
 
     internal bool TrySpawn(BossFightPreset preset, ArenaLayout layout)
@@ -50,6 +53,8 @@ internal sealed class BossManager : ModSystem
         PrepareBossEnvironment(preset.Boss.Type);
         roundArea = new Rectangle(layout.ArenaBounds.X * 16, layout.ArenaBounds.Y * 16,
             layout.ArenaBounds.Width * 16, layout.ArenaBounds.Height * 16);
+        bossArea = new Rectangle(layout.BossBounds.X * 16, layout.BossBounds.Y * 16,
+            layout.BossBounds.Width * 16, layout.BossBounds.Height * 16);
         ClearRoundProjectiles();
 
         Point spawn = layout.BossSpawn;
@@ -62,7 +67,8 @@ internal sealed class BossManager : ModSystem
         bossType = preset.Boss.Type;
         missingTicks = 0;
         NPC boss = Main.npc[index];
-        boss.target = FindTarget();
+        int target = FindTarget(boss, bossArea);
+        boss.target = target >= 0 ? target : Main.maxPlayers;
         boss.timeLeft = Math.Max(boss.timeLeft, 3600);
         boss.netAlways = true;
         boss.netUpdate = true;
@@ -76,9 +82,9 @@ internal sealed class BossManager : ModSystem
         {
             MaintainBossEnvironment();
             missingTicks = 0;
-            int target = FindTarget();
-            if (target >= 0)
-                boss.target = target;
+            int target = FindTarget(boss, bossArea);
+            boss.target = target >= 0 ? target : Main.maxPlayers;
+            ContainBoss(boss);
             boss.timeLeft = Math.Max(boss.timeLeft, 3600);
             return BossState.Alive;
         }
@@ -115,6 +121,7 @@ internal sealed class BossManager : ModSystem
         bossType = 0;
         missingTicks = 0;
         roundArea = Rectangle.Empty;
+        bossArea = Rectangle.Empty;
     }
 
     private void ClearRoundProjectiles()
@@ -180,12 +187,66 @@ internal sealed class BossManager : ModSystem
         return npc.whoAmI == bossIndex || npc.realLife == bossIndex;
     }
 
-    private static int FindTarget()
+    private static int FindTarget(NPC npc, Rectangle allowedArea)
     {
+        int target = -1;
+        float bestDistanceSquared = float.MaxValue;
         foreach (Player player in Main.ActivePlayers)
-            if (!player.dead && (Team)player.team is Team.Red or Team.Blue)
-                return player.whoAmI;
-        return -1;
+        {
+            if (player.dead || (Team)player.team is not (Team.Red or Team.Blue)
+                || !allowedArea.Intersects(player.Hitbox))
+                continue;
+
+            float distanceSquared = Vector2.DistanceSquared(npc.Center, player.Center);
+            if (distanceSquared >= bestDistanceSquared)
+                continue;
+
+            target = player.whoAmI;
+            bestDistanceSquared = distanceSquared;
+        }
+
+        return target;
+    }
+
+    private void OnTargetClosest(On_NPC.orig_TargetClosest orig, NPC npc, bool faceTarget)
+    {
+        if (!IsOwnedBoss(npc) || bossArea.Width <= 0 || bossArea.Height <= 0)
+        {
+            orig(npc, faceTarget);
+            return;
+        }
+
+        int target = FindTarget(npc, bossArea);
+        npc.target = target >= 0 ? target : Main.maxPlayers;
+        if (!faceTarget || target < 0)
+            return;
+
+        Player player = Main.player[target];
+        npc.direction = npc.Center.X < player.Center.X ? 1 : -1;
+        npc.directionY = npc.Center.Y < player.Center.Y ? 1 : -1;
+    }
+
+    private void ContainBoss(NPC boss)
+    {
+        if (bossArea.Width <= 0 || bossArea.Height <= 0)
+            return;
+
+        float minX = bossArea.Left;
+        float minY = bossArea.Top;
+        float maxX = Math.Max(minX, bossArea.Right - boss.width);
+        float maxY = Math.Max(minY, bossArea.Bottom - boss.height);
+        Vector2 position = new(
+            MathHelper.Clamp(boss.position.X, minX, maxX),
+            MathHelper.Clamp(boss.position.Y, minY, maxY));
+        if (position == boss.position)
+            return;
+
+        if (position.X != boss.position.X)
+            boss.velocity.X = 0f;
+        if (position.Y != boss.position.Y)
+            boss.velocity.Y = 0f;
+        boss.position = position;
+        boss.netUpdate = true;
     }
 
     private static void PrepareBossEnvironment(int npcType)

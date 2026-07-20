@@ -30,9 +30,9 @@ internal static class ArenaGeneration
             return false;
 
         Rectangle bounds = CenteredBounds(center, width, height);
-        Rectangle redSpawnColumn = new(bounds.Left, bounds.Top, ArenaLayout.SpawnBoxSize, bounds.Height);
-        Rectangle blueSpawnColumn = new(bounds.Right - ArenaLayout.SpawnBoxSize, bounds.Top,
-            ArenaLayout.SpawnBoxSize, bounds.Height);
+        Rectangle redSpawnColumn = new(bounds.Left, bounds.Top, ArenaLayout.SpawnBoxWidth, bounds.Height);
+        Rectangle blueSpawnColumn = new(bounds.Right - ArenaLayout.SpawnBoxWidth, bounds.Top,
+            ArenaLayout.SpawnBoxWidth, bounds.Height);
 
         if (!TryFindGroundInSpawnBox(redSpawnColumn, out Point redSpawn)
             || !TryFindGroundInSpawnBox(blueSpawnColumn, out Point blueSpawn))
@@ -151,7 +151,7 @@ internal static class ArenaGeneration
         {
             int leftX = preferredX - offset;
             if (leftX >= column.Left && TryFindGround(leftX,
-                column.Top + ArenaLayout.SpawnBoxSize, column.Bottom, out int leftY))
+                column.Top + ArenaLayout.SpawnBoxHeight, column.Bottom, out int leftY))
             {
                 spawn = new Point(leftX, leftY);
                 return true;
@@ -159,7 +159,8 @@ internal static class ArenaGeneration
 
             int rightX = preferredX + offset;
             if (offset > 0 && rightX < column.Right
-                && TryFindGround(rightX, column.Top + ArenaLayout.SpawnBoxSize, column.Bottom, out int rightY))
+                && TryFindGround(rightX, column.Top + ArenaLayout.SpawnBoxHeight, column.Bottom,
+                    out int rightY))
             {
                 spawn = new Point(rightX, rightY);
                 return true;
