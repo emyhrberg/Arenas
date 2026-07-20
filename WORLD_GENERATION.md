@@ -62,6 +62,16 @@ The perimeter is late-stamped so vanilla first produces complete, natural biome 
 structures. Arenas does not add platforms, floors, artificial biome walls, or a replacement
 arena interior.
 
+### Plantera generation profile
+
+When the active fight preset resolves to `PlanteraJungle`, Arenas disables every generation
+pass outside an explicit Jungle dependency allow-list. The runnable profile retains base
+terrain, cave formation, mud and Jungle conversion, Wet Jungle, Temple, hives, honey, Jungle
+chests and plants, liquids, natural underground dressing, tile cleanup, and all three Arenas
+passes. Desert, ocean, snow, evil-biome, Dungeon, floating-island, Underworld, beach, and
+unrelated surface-decoration passes remain registered but disabled, so their bodies do not run.
+Other fight generators continue to use the complete vanilla pass list.
+
 ## Adding another Arenas pass
 
 1. Give the pass a stable, unique name in `ArenaWorldGenerationCatalog` at its real order.

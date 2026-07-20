@@ -1,3 +1,4 @@
+using Arenas.Core.Configs.ConfigElements;
 using System.ComponentModel;
 using Terraria.ModLoader.Config;
 
