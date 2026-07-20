@@ -86,30 +86,41 @@ internal sealed class ArenaTeamBalancePanel : UIPanel
         base.DrawSelf(spriteBatch);
         Rectangle panel = GetDimensions().ToRectangle();
         Player[] active = Main.player.Where(player => player?.active == true).ToArray();
-        Player[] red = active.Where(player => (Team)player.team == Team.Red).ToArray();
-        Player[] blue = active.Where(player => (Team)player.team == Team.Blue).ToArray();
-
-        DrawLine(spriteBatch, $"Player Count: {active.Length}", panel.X + 10, panel.Y + 5,
-            new Color(174, 216, 226), panel.Width - 20);
-        DrawLine(spriteBatch, TeamText("Red Team", red), panel.X + 10, panel.Y + 24,
-            Main.teamColor[(int)Team.Red], panel.Width - 20);
-        DrawLine(spriteBatch, TeamText("Blue Team", blue), panel.X + 10, panel.Y + 43,
-            Main.teamColor[(int)Team.Blue], panel.Width - 20);
+        DrawPlayers(spriteBatch, active, panel.X + 10, panel.Y + 9, panel.Width - 20);
     }
 
-    private static string TeamText(string label, Player[] players)
+    private static void DrawPlayers(SpriteBatch spriteBatch, Player[] players,
+        int x, int y, float maxWidth)
     {
-        string names = players.Length == 0 ? "None" : string.Join(", ", players.Select(player => player.name));
-        return $"{label}: {names} ({players.Length})";
-    }
+        List<(string Text, Color Color)> spans = [("Players: ", Color.White)];
+        if (players.Length == 0)
+            spans.Add(("None", Color.Gray));
+        else
+            for (int i = 0; i < players.Length; i++)
+            {
+                if (i > 0)
+                    spans.Add((", ", Color.White));
 
-    private static void DrawLine(SpriteBatch spriteBatch, string text, int x, int y, Color color, float maxWidth)
-    {
-        float scale = .64f;
-        float width = FontAssets.MouseText.Value.MeasureString(text).X * scale;
+                Team team = (Team)players[i].team;
+                Color color = team != Team.None && (int)team < Main.teamColor.Length
+                    ? Main.teamColor[(int)team]
+                    : Color.Gray;
+                spans.Add((players[i].name, color));
+            }
+
+        const float baseScale = .64f;
+        float unscaledWidth = spans.Sum(span => FontAssets.MouseText.Value.MeasureString(span.Text).X);
+        float scale = baseScale;
+        float width = unscaledWidth * scale;
         if (width > maxWidth)
             scale *= maxWidth / width;
-        Utils.DrawBorderString(spriteBatch, text, new Vector2(x, y), color, scale);
+
+        Vector2 position = new(x, y);
+        foreach ((string text, Color color) in spans)
+        {
+            Utils.DrawBorderString(spriteBatch, text, position, color, scale);
+            position.X += FontAssets.MouseText.Value.MeasureString(text).X * scale;
+        }
     }
 }
 
@@ -178,7 +189,7 @@ internal sealed class ArenaGameCommandButton : UIPanel
         }
 
         Utils.DrawBorderString(spriteBatch, text,
-            new Vector2(panel.Center.X, panel.Center.Y - size.Y / 2f + 1f),
+            new Vector2(panel.Center.X, panel.Center.Y - size.Y / 2f + 3f),
             active ? Color.White : Color.Gray, scale, .5f);
     }
 

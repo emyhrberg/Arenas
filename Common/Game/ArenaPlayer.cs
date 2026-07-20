@@ -169,6 +169,9 @@ internal sealed class ArenaPlayer : ModPlayer
         Clear(player.miscEquips);
         Clear(player.miscDyes);
         player.trashItem.TurnToAir();
+        player.selectedItem = 0;
+        player.itemAnimation = 0;
+        player.itemTime = 0;
 
         if (player.Loadouts != null)
             foreach (var loadout in player.Loadouts)
@@ -204,12 +207,21 @@ internal sealed class ArenaPlayer : ModPlayer
 
         if (player.Loadouts != null && player.Loadouts.Length >= 3)
         {
-            SyncItems(player, player.Loadouts[0].Armor, PlayerItemSlotID.Loadout1_Armor_0);
-            SyncItems(player, player.Loadouts[0].Dye, PlayerItemSlotID.Loadout1_Dye_0);
-            SyncItems(player, player.Loadouts[1].Armor, PlayerItemSlotID.Loadout2_Armor_0);
-            SyncItems(player, player.Loadouts[1].Dye, PlayerItemSlotID.Loadout2_Dye_0);
-            SyncItems(player, player.Loadouts[2].Armor, PlayerItemSlotID.Loadout3_Armor_0);
-            SyncItems(player, player.Loadouts[2].Dye, PlayerItemSlotID.Loadout3_Dye_0);
+            if (player.Loadouts[0] != null)
+            {
+                SyncItems(player, player.Loadouts[0].Armor, PlayerItemSlotID.Loadout1_Armor_0);
+                SyncItems(player, player.Loadouts[0].Dye, PlayerItemSlotID.Loadout1_Dye_0);
+            }
+            if (player.Loadouts[1] != null)
+            {
+                SyncItems(player, player.Loadouts[1].Armor, PlayerItemSlotID.Loadout2_Armor_0);
+                SyncItems(player, player.Loadouts[1].Dye, PlayerItemSlotID.Loadout2_Dye_0);
+            }
+            if (player.Loadouts[2] != null)
+            {
+                SyncItems(player, player.Loadouts[2].Armor, PlayerItemSlotID.Loadout3_Armor_0);
+                SyncItems(player, player.Loadouts[2].Dye, PlayerItemSlotID.Loadout3_Dye_0);
+            }
         }
     }
 

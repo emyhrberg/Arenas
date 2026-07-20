@@ -23,14 +23,14 @@ internal sealed class ArenaGameManagerPanel : UIDraggablePanel
         Content.Append(new UIText("Round Controls", .85f)
         {
             Left = { Pixels = 11 },
-            Top = { Pixels = 7 },
+            Top = { Pixels = 11 },
             TextColor = new Color(255, 228, 140)
         });
 
         ArenaGameStatusPanel status = new()
         {
             Left = { Pixels = 10 },
-            Top = { Pixels = 28 },
+            Top = { Pixels = 32 },
             Width = { Pixels = -20, Percent = 1f },
             Height = { Pixels = 78 }
         };
@@ -79,14 +79,14 @@ internal sealed class ArenaGameManagerPanel : UIDraggablePanel
         Content.Append(new UIText("Team Balancing", .85f)
         {
             Left = { Pixels = 11 },
-            Top = { Pixels = 117 },
+            Top = { Pixels = 121 },
             TextColor = new Color(255, 228, 140)
         });
 
         ArenaTeamBalancePanel teams = new()
         {
             Left = { Pixels = 10 },
-            Top = { Pixels = 138 },
+            Top = { Pixels = 142 },
             Width = { Pixels = -20, Percent = 1f },
             Height = { Pixels = 103 }
         };

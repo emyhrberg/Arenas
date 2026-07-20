@@ -107,7 +107,7 @@ internal sealed class ArenaSpawnBoxWorld : ModSystem
             DrawAreaBorder(Main.spriteBatch, manager.CurrentLayout.ArenaBounds,
                 ArenaColor, .55f, ArenaSpawnBoxes.Thickness * (int)TileSize);
             DrawAreaBorder(Main.spriteBatch, manager.CurrentLayout.BossBounds,
-                BossColor, 1f, 2);
+                BossColor, 1f, ArenaSpawnBoxes.Thickness * (int)TileSize);
             DrawAreaBorder(Main.spriteBatch, ArenaSpawnBoxes.RedTileArea,
                 Main.teamColor[(int)Team.Red], .88f, ArenaSpawnBoxes.Thickness * (int)TileSize);
             DrawAreaBorder(Main.spriteBatch, ArenaSpawnBoxes.BlueTileArea,
@@ -210,7 +210,7 @@ internal sealed class ArenaSpawnBoxMap : ModMapLayer
         DrawMapArea(ref context, manager.CurrentLayout.ArenaBounds,
             new Color(255, 196, 72) * .55f, 2);
         DrawMapArea(ref context, manager.CurrentLayout.BossBounds,
-            new Color(255, 132, 24), 1);
+            new Color(255, 132, 24), 2);
     }
 
     private static void DrawMapArea(ref MapOverlayDrawContext context, Rectangle tileArea,

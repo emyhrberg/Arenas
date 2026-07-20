@@ -249,6 +249,7 @@ internal sealed class RoundManager : ModSystem
 
     private void StartIntermission()
     {
+        ArenaPlayer.ReleaseAll();
         TeamBalancer.AssignUnassignedPlayers();
         if (!TeamBalancer.AllActivePlayersAssigned())
         {
