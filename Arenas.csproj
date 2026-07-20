@@ -14,11 +14,6 @@
 		<ProjectReference Include="..\PvPFramework\PvPFramework.csproj" />
 		<ProjectReference Include="..\PvPHub\PvPHub.csproj" />
 
-		<!-- Add subworld library for subworld arenas-->
-		<Reference Include="SubworldLibrary">
-			<HintPath>lib\SubworldLibrary.dll</HintPath>
-		</Reference>
-
 	</ItemGroup>
 
 	<!-- Makes use of Krafs Publicizer when compiling tModLoader.dll, making all access modifiers public -->

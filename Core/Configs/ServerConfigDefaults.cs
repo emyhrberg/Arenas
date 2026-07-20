@@ -13,52 +13,32 @@ internal static class ServerConfigDefaults
         new()
         {
             Boss = new NPCDefinition(NPCID.KingSlime),
-            ArenaGenerator = ArenaGeneratorKind.KingSlimeSurface,
             MaxHealth = 200,
             MaxMana = 100,
-            RoundDurationSeconds = 300,
             Loadout = CreatePreBoss()
         },
         new()
         {
             Boss = new NPCDefinition(NPCID.EyeofCthulhu),
-            ArenaGenerator = ArenaGeneratorKind.EyeSurface,
             MaxHealth = 200,
             MaxMana = 100,
-            RoundDurationSeconds = 300,
-            Time = FightTime.Night,
             Loadout = CreatePreBoss()
         },
         new()
         {
             Boss = new NPCDefinition(NPCID.Plantera),
-            ArenaGenerator = ArenaGeneratorKind.PlanteraJungle,
             MaxHealth = 500,
             MaxMana = 200,
-            RoundDurationSeconds = 600,
             Loadout = CreatePostMech()
         },
         new()
         {
             Boss = new NPCDefinition(NPCID.Golem),
-            ArenaGenerator = ArenaGeneratorKind.GolemTemple,
             MaxHealth = 500,
             MaxMana = 200,
-            RoundDurationSeconds = 600,
             Loadout = CreatePostPlantera()
-        },
-        CreateSandboxPreset()
+        }
     ];
-
-    internal static BossFightPreset CreateSandboxPreset() => new()
-    {
-        Boss = new NPCDefinition(NPCID.None),
-        ArenaGenerator = ArenaGeneratorKind.SandboxWorld,
-        MaxHealth = 500,
-        MaxMana = 200,
-        RoundDurationSeconds = 600,
-        Loadout = new Loadout()
-    };
 
     #region Progression loadouts
 

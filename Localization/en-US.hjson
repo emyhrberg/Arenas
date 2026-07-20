@@ -29,7 +29,7 @@ Mods: {
 
 				Headers: {
 					BossFights: Boss Fights
-					RoundTiming: Round Timing
+					RoundTime: Round Time
 				}
 
 				FightPresets: {

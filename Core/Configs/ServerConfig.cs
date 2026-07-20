@@ -20,7 +20,11 @@ internal sealed class ServerConfig : ModConfig
     //[CustomModConfigItem(typeof(FightPresetListElement))]
     public List<BossFightPreset> FightPresets = ServerConfigDefaults.CreateFightPresets();
 
-    [Header("RoundTiming")]
+    [Header("RoundTime")]
+
+    [ConfigIcon(ItemID.Stopwatch), DefaultValue(600), Range(1, 3600)]
+    public int RoundDurationSeconds = 600;
+
     [ConfigIcon("IconCheckOn", "IconCheckOff", grayWhenOff: true)]
     [DefaultValue(true)]
     public bool UseFreezeCountdown;
@@ -43,26 +47,18 @@ internal sealed class ServerConfig : ModConfig
         [ConfigIcon(ItemID.SuspiciousLookingEye)]
         public NPCDefinition Boss = new();
 
-        [ConfigIcon(ItemID.DirtBlock), DefaultValue(ArenaGeneratorKind.Auto)]
-        public ArenaGeneratorKind ArenaGenerator = ArenaGeneratorKind.Auto;
-
         [ConfigIcon(ItemID.LifeCrystal), DefaultValue(500), Range(1, 10000)]
-        public int MaxHealth = 500;
+        public int MaxHealth;
 
         [ConfigIcon(ItemID.ManaCrystal), DefaultValue(200), Range(0, 1000)]
-        public int MaxMana = 200;
+        public int MaxMana;
 
-        [ConfigIcon(ItemID.Stopwatch), DefaultValue(600), Range(1, 3600)]
-        public int RoundDurationSeconds = 600;
+        [ConfigIcon(ItemID.GoldChest)]
+        public Loadout Loadout = new();
 
         [ConfigIcon("IconGem"), DefaultValue(25), Range(0, 10000)]
         public int VictoryGemReward = 25;
 
-        [ConfigIcon(ItemID.GoldWatch), DefaultValue(FightTime.Unchanged)]
-        public FightTime Time = FightTime.Unchanged;
-
-        [ConfigIcon(ItemID.GoldChest)]
-        public Loadout Loadout = new();
     }
 
     #endregion
@@ -83,11 +79,6 @@ internal sealed class ServerConfig : ModConfig
 
     private void EnsureSandboxPreset()
     {
-        FightPresets ??= [];
-        if (!FightPresets.Exists(preset => preset?.ArenaGenerator == ArenaGeneratorKind.SandboxWorld))
-        {
-            FightPresets.Add(ServerConfigDefaults.CreateSandboxPreset());
-            Log.Debug("[SandboxConfig] Added the built-in Sandbox preset to the loaded server config.");
-        }
+        // TODO
     }
 }

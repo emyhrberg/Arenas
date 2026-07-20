@@ -1,5 +1,6 @@
 using Arenas.Common.DataStructures.LoadoutItems;
 using Arenas.Core.Configs;
+using PvPFramework.Core.Configs.ConfigElements;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
