@@ -30,6 +30,7 @@ Mods: {
 				Headers: {
 					BossFights: Boss Fights
 					RoundTime: Round Time
+					GemRewards: Gem Rewards Header
 				}
 
 				FightPresets: {
@@ -50,6 +51,16 @@ Mods: {
 				VotingDurationSeconds: {
 					Label: Voting Duration
 					Tooltip: Time to pick the next fight
+				}
+
+				RoundDurationSeconds: {
+					Label: Round Duration Seconds
+					Tooltip: ""
+				}
+
+				VictoryGemReward: {
+					Label: Victory Gem Reward
+					Tooltip: ""
 				}
 			}
 
@@ -93,6 +104,21 @@ Mods: {
 
 				VictoryGemReward: {
 					Label: Victory Gem Reward
+					Tooltip: ""
+				}
+
+				ArenaKind: {
+					Label: Arena Kind
+					Tooltip: ""
+				}
+
+				ArenaWidthTiles: {
+					Label: Arena Width Tiles
+					Tooltip: ""
+				}
+
+				ArenaHeightTiles: {
+					Label: Arena Height Tiles
 					Tooltip: ""
 				}
 			}
@@ -246,6 +272,25 @@ Mods: {
 
 				Mount: {
 					Label: Mount
+					Tooltip: ""
+				}
+			}
+
+			ArenaKind: {
+				Tooltip: ""
+
+				WorldCenterSurface: {
+					Label: World Center Surface
+					Tooltip: ""
+				}
+
+				UndergroundJungle: {
+					Label: Underground Jungle
+					Tooltip: ""
+				}
+
+				JungleTemple: {
+					Label: Jungle Temple
 					Tooltip: ""
 				}
 			}

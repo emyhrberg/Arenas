@@ -13,6 +13,9 @@ internal static class ServerConfigDefaults
         new()
         {
             Boss = new NPCDefinition(NPCID.KingSlime),
+            ArenaKind = ArenaKind.WorldCenterSurface,
+            ArenaWidthTiles = 400,
+            ArenaHeightTiles = 200,
             MaxHealth = 200,
             MaxMana = 100,
             Loadout = CreatePreBoss()
@@ -20,27 +23,36 @@ internal static class ServerConfigDefaults
         new()
         {
             Boss = new NPCDefinition(NPCID.EyeofCthulhu),
-            MaxHealth = 200,
+            ArenaKind = ArenaKind.WorldCenterSurface,
+            ArenaWidthTiles = 400,
+            ArenaHeightTiles = 200,
+            MaxHealth = 240,
             MaxMana = 100,
             Loadout = CreatePreBoss()
         },
         new()
         {
             Boss = new NPCDefinition(NPCID.Plantera),
-            MaxHealth = 500,
-            MaxMana = 200,
+            ArenaKind = ArenaKind.UndergroundJungle,
+            ArenaWidthTiles = 400,
+            ArenaHeightTiles = 200,
+            MaxHealth = 400,
+            MaxMana = 180,
             Loadout = CreatePostMech()
         },
         new()
         {
             Boss = new NPCDefinition(NPCID.Golem),
+            ArenaKind = ArenaKind.JungleTemple,
+            ArenaWidthTiles = 400,
+            ArenaHeightTiles = 200,
             MaxHealth = 500,
             MaxMana = 200,
             Loadout = CreatePostPlantera()
         }
     ];
 
-    #region Progression loadouts
+    #region EJ + Progression loadouts
 
     // Progression-stage loadouts. Gear per stage follows speedrunner metas and the
     // community class-setup consensus for 1.4.4: each loadout only contains items
@@ -69,19 +81,19 @@ internal static class ServerConfigDefaults
         [
             Item(ItemID.EnchantedSword),
             Item(ItemID.Starfury),
-            Item(ItemID.BladeofGrass),
+            Item(ItemID.PlatinumBroadsword),
             Item(ItemID.Grenade, 9999),
             Item(ItemID.Minishark),
             Item(ItemID.Boomstick),
             Item(ItemID.MusketBall, 9999),
             Item(ItemID.PlatinumBow),
-            Item(ItemID.FrostburnArrow, 9999),
+            Item(ItemID.WoodenArrow, 9999),
             Item(ItemID.JestersArrow, 9999),
             Item(ItemID.DemonScythe),
             Item(ItemID.DiamondStaff),
             Item(ItemID.SpaceGun),
             Item(ItemID.FlinxStaff),
-            Item(ItemID.ThornWhip),
+            Item(ItemID.BlandWhip),
             Item(ItemID.PlatinumPickaxe),
             Item(ItemID.HealingPotion, 9999),
             Item(ItemID.IronskinPotion, 999),
@@ -105,160 +117,6 @@ internal static class ServerConfigDefaults
             Item(ItemID.WoodPlatform, 9999)
         ]
     };
-
-    #region Deprecated loadouts
-
-    // End of pre-hardmode, tuned for Wall of Flesh. Evolves "molten warrior":
-    // Night's Edge (1.4.4 buff), Star Cannon / Phoenix Blaster / Hellwing Bow,
-    // Beenades, Obsidian whip-summoner set, dynamite bridge tools.
-    private static Loadout CreatePreHardmode() => new()
-    {
-        Armor = new()
-        {
-            Head = Def(ItemID.MoltenHelmet),
-            Body = Def(ItemID.MoltenBreastplate),
-            Legs = Def(ItemID.MoltenGreaves)
-        },
-        Accessories = new()
-        {
-            Accessory1 = Def(ItemID.TerrasparkBoots),
-            Accessory2 = Def(ItemID.EoCShield),
-            Accessory3 = Def(ItemID.BundleofBalloons),
-            Accessory4 = Def(ItemID.ObsidianShield),
-            Accessory5 = Def(ItemID.FeralClaws)
-        },
-        Equipment = new()
-        {
-            GrapplingHook = Def(ItemID.DiamondHook),
-            Mount = Def(ItemID.SlimySaddle)
-        },
-        Inventory =
-        [
-            Item(ItemID.NightsEdge),
-            Item(ItemID.Sunfury),
-            Item(ItemID.DarkLance),
-            Item(ItemID.Cascade),
-            Item(ItemID.PhoenixBlaster),
-            Item(ItemID.MeteorShot, 9999),
-            Item(ItemID.StarCannon),
-            Item(ItemID.FallenStar, 9999),
-            Item(ItemID.HellwingBow),
-            Item(ItemID.MoltenFury),
-            Item(ItemID.HellfireArrow, 9999),
-            Item(ItemID.QuadBarrelShotgun),
-            Item(ItemID.Beenade, 9999),
-            Item(ItemID.DemonScythe),
-            Item(ItemID.WaterBolt),
-            Item(ItemID.Flamelash),
-            Item(ItemID.ImpStaff),
-            Item(ItemID.BoneWhip),
-            Item(ItemID.ThornWhip),
-            Item(ItemID.ObsidianHelm),
-            Item(ItemID.ObsidianShirt),
-            Item(ItemID.ObsidianPants),
-            Item(ItemID.MoltenPickaxe),
-            Item(ItemID.HealingPotion, 9999),
-            Item(ItemID.IronskinPotion, 999),
-            Item(ItemID.RegenerationPotion, 999),
-            Item(ItemID.SwiftnessPotion, 999),
-            Item(ItemID.EndurancePotion, 999),
-            Item(ItemID.ArcheryPotion, 999),
-            Item(ItemID.ObsidianSkinPotion, 999),
-            Item(ItemID.Ale, 999),
-            Item(ItemID.Bomb, 999),
-            Item(ItemID.Dynamite, 999),
-            Item(ItemID.LavaBucket),
-            Item(ItemID.HoneyBucket),
-            Item(ItemID.WormScarf),
-            Item(ItemID.Binoculars),
-            Item(ItemID.Campfire, 999),
-            Item(ItemID.HeartLantern, 999),
-            Item(ItemID.Torch, 9999),
-            Item(ItemID.Glowstick, 9999),
-            Item(ItemID.StoneBlock, 9999),
-            Item(ItemID.Wood, 9999),
-            Item(ItemID.WoodPlatform, 9999)
-        ]
-    };
-
-    // Early hardmode, tuned for the mechanical bosses. Daedalus Stormbow + Holy
-    // Arrows (the Destroyer melter), Onyx Blaster, Fetid Baghnakhs, Blade Staff /
-    // Sanguine Staff, Frost armor with a Spider set swap.
-    private static Loadout CreateMechanical() => new()
-    {
-        Armor = new()
-        {
-            Head = Def(ItemID.FrostHelmet),
-            Body = Def(ItemID.FrostBreastplate),
-            Legs = Def(ItemID.FrostLeggings)
-        },
-        Accessories = new()
-        {
-            Accessory1 = Def(ItemID.FrozenWings),
-            Accessory2 = Def(ItemID.TerrasparkBoots),
-            Accessory3 = Def(ItemID.MagicQuiver),
-            Accessory4 = Def(ItemID.RangerEmblem),
-            Accessory5 = Def(ItemID.StarVeil)
-        },
-        Equipment = new()
-        {
-            GrapplingHook = Def(ItemID.QueenSlimeHook),
-            Mount = Def(ItemID.QueenSlimeMountSaddle)
-        },
-        Inventory =
-        [
-            Item(ItemID.DaedalusStormbow),
-            Item(ItemID.HolyArrow, 9999),
-            Item(ItemID.IchorArrow, 9999),
-            Item(ItemID.OnyxBlaster),
-            Item(ItemID.CrystalBullet, 9999),
-            Item(ItemID.IchorBullet, 9999),
-            Item(ItemID.Uzi),
-            Item(ItemID.ShadowFlameKnife),
-            Item(ItemID.FetidBaghnakhs),
-            Item(ItemID.Amarok),
-            Item(ItemID.GoldenShower),
-            Item(ItemID.CrystalSerpent),
-            Item(ItemID.SkyFracture),
-            Item(ItemID.MeteorStaff),
-            Item(ItemID.NimbusRod),
-            Item(ItemID.Smolstar),
-            Item(ItemID.SanguineStaff),
-            Item(ItemID.FireWhip),
-            Item(ItemID.CoolWhip),
-            Item(ItemID.SpiderMask),
-            Item(ItemID.SpiderBreastplate),
-            Item(ItemID.SpiderGreaves),
-            Item(ItemID.TitaniumPickaxe),
-            Item(ItemID.GreaterHealingPotion, 9999),
-            Item(ItemID.GreaterManaPotion, 9999),
-            Item(ItemID.IronskinPotion, 999),
-            Item(ItemID.RegenerationPotion, 999),
-            Item(ItemID.SwiftnessPotion, 999),
-            Item(ItemID.EndurancePotion, 999),
-            Item(ItemID.WrathPotion, 999),
-            Item(ItemID.RagePotion, 999),
-            Item(ItemID.ArcheryPotion, 999),
-            Item(ItemID.MagicPowerPotion, 999),
-            Item(ItemID.SummoningPotion, 999),
-            Item(ItemID.LifeforcePotion, 999),
-            Item(ItemID.PumpkinPie, 999),
-            Item(ItemID.CharmofMyths),
-            Item(ItemID.WormScarf),
-            Item(ItemID.Binoculars),
-            Item(ItemID.IceRod),
-            Item(ItemID.HoneyBucket),
-            Item(ItemID.Campfire, 999),
-            Item(ItemID.HeartLantern, 999),
-            Item(ItemID.Torch, 9999),
-            Item(ItemID.Glowstick, 9999),
-            Item(ItemID.StoneBlock, 9999),
-            Item(ItemID.Wood, 9999),
-            Item(ItemID.WoodPlatform, 9999)
-        ]
-    };
-
-    #endregion
 
     // All mechs down, tuned for Plantera. Hallowed armor (Holy Protection dodge)
     // with the 1.4.4 post-mech Terra Blade, Megashark/Shotbow + ichor, Optic
@@ -415,8 +273,159 @@ internal static class ServerConfigDefaults
             Item(ItemID.WoodPlatform, 9999)
         ]
     };
+    #endregion
 
-    #region Deprecated loadouts
+    #region Deprecated generated loadouts
+
+    // End of pre-hardmode, tuned for Wall of Flesh. Evolves "molten warrior":
+    // Night's Edge (1.4.4 buff), Star Cannon / Phoenix Blaster / Hellwing Bow,
+    // Beenades, Obsidian whip-summoner set, dynamite bridge tools.
+    private static Loadout CreatePreHardmode() => new()
+    {
+        Armor = new()
+        {
+            Head = Def(ItemID.MoltenHelmet),
+            Body = Def(ItemID.MoltenBreastplate),
+            Legs = Def(ItemID.MoltenGreaves)
+        },
+        Accessories = new()
+        {
+            Accessory1 = Def(ItemID.TerrasparkBoots),
+            Accessory2 = Def(ItemID.EoCShield),
+            Accessory3 = Def(ItemID.BundleofBalloons),
+            Accessory4 = Def(ItemID.ObsidianShield),
+            Accessory5 = Def(ItemID.FeralClaws)
+        },
+        Equipment = new()
+        {
+            GrapplingHook = Def(ItemID.DiamondHook),
+            Mount = Def(ItemID.SlimySaddle)
+        },
+        Inventory =
+        [
+            Item(ItemID.NightsEdge),
+            Item(ItemID.Sunfury),
+            Item(ItemID.DarkLance),
+            Item(ItemID.Cascade),
+            Item(ItemID.PhoenixBlaster),
+            Item(ItemID.MeteorShot, 9999),
+            Item(ItemID.StarCannon),
+            Item(ItemID.FallenStar, 9999),
+            Item(ItemID.HellwingBow),
+            Item(ItemID.MoltenFury),
+            Item(ItemID.HellfireArrow, 9999),
+            Item(ItemID.QuadBarrelShotgun),
+            Item(ItemID.Beenade, 9999),
+            Item(ItemID.DemonScythe),
+            Item(ItemID.WaterBolt),
+            Item(ItemID.Flamelash),
+            Item(ItemID.ImpStaff),
+            Item(ItemID.BoneWhip),
+            Item(ItemID.ThornWhip),
+            Item(ItemID.ObsidianHelm),
+            Item(ItemID.ObsidianShirt),
+            Item(ItemID.ObsidianPants),
+            Item(ItemID.MoltenPickaxe),
+            Item(ItemID.HealingPotion, 9999),
+            Item(ItemID.IronskinPotion, 999),
+            Item(ItemID.RegenerationPotion, 999),
+            Item(ItemID.SwiftnessPotion, 999),
+            Item(ItemID.EndurancePotion, 999),
+            Item(ItemID.ArcheryPotion, 999),
+            Item(ItemID.ObsidianSkinPotion, 999),
+            Item(ItemID.Ale, 999),
+            Item(ItemID.Bomb, 999),
+            Item(ItemID.Dynamite, 999),
+            Item(ItemID.LavaBucket),
+            Item(ItemID.HoneyBucket),
+            Item(ItemID.WormScarf),
+            Item(ItemID.Binoculars),
+            Item(ItemID.Campfire, 999),
+            Item(ItemID.HeartLantern, 999),
+            Item(ItemID.Torch, 9999),
+            Item(ItemID.Glowstick, 9999),
+            Item(ItemID.StoneBlock, 9999),
+            Item(ItemID.Wood, 9999),
+            Item(ItemID.WoodPlatform, 9999)
+        ]
+    };
+
+    // Early hardmode, tuned for the mechanical bosses. Daedalus Stormbow + Holy
+    // Arrows (the Destroyer melter), Onyx Blaster, Fetid Baghnakhs, Blade Staff /
+    // Sanguine Staff, Frost armor with a Spider set swap.
+    private static Loadout CreateMechanical() => new()
+    {
+        Armor = new()
+        {
+            Head = Def(ItemID.FrostHelmet),
+            Body = Def(ItemID.FrostBreastplate),
+            Legs = Def(ItemID.FrostLeggings)
+        },
+        Accessories = new()
+        {
+            Accessory1 = Def(ItemID.FrozenWings),
+            Accessory2 = Def(ItemID.TerrasparkBoots),
+            Accessory3 = Def(ItemID.MagicQuiver),
+            Accessory4 = Def(ItemID.RangerEmblem),
+            Accessory5 = Def(ItemID.StarVeil)
+        },
+        Equipment = new()
+        {
+            GrapplingHook = Def(ItemID.QueenSlimeHook),
+            Mount = Def(ItemID.QueenSlimeMountSaddle)
+        },
+        Inventory =
+        [
+            Item(ItemID.DaedalusStormbow),
+            Item(ItemID.HolyArrow, 9999),
+            Item(ItemID.IchorArrow, 9999),
+            Item(ItemID.OnyxBlaster),
+            Item(ItemID.CrystalBullet, 9999),
+            Item(ItemID.IchorBullet, 9999),
+            Item(ItemID.Uzi),
+            Item(ItemID.ShadowFlameKnife),
+            Item(ItemID.FetidBaghnakhs),
+            Item(ItemID.Amarok),
+            Item(ItemID.GoldenShower),
+            Item(ItemID.CrystalSerpent),
+            Item(ItemID.SkyFracture),
+            Item(ItemID.MeteorStaff),
+            Item(ItemID.NimbusRod),
+            Item(ItemID.Smolstar),
+            Item(ItemID.SanguineStaff),
+            Item(ItemID.FireWhip),
+            Item(ItemID.CoolWhip),
+            Item(ItemID.SpiderMask),
+            Item(ItemID.SpiderBreastplate),
+            Item(ItemID.SpiderGreaves),
+            Item(ItemID.TitaniumPickaxe),
+            Item(ItemID.GreaterHealingPotion, 9999),
+            Item(ItemID.GreaterManaPotion, 9999),
+            Item(ItemID.IronskinPotion, 999),
+            Item(ItemID.RegenerationPotion, 999),
+            Item(ItemID.SwiftnessPotion, 999),
+            Item(ItemID.EndurancePotion, 999),
+            Item(ItemID.WrathPotion, 999),
+            Item(ItemID.RagePotion, 999),
+            Item(ItemID.ArcheryPotion, 999),
+            Item(ItemID.MagicPowerPotion, 999),
+            Item(ItemID.SummoningPotion, 999),
+            Item(ItemID.LifeforcePotion, 999),
+            Item(ItemID.PumpkinPie, 999),
+            Item(ItemID.CharmofMyths),
+            Item(ItemID.WormScarf),
+            Item(ItemID.Binoculars),
+            Item(ItemID.IceRod),
+            Item(ItemID.HoneyBucket),
+            Item(ItemID.Campfire, 999),
+            Item(ItemID.HeartLantern, 999),
+            Item(ItemID.Torch, 9999),
+            Item(ItemID.Glowstick, 9999),
+            Item(ItemID.StoneBlock, 9999),
+            Item(ItemID.Wood, 9999),
+            Item(ItemID.WoodPlatform, 9999)
+        ]
+    };
 
     // Post-Moon Lord. Zenith, SDMG + luminite, Phantasm + ichor (the speedrun
     // Moon Lord killer), Last Prism, Terraprisma + Kaleidoscope, Vortex/Nebula
@@ -496,15 +505,10 @@ internal static class ServerConfigDefaults
             Item(ItemID.WoodPlatform, 9999)
         ]
     };
-
     #endregion
 
-    #endregion
 
-    private static ItemDefinition Def(int type) => new(type);
-    private static LoadoutItem Item(int type, int stack = 1) => new() { Item = Def(type), Stack = stack };
-
-    #region Deprecated loadouts
+    #region Deprecated (PvPAdventure 4 loadouts)
 
     private static Loadout CreateMagician() => new()
     {
@@ -718,5 +722,10 @@ internal static class ServerConfigDefaults
         ]
     };
 
+    #endregion
+
+    #region Helpers
+    private static ItemDefinition Def(int type) => new(type);
+    private static LoadoutItem Item(int type, int stack = 1) => new() { Item = Def(type), Stack = stack };
     #endregion
 }

@@ -25,42 +25,20 @@ internal sealed class ServerConfig : ModConfig
     [ConfigIcon(ItemID.Stopwatch), DefaultValue(600), Range(1, 3600)]
     public int RoundDurationSeconds = 600;
 
-    [ConfigIcon("IconCheckOn", "IconCheckOff", grayWhenOff: true)]
-    [DefaultValue(true)]
-    public bool UseFreezeCountdown;
-
-    [RequiresField(nameof(UseFreezeCountdown))]
-    [ConfigIcon(ItemID.IceRod)]
+    [ConfigIcon(ItemID.Stopwatch)]
     [DefaultValue(10)]
     [Range(0, 300)]
-    public int FreezeCountdownSeconds;
+    public int FreezeCountdownSeconds = 10;
 
     [ConfigIcon(ItemID.Stopwatch)]
     [DefaultValue(30)]
     [Range(5, 300)]
-    public int VotingDurationSeconds;
-    #endregion
+    public int VotingDurationSeconds = 30;
 
-    #region NestedConfigTypes
-    public sealed class BossFightPreset
-    {
-        [ConfigIcon(ItemID.SuspiciousLookingEye)]
-        public NPCDefinition Boss = new();
+    [Header("GemRewards")]
 
-        [ConfigIcon(ItemID.LifeCrystal), DefaultValue(500), Range(1, 10000)]
-        public int MaxHealth;
-
-        [ConfigIcon(ItemID.ManaCrystal), DefaultValue(200), Range(0, 1000)]
-        public int MaxMana;
-
-        [ConfigIcon(ItemID.GoldChest)]
-        public Loadout Loadout = new();
-
-        [ConfigIcon("IconGem"), DefaultValue(25), Range(0, 10000)]
-        public int VictoryGemReward = 25;
-
-    }
-
+    [ConfigIcon(nameof(Ass.IconGem)), DefaultValue(25), Range(0, 150)]
+    public int VictoryGemReward = 25;
     #endregion
 
     #region Hooks
