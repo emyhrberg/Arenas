@@ -1,6 +1,7 @@
 using Arenas.Common.DataStructures;
 using PvPFramework.Common.Scoreboard;
 using System;
+using System.Linq;
 using Terraria.DataStructures;
 using Terraria.Enums;
 using Terraria.ID;
@@ -13,6 +14,8 @@ internal sealed class ArenaPlayer : ModPlayer
 {
     private bool roundPrepared;
     private bool arenaSpawnActive;
+
+    internal FightPresets.ArenaClass SelectedClass;
 
     internal long BossDamage { get; private set; }
 
@@ -111,6 +114,10 @@ internal sealed class ArenaPlayer : ModPlayer
         if (player?.active != true || preset == null || layout == null)
             return;
 
+        Log.Chat($"[Loadout] Preparing {player.name} (team {(Team)player.team}) for "
+            + $"{Lang.GetNPCNameValue(preset.Boss?.Type ?? 0)}: config loadout has "
+            + $"{preset.Loadout?.Inventory?.Count ?? -1} inventory entries.");
+
         RoundManager.SendArenaSections(player, layout);
 
         if (player.dead)
@@ -141,6 +148,7 @@ internal sealed class ArenaPlayer : ModPlayer
 
             ArenaPlayer arenaPlayer = player.GetModPlayer<ArenaPlayer>();
             arenaPlayer.roundPrepared = false;
+            arenaPlayer.SelectedClass = FightPresets.ArenaClass.None;
             arenaPlayer.ResetArenaSpawn();
             ClearCarriedItems(player, sync: Main.netMode == NetmodeID.Server);
             if (player.hostile && (Team)player.team is Team.Red or Team.Blue)
@@ -324,11 +332,49 @@ internal sealed class ArenaPlayer : ModPlayer
         Player.SpawnY = -1;
     }
 
+    /// <summary>Client request to swap to a class kit during Generating/FreezeCountdown.</summary>
+    internal static void RequestClassSelect(FightPresets.ArenaClass arenaClass)
+    {
+        if (Main.netMode == NetmodeID.MultiplayerClient)
+        {
+            ModPacket packet = ModContent.GetInstance<Arenas>().GetPacket();
+            packet.Write((byte)Arenas.PacketType.SelectClass);
+            packet.Write((byte)arenaClass);
+            packet.Send();
+            return;
+        }
+
+        HandleClassSelect(Main.myPlayer, (byte)arenaClass);
+    }
+
+    internal static void HandleClassSelect(int playerId, byte classId)
+    {
+        if (Main.netMode == NetmodeID.MultiplayerClient)
+            return;
+
+        RoundManager manager = ModContent.GetInstance<RoundManager>();
+        if (manager.CurrentPhase is not (RoundManager.RoundPhase.Generating or RoundManager.RoundPhase.FreezeCountdown))
+            return;
+        if (playerId < 0 || playerId >= Main.maxPlayers || Main.player[playerId]?.active != true)
+            return;
+        if (!manager.TryGetSelectedPreset(out BossFightPreset preset) || !FightPresets.PostMechKits.Supports(preset))
+            return;
+
+        FightPresets.ArenaClass arenaClass = (FightPresets.ArenaClass)classId;
+        if (!Enum.IsDefined(arenaClass) || arenaClass == FightPresets.ArenaClass.None)
+            return;
+
+        Player player = Main.player[playerId];
+        player.GetModPlayer<ArenaPlayer>().SelectedClass = arenaClass;
+        ApplyLoadout(player, preset);
+        Log.Chat($"[Loadout] {player.name} selected the {arenaClass} kit.");
+    }
+
     private static void ApplyLoadout(Player player, BossFightPreset preset)
     {
         ClearCarriedItems(player, sync: false);
 
-        Loadout loadout = preset.Loadout ?? new Loadout();
+        Loadout loadout = ResolveLoadout(preset, player);
         ItemDefinition[] equipped =
         [
             loadout.Armor?.Head,
@@ -367,12 +413,77 @@ internal sealed class ArenaPlayer : ModPlayer
         player.statLife = player.statLifeMax;
         player.statMana = player.statManaMax;
 
+        Log.Chat($"[Loadout] Applied to {player.name}: {CountNonAir(player.inventory)} inventory items, "
+            + $"armor '{player.armor[0].Name}'/'{player.armor[1].Name}'/'{player.armor[2].Name}', "
+            + $"hook '{player.miscEquips[4].Name}'.");
+
         if (Main.netMode != NetmodeID.Server)
             return;
 
         SyncEquipment(player);
         NetMessage.SendData(MessageID.PlayerLifeMana, number: player.whoAmI);
         NetMessage.SendData(MessageID.PlayerMana, number: player.whoAmI);
+    }
+
+    /// <summary>
+    /// Returns the preset's configured loadout, or the built-in default for the same boss when the
+    /// configured one is completely empty (typically a stale ServerConfig json saved before the
+    /// loadout schema moved; the empty saved list overrides the code defaults on deserialization).
+    /// </summary>
+    /// <summary>Per-player resolution: the player's chosen class kit wins when the preset supports kits.</summary>
+    internal static Loadout ResolveLoadout(BossFightPreset preset, Player player)
+    {
+        if (player != null && FightPresets.PostMechKits.Supports(preset))
+        {
+            Loadout kit = FightPresets.PostMechKits.Create(player.GetModPlayer<ArenaPlayer>().SelectedClass);
+            if (kit != null)
+                return kit;
+        }
+
+        return ResolveLoadout(preset);
+    }
+
+    internal static Loadout ResolveLoadout(BossFightPreset preset)
+    {
+        if (!IsLoadoutEmpty(preset.Loadout))
+            return preset.Loadout;
+
+        Log.Chat($"[Loadout] WARNING: the {Lang.GetNPCNameValue(preset.Boss?.Type ?? 0)} preset has an "
+            + "EMPTY loadout in ServerConfig; applying the built-in default instead. Reset the Arenas "
+            + "server config (or delete its json) to fix the saved presets.");
+
+        var defaults = FightPresets.CreateFightPresets();
+        Loadout fallback = defaults.FirstOrDefault(entry => entry?.Boss?.Type == preset.Boss?.Type)?.Loadout
+            ?? defaults.FirstOrDefault()?.Loadout;
+        return fallback ?? new Loadout();
+    }
+
+    private static bool IsLoadoutEmpty(Loadout loadout)
+    {
+        if (loadout == null)
+            return true;
+
+        bool anyEquipped = (loadout.Armor?.Head?.Type ?? 0) > 0
+            || (loadout.Armor?.Body?.Type ?? 0) > 0
+            || (loadout.Armor?.Legs?.Type ?? 0) > 0
+            || (loadout.Accessories?.Accessory1?.Type ?? 0) > 0
+            || (loadout.Accessories?.Accessory2?.Type ?? 0) > 0
+            || (loadout.Accessories?.Accessory3?.Type ?? 0) > 0
+            || (loadout.Accessories?.Accessory4?.Type ?? 0) > 0
+            || (loadout.Accessories?.Accessory5?.Type ?? 0) > 0
+            || (loadout.Equipment?.GrapplingHook?.Type ?? 0) > 0
+            || (loadout.Equipment?.Mount?.Type ?? 0) > 0;
+        bool anyItems = loadout.Inventory?.Any(entry => entry?.Item?.Type > 0) == true;
+        return !anyEquipped && !anyItems;
+    }
+
+    private static int CountNonAir(Item[] items)
+    {
+        int count = 0;
+        foreach (Item item in items)
+            if (item?.IsAir == false)
+                count++;
+        return count;
     }
 
     private static void Teleport(Player player, Point tile)

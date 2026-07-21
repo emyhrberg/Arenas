@@ -301,6 +301,7 @@ internal sealed class RoundManager : ModSystem
         }
 
         currentLayout = layout;
+        ArenaBorder.ClearSpawnBoxes(currentLayout);
         foreach (Player player in participants)
             ArenaPlayer.Prepare(player, preset, currentLayout);
 
@@ -401,16 +402,16 @@ internal sealed class RoundManager : ModSystem
         Log.Info($"[M2-Phase] {oldPhase} -> {newPhase}; ticks={remainingTicks}, preset={selectedPresetIndex}, players={players}.");
         UpdateFreezeTime(newPhase != RoundPhase.Playing);
         if (Main.netMode == NetmodeID.SinglePlayer)
-            AnnouncePhaseChange(oldPhase, newPhase, remainingTicks, wasIdleHeld, idleHeld);
+            AnnouncePhaseChange(oldPhase, newPhase, wasIdleHeld, idleHeld, SelectedBossType);
         SyncState();
     }
 
     private static void AnnouncePhaseChange(
         RoundPhase oldPhase,
         RoundPhase newPhase,
-        int ticks,
         bool wasIdleHeld,
-        bool isIdleHeld)
+        bool isIdleHeld,
+        int bossType)
     {
         if (Main.dedServ)
             return;
@@ -419,15 +420,62 @@ internal sealed class RoundManager : ModSystem
             Main.NewText("Game has ended!", Color.Lerp(Color.Gold, Color.LightGoldenrodYellow, .35f));
 
         if (newPhase == RoundPhase.FreezeCountdown && oldPhase != RoundPhase.FreezeCountdown)
-        {
-            int seconds = Math.Max(1, (ticks + TicksPerSecond - 1) / TicksPerSecond);
-            Main.NewText($"Game starting in {seconds} seconds", Color.Lerp(Color.LimeGreen, Color.Aquamarine, .3f));
-        }
+            Main.NewText(BossGradient(ArenaAnnouncement(bossType)), new Color(175, 75, 255));
 
         if (newPhase == RoundPhase.WaitingForPlayers
             && (oldPhase != RoundPhase.WaitingForPlayers || isIdleHeld != wasIdleHeld))
             Main.NewText("Idle", Color.Lerp(Color.LightGray, Color.LightSteelBlue, .45f));
     }
+
+    /// <summary>
+    /// Wraps each character in a chat color tag running light purple -> vanilla boss purple -> dark purple.
+    /// The edges follow a light-to-dark lerp while a sine weight pulls the center to the vanilla boss color.
+    /// </summary>
+    private static string BossGradient(string text)
+    {
+        Color light = new(225, 180, 255), bossPurple = new(175, 75, 255), dark = new(94, 27, 158);
+        System.Text.StringBuilder builder = new(text.Length * 12);
+        float lastIndex = Math.Max(1, text.Length - 1);
+        for (int i = 0; i < text.Length; i++)
+        {
+            char letter = text[i];
+            if (char.IsWhiteSpace(letter))
+            {
+                builder.Append(letter);
+                continue;
+            }
+
+            float progress = i / lastIndex;
+            Color edge = Color.Lerp(light, dark, progress);
+            Color color = Color.Lerp(edge, bossPurple, MathF.Sin(MathF.PI * progress));
+            builder.Append($"[c/{color.R:X2}{color.G:X2}{color.B:X2}:{letter}]");
+        }
+
+        return builder.ToString();
+    }
+
+    private static string ArenaAnnouncement(int bossType) => bossType switch
+    {
+        NPCID.KingSlime => "The ground squelches... the King Slime Arena is awakening!",
+        NPCID.EyeofCthulhu => "You feel an evil presence watching the arena...",
+        NPCID.EaterofWorldsHead => "A horrible chill crawls through the corrupted arena...",
+        NPCID.BrainofCthulhu => "Screams echo across the crimson arena...",
+        NPCID.QueenBee => "The hive stirs... the Queen Bee Arena is buzzing to life!",
+        NPCID.SkeletronHead => "The cursed bones of the dungeon rattle around the arena...",
+        NPCID.Deerclops => "A howling blizzard sweeps over the Deerclops Arena...",
+        NPCID.WallofFlesh => "The underworld trembles... the Wall of Flesh Arena is rising!",
+        NPCID.QueenSlimeBoss => "The hallowed gel crystallizes... the Queen Slime Arena shimmers awake!",
+        NPCID.Retinazer or NPCID.Spazmatism => "This is going to be a terrible night in the arena...",
+        NPCID.TheDestroyer => "You feel vibrations from deep below the arena...",
+        NPCID.SkeletronPrime => "The air is getting colder around the arena...",
+        NPCID.Plantera => "The jungle grows restless... the Plantera Arena blooms!",
+        NPCID.Golem => "The altar glows... the Golem Arena rumbles to life!",
+        NPCID.DukeFishron => "The tide churns... Duke Fishron circles the arena!",
+        NPCID.HallowBoss => "A shimmering radiance descends upon the arena...",
+        NPCID.CultistBoss => "Fanatics gather at the edge of the arena...",
+        NPCID.MoonLordCore => "Impending doom approaches the arena...",
+        _ => $"The {Lang.GetNPCNameValue(bossType)} Arena is awakening..."
+    };
 
     private void TickClientTimer()
     {
@@ -506,6 +554,6 @@ internal sealed class RoundManager : ModSystem
         idleHeld = reader.ReadBoolean();
         selectedPresetIndex = reader.ReadInt32();
         currentLayout = reader.ReadBoolean() ? ArenaLayout.Read(reader) : null;
-        AnnouncePhaseChange(oldPhase, currentPhase, remainingTicks, wasIdleHeld, idleHeld);
+        AnnouncePhaseChange(oldPhase, currentPhase, wasIdleHeld, idleHeld, SelectedBossType);
     }
 }

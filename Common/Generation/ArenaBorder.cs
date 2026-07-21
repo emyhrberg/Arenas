@@ -1,13 +1,33 @@
 using Arenas.Common.DataStructures;
+using Arenas.Common.Game;
 using System;
 using Terraria.ID;
 
 namespace Arenas.Common.Generation;
 
-/// <summary>Places the solid Lihzahrd Brick frame around a resolved arena during the Generating phase.</summary>
+/// <summary>Performs and synchronizes server-side arena tile preparation.</summary>
 internal static class ArenaBorder
 {
     internal const int Thickness = 3;
+    private const int SpawnClearPadding = 3;
+
+    internal static void ClearSpawnBoxes(ArenaLayout layout)
+    {
+        if (Main.netMode == NetmodeID.MultiplayerClient || layout == null)
+            return;
+
+        Rectangle red = SpawnClearArea(layout.RedSpawnBox);
+        Rectangle blue = SpawnClearArea(layout.BlueSpawnBox);
+        int cleared = ClearArea(red) + ClearArea(blue);
+
+        FrameArea(red);
+        FrameArea(blue);
+        SyncArea(red);
+        SyncArea(blue);
+
+        Log.Info($"Cleared {cleared} occupied spawn-area cells; red={red}, blue={blue}, "
+            + $"visual border plus {SpawnClearPadding}-tile padding, walls preserved.");
+    }
 
     internal static void Place(ArenaLayout layout)
     {
@@ -39,6 +59,65 @@ internal static class ArenaBorder
         Sync(outer);
         Log.Info($"Placed the {Thickness}-tile Lihzahrd Brick arena border around {bounds}.");
         */
+    }
+
+    private static Rectangle SpawnClearArea(Rectangle spawnBox)
+    {
+        Rectangle area = ArenaSpawnBoxes.BorderOuterTileArea(spawnBox);
+        area.Inflate(SpawnClearPadding, SpawnClearPadding);
+        return Rectangle.Intersect(area,
+            new Rectangle(5, 5, Math.Max(0, Main.maxTilesX - 10), Math.Max(0, Main.maxTilesY - 10)));
+    }
+
+    private static int ClearArea(Rectangle area)
+    {
+        int changed = 0;
+        for (int x = area.Left; x < area.Right; x++)
+        for (int y = area.Top; y < area.Bottom; y++)
+        {
+            Tile tile = Main.tile[x, y];
+            bool occupied = tile.HasTile || tile.LiquidAmount > 0 || tile.RedWire || tile.BlueWire
+                || tile.GreenWire || tile.YellowWire || tile.HasActuator || tile.IsActuated;
+
+            // Let vanilla remove multi-tile registrations such as chests and tile
+            // entities, then force-clear protected terrain without dropping items.
+            if (tile.HasTile)
+                WorldGen.KillTile(x, y, noItem: true);
+
+            tile.ClearTile();
+            tile.ClearBlockPaintAndCoating();
+            tile.RedWire = false;
+            tile.BlueWire = false;
+            tile.GreenWire = false;
+            tile.YellowWire = false;
+            tile.HasActuator = false;
+            tile.IsActuated = false;
+            tile.LiquidAmount = 0;
+            tile.LiquidType = LiquidID.Water;
+
+            if (occupied)
+                changed++;
+        }
+
+        return changed;
+    }
+
+    private static void FrameArea(Rectangle area)
+    {
+        Rectangle framing = area;
+        framing.Inflate(1, 1);
+        for (int x = framing.Left; x < framing.Right; x++)
+            for (int y = framing.Top; y < framing.Bottom; y++)
+                if (WorldGen.InWorld(x, y, 5))
+                    WorldGen.TileFrame(x, y, resetFrame: true);
+    }
+
+    private static void SyncArea(Rectangle area)
+    {
+        if (Main.netMode != NetmodeID.Server)
+            return;
+
+        SendStrip(area.Left - 1, area.Top - 1, area.Width + 2, area.Height + 2);
     }
 
     private static void Frame(Rectangle outer, Rectangle bounds)

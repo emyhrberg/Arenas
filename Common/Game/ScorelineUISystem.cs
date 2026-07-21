@@ -47,7 +47,10 @@ internal sealed class ScorelineUISystem : ModSystem
         if (manager.CurrentPhase == RoundManager.RoundPhase.VotingOrEndScreen)
             BossVoteDrawer.Draw(110);
         if (manager.CurrentPhase == RoundManager.RoundPhase.FreezeCountdown)
+        {
             DrawCenterCountdown(manager);
+            LoadoutPreviewDrawer.Draw(StatusHeight + 40);
+        }
 
         if (!ModContent.GetInstance<ClientConfig>().ShowTopScoreboard)
             return true;

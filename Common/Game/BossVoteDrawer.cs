@@ -19,6 +19,8 @@ internal static class BossVoteDrawer
     private static readonly Color DarkEdge = new(6, 12, 38), Yellow = new(246, 216, 72), HoverEdge = new(244, 209, 74), Selected = new(104, 222, 72);
     private static Texture2D PanelBackground => Main.Assets.Request<Texture2D>("Images/UI/PanelBackground").Value;
     private static Texture2D PanelBorder => Main.Assets.Request<Texture2D>("Images/UI/PanelBorder").Value;
+    private static UIEntranceAnimation entrance;
+    private static float animAlpha = 1f;
 
     public static void Draw(int top = 120)
     {
@@ -26,6 +28,10 @@ internal static class BossVoteDrawer
         if (presets.Count == 0) return;
         BossVoteSystem voteSystem = ModContent.GetInstance<BossVoteSystem>();
         RoundManager manager = ModContent.GetInstance<RoundManager>();
+
+        entrance.Advance();
+        animAlpha = entrance.Alpha;
+        top -= entrance.SlideOffset;
 
         int designHeight = HeaderHeight + presets.Count * RowHeight + Math.Max(0, presets.Count - 1) * RowGap + BottomPadding;
         float scale = Math.Min(1f, Math.Min((Main.screenWidth - 12f) / DesignWidth, (Main.screenHeight - top - 2f) / designHeight));
@@ -36,7 +42,7 @@ internal static class BossVoteDrawer
         DrawPanel(panel, PanelFill, PanelEdge, S(9));
 
         Utils.DrawBorderStringBig(Main.spriteBatch, "Boss Vote",
-            new Vector2(panel.Center.X, panel.Y + S(4)), Yellow, .68f * scale, .5f, 0f);
+            new Vector2(panel.Center.X, panel.Y + S(4)), Yellow * animAlpha, .68f * scale, .5f, 0f);
         Text("Choose the next boss - majority wins!", new Vector2(panel.Center.X, panel.Y + S(38)),
             Color.White, .78f * scale, panel.Width - S(28));
 
@@ -62,7 +68,7 @@ internal static class BossVoteDrawer
 
             Rectangle icon = new(row.X + S(8), row.Y + S(5), S(36), S(36));
             DrawPanel(icon, new Color(34, 49, 111), DarkEdge, S(5));
-            DrawBossHead(presets[i].Preset.Boss?.Type ?? 0, icon);
+            DrawBossHead(presets[i].Preset.Boss?.Type ?? 0, icon, animAlpha);
             DrawVoteState(icon, selected, hover, scale);
 
             Color nameColor = selected ? new Color(206, 255, 142) : hover ? Yellow : Color.White;
@@ -97,20 +103,20 @@ internal static class BossVoteDrawer
             Color team = player.team > 0 && player.team < Main.teamColor.Length ? Main.teamColor[player.team] : Color.Gray;
             DrawPanel(tile, Color.Lerp(player.shirtColor, team, .25f), DarkEdge, s(5));
             ErkySSCCompat.DrawUnfilteredPlayerHead(player,
-                tile.Center.ToVector2() - new Vector2(2f, 2f), 1f, .5f * scale, team);
+                tile.Center.ToVector2() - new Vector2(2f, 2f), animAlpha, .5f * scale, team * animAlpha);
             if (tile.Contains(mouse)) { Main.LocalPlayer.mouseInterface = true; Main.instance.MouseText(player.name); }
         }
     }
 
     private static void DrawProgressBar(Rectangle track, float progress)
     {
-        UISlider.DrawBar(Main.spriteBatch, Ass.Slider.Value, track, new Color(5, 10, 35));
-        UISlider.DrawBar(Main.spriteBatch, Ass.SliderHighlight.Value, track, DarkEdge);
+        UISlider.DrawBar(Main.spriteBatch, Ass.Slider.Value, track, new Color(5, 10, 35) * animAlpha);
+        UISlider.DrawBar(Main.spriteBatch, Ass.SliderHighlight.Value, track, DarkEdge * animAlpha);
         Rectangle inner = track; inner.Inflate(-4, -4);
         int width = (int)MathF.Round(inner.Width * progress); if (width <= 0) return;
         Rectangle fill = new(inner.X, inner.Y, Math.Min(inner.Width, Math.Max(12, width)), inner.Height);
-        UISlider.DrawBar(Main.spriteBatch, Ass.Slider.Value, fill, Yellow);
-        UISlider.DrawBar(Main.spriteBatch, Ass.SliderHighlight.Value, fill, new Color(255, 239, 145));
+        UISlider.DrawBar(Main.spriteBatch, Ass.Slider.Value, fill, Yellow * animAlpha);
+        UISlider.DrawBar(Main.spriteBatch, Ass.SliderHighlight.Value, fill, new Color(255, 239, 145) * animAlpha);
     }
 
     internal static void DrawBossHead(int type, Rectangle box, float opacity = 1f)
@@ -142,19 +148,19 @@ internal static class BossVoteDrawer
     {
         Texture2D texture = (selected ? hover ? Ass.IconCheckOnHover : Ass.IconCheckOn : hover ? Ass.IconCheckOffHover : Ass.IconCheckOff).Value;
         float drawScale = Math.Max(.75f, scale);
-        Main.spriteBatch.Draw(texture, new Vector2(icon.Right - texture.Width * drawScale, icon.Bottom - texture.Height * drawScale), null, Color.White, 0f, Vector2.Zero, drawScale, SpriteEffects.None, 0f);
+        Main.spriteBatch.Draw(texture, new Vector2(icon.Right - texture.Width * drawScale, icon.Bottom - texture.Height * drawScale), null, Color.White * animAlpha, 0f, Vector2.Zero, drawScale, SpriteEffects.None, 0f);
     }
 
     private static void DrawPanel(Rectangle rectangle, Color fill, Color edge, int corner)
     {
-        Utils.DrawSplicedPanel(Main.spriteBatch, PanelBackground, rectangle.X, rectangle.Y, rectangle.Width, rectangle.Height, corner, corner, corner, corner, fill);
-        Utils.DrawSplicedPanel(Main.spriteBatch, PanelBorder, rectangle.X, rectangle.Y, rectangle.Width, rectangle.Height, corner, corner, corner, corner, edge);
+        Utils.DrawSplicedPanel(Main.spriteBatch, PanelBackground, rectangle.X, rectangle.Y, rectangle.Width, rectangle.Height, corner, corner, corner, corner, fill * animAlpha);
+        Utils.DrawSplicedPanel(Main.spriteBatch, PanelBorder, rectangle.X, rectangle.Y, rectangle.Width, rectangle.Height, corner, corner, corner, corner, edge * animAlpha);
     }
 
     internal static void Text(string value, Vector2 position, Color color, float scale, float maxWidth, float anchor = .5f)
     {
         float width = FontAssets.MouseText.Value.MeasureString(value).X * scale;
         if (width > maxWidth) scale *= maxWidth / width;
-        Utils.DrawBorderString(Main.spriteBatch, value, position, color, scale, anchor);
+        Utils.DrawBorderString(Main.spriteBatch, value, position, color * animAlpha, scale, anchor);
     }
 }

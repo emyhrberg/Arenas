@@ -26,6 +26,7 @@ internal sealed class BossManager : ModSystem
     private int missingTicks;
     private Rectangle roundArea;
     private Rectangle bossArea;
+    private bool loggedGolemDistanceRecovery;
 
     internal int BossIndex => bossIndex;
 
@@ -34,6 +35,7 @@ internal sealed class BossManager : ModSystem
         TeamBossNPC.BossDefeatedByTeam += OnBossDefeatedByTeam;
         TeamBossNPC.BossDamageDealt += OnBossDamageDealt;
         On_NPC.TargetClosest += OnTargetClosest;
+        On_NPC.AI_045_Golem += OnGolemAI;
     }
 
     public override void Unload()
@@ -41,6 +43,7 @@ internal sealed class BossManager : ModSystem
         TeamBossNPC.BossDefeatedByTeam -= OnBossDefeatedByTeam;
         TeamBossNPC.BossDamageDealt -= OnBossDamageDealt;
         On_NPC.TargetClosest -= OnTargetClosest;
+        On_NPC.AI_045_Golem -= OnGolemAI;
     }
 
     internal bool TrySpawn(BossFightPreset preset, ArenaLayout layout)
@@ -66,13 +69,18 @@ internal sealed class BossManager : ModSystem
         bossIndex = index;
         bossType = preset.Boss.Type;
         missingTicks = 0;
+        loggedGolemDistanceRecovery = false;
         NPC boss = Main.npc[index];
-        int target = FindTarget(boss, bossArea);
+        int graceSeconds = Math.Clamp(preset.GracePeriodSeconds, 0, 300);
+        boss.GetGlobalNPC<BossGraceNPC>().Begin(boss, graceSeconds);
+        int target = FindManagedTarget(boss);
         boss.target = target >= 0 ? target : Main.maxPlayers;
         boss.timeLeft = Math.Max(boss.timeLeft, 3600);
         boss.netAlways = true;
         boss.netUpdate = true;
-        Log.Info($"Spawned round boss type={bossType}, index={bossIndex}, tile={spawn}.");
+        if (Main.netMode == NetmodeID.Server)
+            NetMessage.SendData(MessageID.SyncNPC, number: bossIndex);
+        Log.Info($"Spawned round boss type={bossType}, index={bossIndex}, tile={spawn}, grace={graceSeconds}s.");
         return true;
     }
 
@@ -82,7 +90,7 @@ internal sealed class BossManager : ModSystem
         {
             MaintainBossEnvironment();
             missingTicks = 0;
-            int target = FindTarget(boss, bossArea);
+            int target = FindManagedTarget(boss);
             boss.target = target >= 0 ? target : Main.maxPlayers;
             ContainBoss(boss);
             boss.timeLeft = Math.Max(boss.timeLeft, 3600);
@@ -120,6 +128,7 @@ internal sealed class BossManager : ModSystem
         bossIndex = -1;
         bossType = 0;
         missingTicks = 0;
+        loggedGolemDistanceRecovery = false;
         roundArea = Rectangle.Empty;
         bossArea = Rectangle.Empty;
     }
@@ -208,6 +217,19 @@ internal sealed class BossManager : ModSystem
         return target;
     }
 
+    private int FindManagedTarget(NPC npc)
+    {
+        int target = FindTarget(npc, bossArea);
+
+        // A 400-tile arena places Golem more than its hard-coded 3,000-pixel
+        // despawn distance from both edge spawns. Give only Golem a full-arena
+        // fallback target; its position is still clamped to bossArea below.
+        if (target < 0 && bossType == NPCID.Golem)
+            target = FindTarget(npc, roundArea);
+
+        return target;
+    }
+
     private void OnTargetClosest(On_NPC.orig_TargetClosest orig, NPC npc, bool faceTarget)
     {
         if (!IsOwnedBoss(npc) || bossArea.Width <= 0 || bossArea.Height <= 0)
@@ -216,7 +238,7 @@ internal sealed class BossManager : ModSystem
             return;
         }
 
-        int target = FindTarget(npc, bossArea);
+        int target = FindManagedTarget(npc);
         npc.target = target >= 0 ? target : Main.maxPlayers;
         if (!faceTarget || target < 0)
             return;
@@ -224,6 +246,61 @@ internal sealed class BossManager : ModSystem
         Player player = Main.player[target];
         npc.direction = npc.Center.X < player.Center.X ? 1 : -1;
         npc.directionY = npc.Center.Y < player.Center.Y ? 1 : -1;
+    }
+
+    private void OnGolemAI(On_NPC.orig_AI_045_Golem orig, NPC npc)
+    {
+        bool ownedRoundGolem = IsManagedRoundGolem(npc);
+
+        orig(npc);
+
+        // Vanilla Golem directly sets active=false when its Manhattan distance
+        // from its target remains above 3,000 pixels. timeLeft cannot prevent it.
+        // Arenas owns round completion, so keep a living managed Golem active.
+        if (!ownedRoundGolem || npc.active || npc.life <= 0)
+            return;
+
+        npc.active = true;
+        npc.timeLeft = Math.Max(npc.timeLeft, 3600);
+
+        if (Main.netMode != NetmodeID.MultiplayerClient)
+        {
+            int target = FindManagedTarget(npc);
+            npc.target = target >= 0 ? target : Main.maxPlayers;
+        }
+
+        if (loggedGolemDistanceRecovery)
+            return;
+
+        loggedGolemDistanceRecovery = true;
+        if (Main.netMode == NetmodeID.MultiplayerClient)
+            return;
+
+        npc.netUpdate = true;
+        Log.Info("Prevented the round Golem's vanilla 3,000-pixel target-distance despawn.");
+    }
+
+    private bool IsManagedRoundGolem(NPC npc)
+    {
+        if (npc?.type != NPCID.Golem || npc.life <= 0)
+            return false;
+
+        if (Main.netMode != NetmodeID.MultiplayerClient)
+            return IsOwnedBoss(npc);
+
+        // bossIndex is server-owned. Clients identify the synchronized round body
+        // by the active preset and its contained position so they suppress the
+        // same vanilla deactivation locally instead of flickering between syncs.
+        RoundManager manager = ModContent.GetInstance<RoundManager>();
+        ArenaLayout layout = manager.CurrentLayout;
+        if (manager.CurrentPhase != RoundManager.RoundPhase.Playing
+            || manager.SelectedBossType != NPCID.Golem || layout == null)
+            return false;
+
+        Rectangle bounds = layout.BossBounds;
+        Rectangle worldBounds = new(bounds.X * 16, bounds.Y * 16,
+            bounds.Width * 16, bounds.Height * 16);
+        return worldBounds.Intersects(npc.Hitbox);
     }
 
     private void ContainBoss(NPC boss)

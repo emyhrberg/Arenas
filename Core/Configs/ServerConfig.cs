@@ -17,7 +17,7 @@ internal sealed class ServerConfig : ModConfig
     [Header("BossFights")]
     [Expand(true)]
     [CustomModConfigItem(typeof(BossFightPresetListElement))]
-    public List<BossFightPreset> FightPresets = ServerConfigDefaults.CreateFightPresets();
+    public List<BossFightPreset> FightPresets = Common.DataStructures.FightPresets.CreateFightPresets();
 
     [Header("RoundTime")]
 

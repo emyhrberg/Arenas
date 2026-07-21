@@ -11,7 +11,8 @@ public sealed class Arenas : Mod
     internal enum PacketType : byte
     {
         CastVote,
-        AdminRoundAction
+        AdminRoundAction,
+        SelectClass
     }
 
     public override void HandlePacket(BinaryReader reader, int whoAmI)
@@ -37,6 +38,10 @@ public sealed class Arenas : Mod
                 }
 
                 ModContent.GetInstance<RoundManager>().ExecuteAdminAction(action, whoAmI);
+                break;
+
+            case PacketType.SelectClass:
+                ArenaPlayer.HandleClassSelect(whoAmI, reader.ReadByte());
                 break;
         }
     }

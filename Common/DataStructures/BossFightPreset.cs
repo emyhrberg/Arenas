@@ -22,5 +22,8 @@ internal sealed class BossFightPreset
     [DefaultValue(200), Range(0, 200)]
     public int MaxMana = 200;
 
+    [DefaultValue(5), Range(0, 300)]
+    public int GracePeriodSeconds = 5;
+
     public Loadout Loadout = new();
 }

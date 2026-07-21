@@ -87,6 +87,11 @@ Mods: {
 					Tooltip: Player mana
 				}
 
+				GracePeriodSeconds: {
+					Label: Boss Grace Period
+					Tooltip: Seconds after spawning before the boss can move, attack, or take damage
+				}
+
 				RoundDurationSeconds: {
 					Label: Battle Time
 					Tooltip: Battle time
