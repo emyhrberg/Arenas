@@ -13,269 +13,159 @@ internal static class FightPresets
         {
             Boss = new NPCDefinition(NPCID.KingSlime),
             ArenaKind = ArenaKind.WorldCenterSurface,
-            ArenaWidthTiles = 200,
-            ArenaHeightTiles = 100,
+            ArenaWidthTiles = 400,
+            ArenaHeightTiles = 200,
             MaxHealth = 200,
             MaxMana = 100,
-            Loadout = CreatePreBoss()
+            Loadouts = CreatePreBossLoadouts()
         },
         new()
         {
             Boss = new NPCDefinition(NPCID.EyeofCthulhu),
             ArenaKind = ArenaKind.WorldCenterSurface,
-            ArenaWidthTiles = 200,
-            ArenaHeightTiles = 100,
+            ArenaWidthTiles = 400,
+            ArenaHeightTiles = 200,
             MaxHealth = 240,
             MaxMana = 100,
-            Loadout = CreatePreBoss()
+            Loadouts = CreatePreBossLoadouts()
         },
         new()
         {
             Boss = new NPCDefinition(NPCID.Plantera),
             ArenaKind = ArenaKind.UndergroundJungle,
-            ArenaWidthTiles = 200,
-            ArenaHeightTiles = 100,
+            ArenaWidthTiles = 400,
+            ArenaHeightTiles = 200,
             MaxHealth = 400,
             MaxMana = 180,
-            Loadout = CreatePostMech()
+            Loadouts = CreatePostMechLoadouts()
         },
         new()
         {
             Boss = new NPCDefinition(NPCID.Golem),
             ArenaKind = ArenaKind.JungleTemple,
-            ArenaWidthTiles = 200,
-            ArenaHeightTiles = 100,
+            ArenaWidthTiles = 400,
+            ArenaHeightTiles = 200,
             MaxHealth = 500,
             MaxMana = 200,
-            Loadout = CreatePostPlantera()
+            Loadouts = CreatePostPlanteraLoadouts()
         }
     ];
 
-    #region EJ + Progression loadouts
+    #region Pre-Hardmode loadouts
 
-    // Progression-stage loadouts. Gear per stage follows speedrunner metas and the
-    // community class-setup consensus for 1.4.4: each loadout only contains items
-    // obtainable BEFORE the bosses of its stage (so it is fair for fighting them).
+    private static List<ArenaLoadoutOption> CreatePreBossLoadouts() =>
+    [
+        new()
+        {
+            Name = "Molten Warrior",
+            Loadout = CreateMoltenWarrior()
+        },
+        new()
+        {
+            Name = "Meteor Mage",
+            Loadout = CreateMeteorMage()
+        }
+    ];
 
-    // No bosses defeated. Grenades + Minishark/boomstick, Enchanted Sword/Starfury,
-    // Demon Scythe and the Magiluminescence movement meta.
-    private static Loadout CreatePreBoss() => new()
+    private static Loadout CreateMoltenWarrior() => new()
     {
         Armor = new()
         {
-            Head = Def(ItemID.PlatinumHelmet),
-            Body = Def(ItemID.PlatinumChainmail),
-            Legs = Def(ItemID.PlatinumGreaves)
+            Head = Def(ItemID.MoltenHelmet),
+            Body = Def(ItemID.MoltenBreastplate),
+            Legs = Def(ItemID.MoltenGreaves)
         },
         Accessories = new()
         {
             Accessory1 = Def(ItemID.HermesBoots),
             Accessory2 = Def(ItemID.CloudinaBottle),
-            Accessory3 = Def(ItemID.LuckyHorseshoe),
-            Accessory4 = Def(ItemID.SharkToothNecklace),
-            Accessory5 = Def(ItemID.Magiluminescence)
+            Accessory3 = Def(ItemID.EoCShield),
+            Accessory4 = Def(ItemID.BandofRegeneration),
+            Accessory5 = Def(ItemID.FeralClaws)
         },
-        Equipment = new() { GrapplingHook = Def(ItemID.DiamondHook) },
+        Equipment = new()
+        {
+            GrapplingHook = Def(ItemID.EmeraldHook)
+        },
         Inventory =
         [
-            Item(ItemID.EnchantedSword),
-            Item(ItemID.Starfury),
-            Item(ItemID.PlatinumBroadsword),
-            Item(ItemID.Grenade, 9999),
-            Item(ItemID.Minishark),
-            Item(ItemID.Boomstick),
-            Item(ItemID.MusketBall, 9999),
-            Item(ItemID.PlatinumBow),
-            Item(ItemID.WoodenArrow, 9999),
-            Item(ItemID.JestersArrow, 9999),
-            Item(ItemID.DemonScythe),
-            Item(ItemID.DiamondStaff),
-            Item(ItemID.SpaceGun),
-            Item(ItemID.FlinxStaff),
-            Item(ItemID.BlandWhip),
-            Item(ItemID.PlatinumPickaxe),
+            Item(ItemID.StoneBlock, 9999),
+            Item(ItemID.Binoculars),
+            Item(ItemID.Wood, 9999),
+            Item(ItemID.HoneyBucket),
+            Item(ItemID.LavaBucket),
+            Item(ItemID.FieryGreatsword),
+            Item(ItemID.Valor),
+            Item(ItemID.MoltenFury),
+            Item(ItemID.HellfireArrow, 9999),
             Item(ItemID.HealingPotion, 9999),
-            Item(ItemID.IronskinPotion, 999),
-            Item(ItemID.RegenerationPotion, 999),
-            Item(ItemID.SwiftnessPotion, 999),
-            Item(ItemID.ArcheryPotion, 999),
-            Item(ItemID.CookedFish, 999),
-            Item(ItemID.Bomb, 999),
-            Item(ItemID.MeteorHelmet),
-            Item(ItemID.MeteorSuit),
-            Item(ItemID.MeteorLeggings),
-            Item(ItemID.BandofRegeneration),
-            Item(ItemID.Binoculars),
-            Item(ItemID.HoneyBucket),
-            Item(ItemID.Campfire, 999),
-            Item(ItemID.HeartLantern, 999),
             Item(ItemID.Torch, 9999),
             Item(ItemID.Glowstick, 9999),
-            Item(ItemID.StoneBlock, 9999),
-            Item(ItemID.Wood, 9999),
-            Item(ItemID.WoodPlatform, 9999)
+            Item(ItemID.Bomb, 9999),
+            Item(ItemID.Ale, 9999),
+            Item(ItemID.MoltenPickaxe),
+            Item(ItemID.DarkLance),
+            Item(ItemID.Sunfury)
         ]
     };
 
-    // All mechs down, tuned for Plantera. Hallowed armor (Holy Protection dodge)
-    // with the 1.4.4 post-mech Terra Blade, Megashark/Shotbow + ichor, Optic
-    // Staff + Durendal, helmet swaps for every class.
-    private static Loadout CreatePostMech() => new()
+    /// <summary>
+    /// Pre-Hardmode mage loadout at approximately the same progression stage
+    /// as Molten Warrior. It uses Meteor armor for Space Gun efficiency while
+    /// also carrying late pre-Hardmode dungeon, jungle, underworld and bee weapons.
+    /// </summary>
+    private static Loadout CreateMeteorMage() => new()
     {
         Armor = new()
         {
-            Head = Def(ItemID.HallowedMask),
-            Body = Def(ItemID.HallowedPlateMail),
-            Legs = Def(ItemID.HallowedGreaves)
+            Head = Def(ItemID.MeteorHelmet),
+            Body = Def(ItemID.MeteorSuit),
+            Legs = Def(ItemID.MeteorLeggings)
         },
         Accessories = new()
         {
-            Accessory1 = Def(ItemID.FrozenWings),
-            Accessory2 = Def(ItemID.TerrasparkBoots),
-            Accessory3 = Def(ItemID.AvengerEmblem),
-            Accessory4 = Def(ItemID.AnkhShield),
-            Accessory5 = Def(ItemID.FireGauntlet)
+            Accessory1 = Def(ItemID.HermesBoots),
+            Accessory2 = Def(ItemID.CloudinaBottle),
+            Accessory3 = Def(ItemID.EoCShield),
+            Accessory4 = Def(ItemID.BandofStarpower),
+            Accessory5 = Def(ItemID.ManaFlower)
         },
         Equipment = new()
         {
-            GrapplingHook = Def(ItemID.DualHook),
-            Mount = Def(ItemID.QueenSlimeMountSaddle)
+            GrapplingHook = Def(ItemID.EmeraldHook)
         },
         Inventory =
         [
-            Item(ItemID.TerraBlade),
-            Item(ItemID.DeathSickle),
-            Item(ItemID.LightDisc),
-            Item(ItemID.Megashark),
-            Item(ItemID.ChlorophyteShotbow),
-            Item(ItemID.IchorBullet, 9999),
-            Item(ItemID.CrystalBullet, 9999),
-            Item(ItemID.HolyArrow, 9999),
-            Item(ItemID.IchorArrow, 9999),
-            Item(ItemID.DaedalusStormbow),
-            Item(ItemID.RainbowRod),
-            Item(ItemID.GoldenShower),
-            Item(ItemID.MagicalHarp),
-            Item(ItemID.NimbusRod),
-            Item(ItemID.OpticStaff),
-            Item(ItemID.SanguineStaff),
-            Item(ItemID.SwordWhip),
-            Item(ItemID.FireWhip),
-            Item(ItemID.HallowedHelmet),
-            Item(ItemID.HallowedHeadgear),
-            Item(ItemID.HallowedHood),
-            Item(ItemID.PickaxeAxe),
-            Item(ItemID.GreaterHealingPotion, 9999),
-            Item(ItemID.GreaterManaPotion, 9999),
-            Item(ItemID.IronskinPotion, 999),
-            Item(ItemID.RegenerationPotion, 999),
-            Item(ItemID.SwiftnessPotion, 999),
-            Item(ItemID.EndurancePotion, 999),
-            Item(ItemID.WrathPotion, 999),
-            Item(ItemID.RagePotion, 999),
-            Item(ItemID.ArcheryPotion, 999),
-            Item(ItemID.MagicPowerPotion, 999),
-            Item(ItemID.SummoningPotion, 999),
-            Item(ItemID.LifeforcePotion, 999),
-            Item(ItemID.FlaskofIchor, 999),
-            Item(ItemID.PumpkinPie, 999),
-            Item(ItemID.StarVeil),
-            Item(ItemID.MagicQuiver),
-            Item(ItemID.CharmofMyths),
+            Item(ItemID.StoneBlock, 9999),
             Item(ItemID.Binoculars),
-            Item(ItemID.IceRod),
+            Item(ItemID.Wood, 9999),
             Item(ItemID.HoneyBucket),
-            Item(ItemID.Campfire, 999),
-            Item(ItemID.HeartLantern, 999),
+            Item(ItemID.LavaBucket),
+
+            Item(ItemID.SpaceGun),
+            Item(ItemID.DemonScythe),
+            Item(ItemID.WaterBolt),
+            Item(ItemID.BeeGun),
+            Item(ItemID.Flamelash),
+            Item(ItemID.FlowerofFire),
+            Item(ItemID.AquaScepter),
+            Item(ItemID.MagicMissile),
+
+            Item(ItemID.ManaPotion, 9999),
+            Item(ItemID.HealingPotion, 9999),
             Item(ItemID.Torch, 9999),
             Item(ItemID.Glowstick, 9999),
-            Item(ItemID.StoneBlock, 9999),
-            Item(ItemID.Wood, 9999),
-            Item(ItemID.WoodPlatform, 9999)
+            Item(ItemID.Bomb, 9999),
+            Item(ItemID.MoltenPickaxe),
+            Item(ItemID.CrystalBall)
         ]
     };
 
-    // Post-Plantera, tuned for Golem / Duke / Empress / events. Shroomite +
-    // Tsunami/ichor, Vampire Knives sustain, Razorblade Typhoon, Dark Harvest /
-    // Morning Star whips, Spectre set swap.
-    private static Loadout CreatePostPlantera() => new()
-    {
-        Armor = new()
-        {
-            Head = Def(ItemID.ShroomiteHeadgear),
-            Body = Def(ItemID.ShroomiteBreastplate),
-            Legs = Def(ItemID.ShroomiteLeggings)
-        },
-        Accessories = new()
-        {
-            Accessory1 = Def(ItemID.Hoverboard),
-            Accessory2 = Def(ItemID.MasterNinjaGear),
-            Accessory3 = Def(ItemID.RangerEmblem),
-            Accessory4 = Def(ItemID.StalkersQuiver),
-            Accessory5 = Def(ItemID.AnkhShield)
-        },
-        Equipment = new()
-        {
-            GrapplingHook = Def(ItemID.DualHook),
-            Mount = Def(ItemID.QueenSlimeMountSaddle)
-        },
-        Inventory =
-        [
-            Item(ItemID.Tsunami),
-            Item(ItemID.IchorArrow, 9999),
-            Item(ItemID.HolyArrow, 9999),
-            Item(ItemID.SniperRifle),
-            Item(ItemID.TacticalShotgun),
-            Item(ItemID.VenusMagnum),
-            Item(ItemID.ChlorophyteBullet, 9999),
-            Item(ItemID.IchorBullet, 9999),
-            Item(ItemID.TerraBlade),
-            Item(ItemID.VampireKnives),
-            Item(ItemID.PaladinsHammer),
-            Item(ItemID.NorthPole),
-            Item(ItemID.RazorbladeTyphoon),
-            Item(ItemID.SpectreStaff),
-            Item(ItemID.DeadlySphereStaff),
-            Item(ItemID.ScytheWhip),
-            Item(ItemID.MaceWhip),
-            Item(ItemID.SpectreHood),
-            Item(ItemID.SpectreMask),
-            Item(ItemID.SpectreRobe),
-            Item(ItemID.SpectrePants),
-            Item(ItemID.ShroomiteDiggingClaw),
-            Item(ItemID.GreaterHealingPotion, 9999),
-            Item(ItemID.GreaterManaPotion, 9999),
-            Item(ItemID.IronskinPotion, 999),
-            Item(ItemID.RegenerationPotion, 999),
-            Item(ItemID.SwiftnessPotion, 999),
-            Item(ItemID.EndurancePotion, 999),
-            Item(ItemID.WrathPotion, 999),
-            Item(ItemID.RagePotion, 999),
-            Item(ItemID.ArcheryPotion, 999),
-            Item(ItemID.MagicPowerPotion, 999),
-            Item(ItemID.SummoningPotion, 999),
-            Item(ItemID.LifeforcePotion, 999),
-            Item(ItemID.FlaskofIchor, 999),
-            Item(ItemID.PumpkinPie, 999),
-            Item(ItemID.AvengerEmblem),
-            Item(ItemID.PaladinsShield),
-            Item(ItemID.CelestialEmblem),
-            Item(ItemID.Binoculars),
-            Item(ItemID.IceRod),
-            Item(ItemID.HoneyBucket),
-            Item(ItemID.Campfire, 999),
-            Item(ItemID.HeartLantern, 999),
-            Item(ItemID.Torch, 9999),
-            Item(ItemID.Glowstick, 9999),
-            Item(ItemID.StoneBlock, 9999),
-            Item(ItemID.Wood, 9999),
-            Item(ItemID.WoodPlatform, 9999)
-        ]
-    };
     #endregion
 
-    #region EJ Plantera class loadouts
-    internal static List<ArenaLoadoutOption> Create() =>
+    #region Post-mechanical-boss loadouts
+
+    private static List<ArenaLoadoutOption> CreatePostMechLoadouts() =>
     [
         new()
         {
@@ -299,7 +189,7 @@ internal static class FightPresets
         }
     ];
 
-    private static Loadout CreateMelee() => CreateBase(
+    private static Loadout CreateMelee() => CreatePostMechBase(
         ItemID.ChlorophyteMask,
         ItemID.ChlorophytePlateMail,
         ItemID.ChlorophyteGreaves,
@@ -316,7 +206,7 @@ internal static class FightPresets
             Item(ItemID.Ale, 9999)
         ]);
 
-    private static Loadout CreateRanger() => CreateBase(
+    private static Loadout CreateRanger() => CreatePostMechBase(
         ItemID.ChlorophyteHelmet,
         ItemID.ChlorophytePlateMail,
         ItemID.ChlorophyteGreaves,
@@ -338,7 +228,7 @@ internal static class FightPresets
             Item(ItemID.DartRifle)
         ]);
 
-    private static Loadout CreateMage() => CreateBase(
+    private static Loadout CreateMage() => CreatePostMechBase(
         ItemID.ChlorophyteHeadgear,
         ItemID.ChlorophytePlateMail,
         ItemID.ChlorophyteGreaves,
@@ -358,7 +248,7 @@ internal static class FightPresets
             Item(ItemID.MagicCuffs)
         ]);
 
-    private static Loadout CreateSummoner() => CreateBase(
+    private static Loadout CreateSummoner() => CreatePostMechBase(
         ItemID.ObsidianHelm,
         ItemID.ObsidianShirt,
         ItemID.ObsidianPants,
@@ -377,7 +267,7 @@ internal static class FightPresets
             Item(ItemID.Ale, 9999)
         ]);
 
-    private static Loadout CreateBase(
+    private static Loadout CreatePostMechBase(
         int head,
         int body,
         int legs,
@@ -409,6 +299,7 @@ internal static class FightPresets
             Inventory =
             [
                 .. classItems,
+
                 Item(ItemID.Binoculars),
                 Item(ItemID.Teacup, 9999),
                 Item(ItemID.IceRod),
@@ -434,226 +325,153 @@ internal static class FightPresets
 
         return loadout;
     }
+
     #endregion
 
-    #region Deprecated (PvPAdventure 4 loadouts)
+    #region Post-Plantera loadouts
 
-    //private static Loadout CreateMagician() => new()
-    //{
-    //    Armor = new()
-    //    {
-    //        Head = Def(ItemID.ChlorophyteHeadgear),
-    //        Body = Def(ItemID.AdamantiteBreastplate),
-    //        Legs = Def(ItemID.AncientBattleArmorPants)
-    //    },
-    //    Accessories = new()
-    //    {
-    //        Accessory1 = Def(ItemID.GhostWings),
-    //        Accessory2 = Def(ItemID.Tabi),
-    //        Accessory3 = Def(ItemID.SorcererEmblem),
-    //        Accessory4 = Def(ItemID.CelestialEmblem),
-    //        Accessory5 = Def(ItemID.WormScarf)
-    //    },
-    //    Equipment = new()
-    //    {
-    //        GrapplingHook = Def(ItemID.DualHook),
-    //        Mount = Def(ItemID.QueenSlimeMountSaddle)
-    //    },
-    //    Inventory =
-    //    [
-    //        Item(ItemID.StoneBlock, 9999),
-    //        Item(ItemID.SpectrePickaxe),
-    //        Item(ItemID.Binoculars),
-    //        Item(ItemID.IceRod),
-    //        Item(ItemID.HoneyBucket),
-    //        Item(ItemID.StaffofEarth),
-    //        Item(ItemID.RainbowRod),
-    //        Item(ItemID.MeteorStaff),
-    //        Item(ItemID.Torch, 9999),
-    //        Item(ItemID.Glowstick, 9999),
-    //        Item(ItemID.LunarCraftingStation),
-    //        Item(ItemID.GreaterHealingPotion, 1999),
-    //        Item(ItemID.LaserMachinegun),
-    //        Item(ItemID.NettleBurst),
-    //        Item(ItemID.FairyQueenMagicItem),
-    //        Item(ItemID.BubbleGun),
-    //        Item(ItemID.ChargedBlasterCannon),
-    //        Item(ItemID.GreaterManaPotion, 9999),
-    //        Item(ItemID.WoodPlatform, 9999),
-    //        Item(ItemID.Wood, 9999),
-    //        Item(ItemID.SpectreHood),
-    //        Item(ItemID.SpectreRobe),
-    //        Item(ItemID.SpectrePants),
-    //        Item(ItemID.SpectreMask),
-    //        Item(ItemID.ShadowbeamStaff),
-    //        Item(ItemID.HeatRay),
-    //        Item(ItemID.QueenSlimeMountSaddle),
-    //        Item(ItemID.ChlorophytePlateMail),
-    //        Item(ItemID.ChlorophyteGreaves),
-    //        Item(ItemID.CrystalBall),
-    //        Item(ItemID.Teacup, 9999),
-    //        Item(ItemID.HeartLantern, 1999)
-    //    ]
-    //};
+    private static List<ArenaLoadoutOption> CreatePostPlanteraLoadouts() =>
+    [
+        new()
+        {
+            Name = "Magician",
+            Loadout = CreateMagician()
+        },
+        new()
+        {
+            Name = "Warrior",
+            Loadout = CreateWarrior()
+        }
+    ];
 
-    //private static Loadout CreateWarrior() => new()
-    //{
-    //    Armor = new()
-    //    {
-    //        Head = Def(ItemID.ChlorophyteMask),
-    //        Body = Def(ItemID.ChlorophytePlateMail),
-    //        Legs = Def(ItemID.ChlorophyteGreaves)
-    //    },
-    //    Accessories = new()
-    //    {
-    //        Accessory1 = Def(ItemID.BeetleWings),
-    //        Accessory2 = Def(ItemID.Tabi),
-    //        Accessory3 = Def(ItemID.CelestialStone),
-    //        Accessory4 = Def(ItemID.FrozenTurtleShell),
-    //        Accessory5 = Def(ItemID.PaladinsShield)
-    //    },
-    //    Equipment = new()
-    //    {
-    //        GrapplingHook = Def(ItemID.DualHook),
-    //        Mount = Def(ItemID.QueenSlimeMountSaddle)
-    //    },
-    //    Inventory =
-    //    [
-    //        Item(ItemID.PaladinsHammer),
-    //        Item(ItemID.StoneBlock, 9999),
-    //        Item(ItemID.PickaxeAxe),
-    //        Item(ItemID.Binoculars),
-    //        Item(ItemID.Wood, 9999),
-    //        Item(ItemID.IceRod),
-    //        Item(ItemID.HoneyBucket),
-    //        Item(ItemID.Kraken),
-    //        Item(ItemID.ShadowJoustingLance),
-    //        Item(ItemID.LightDisc),
-    //        Item(ItemID.SniperRifle),
-    //        Item(ItemID.ShadowbeamStaff),
-    //        Item(ItemID.HighVelocityBullet, 9999),
-    //        Item(ItemID.GreaterHealingPotion, 8888),
-    //        Item(ItemID.Torch, 1888),
-    //        Item(ItemID.Glowstick, 1999),
-    //        Item(ItemID.MoneyTrough),
-    //        Item(ItemID.HeartLantern, 1999),
-    //        Item(ItemID.ChlorophytePartisan),
-    //        Item(ItemID.FireGauntlet),
-    //        Item(ItemID.Ale, 9999),
-    //        Item(ItemID.QueenSlimeMountSaddle),
-    //        Item(ItemID.Teacup, 1999),
-    //        Item(ItemID.BeetleHelmet),
-    //        Item(ItemID.BeetleScaleMail),
-    //        Item(ItemID.BeetleLeggings),
-    //        Item(ItemID.GolemFist)
-    //    ]
-    //};
+    private static Loadout CreateMagician() => new()
+    {
+        Armor = new()
+        {
+            Head = Def(ItemID.ChlorophyteHeadgear),
+            Body = Def(ItemID.AdamantiteBreastplate),
+            Legs = Def(ItemID.AncientBattleArmorPants)
+        },
+        Accessories = new()
+        {
+            Accessory1 = Def(ItemID.GhostWings),
+            Accessory2 = Def(ItemID.Tabi),
+            Accessory3 = Def(ItemID.SorcererEmblem),
+            Accessory4 = Def(ItemID.CelestialEmblem),
+            Accessory5 = Def(ItemID.WormScarf)
+        },
+        Equipment = new()
+        {
+            GrapplingHook = Def(ItemID.DualHook),
+            Mount = Def(ItemID.QueenSlimeMountSaddle)
+        },
+        Inventory =
+        [
+            Item(ItemID.StoneBlock, 9999),
+            Item(ItemID.SpectrePickaxe),
+            Item(ItemID.Binoculars),
+            Item(ItemID.IceRod),
+            Item(ItemID.HoneyBucket),
 
-    //private static Loadout CreateMoltenWarrior() => new()
-    //{
-    //    Armor = new()
-    //    {
-    //        Head = Def(ItemID.MoltenHelmet),
-    //        Body = Def(ItemID.MoltenBreastplate),
-    //        Legs = Def(ItemID.MoltenGreaves)
-    //    },
-    //    Accessories = new()
-    //    {
-    //        Accessory1 = Def(ItemID.HermesBoots),
-    //        Accessory2 = Def(ItemID.CloudinaBottle),
-    //        Accessory3 = Def(ItemID.EoCShield),
-    //        Accessory4 = Def(ItemID.BandofRegeneration),
-    //        Accessory5 = Def(ItemID.FeralClaws)
-    //    },
-    //    Equipment = new() { GrapplingHook = Def(ItemID.EmeraldHook) },
-    //    Inventory =
-    //    [
-    //        Item(ItemID.StoneBlock, 9999),
-    //        Item(ItemID.Binoculars),
-    //        Item(ItemID.Wood, 9999),
-    //        Item(ItemID.HoneyBucket),
-    //        Item(ItemID.LavaBucket),
-    //        Item(ItemID.FieryGreatsword),
-    //        Item(ItemID.Valor),
-    //        Item(ItemID.MoltenFury),
-    //        Item(ItemID.HellfireArrow, 9999),
-    //        Item(ItemID.HealingPotion, 9999),
-    //        Item(ItemID.Torch, 9999),
-    //        Item(ItemID.Glowstick),
-    //        Item(ItemID.Bomb, 9999),
-    //        Item(ItemID.Ale, 9999),
-    //        Item(ItemID.MoltenPickaxe),
-    //        Item(ItemID.DarkLance),
-    //        Item(ItemID.Sunfury)
-    //    ]
-    //};
+            Item(ItemID.StaffofEarth),
+            Item(ItemID.RainbowRod),
+            Item(ItemID.MeteorStaff),
+            Item(ItemID.LaserMachinegun),
+            Item(ItemID.NettleBurst),
+            Item(ItemID.FairyQueenMagicItem),
+            Item(ItemID.BubbleGun),
+            Item(ItemID.ChargedBlasterCannon),
+            Item(ItemID.ShadowbeamStaff),
+            Item(ItemID.HeatRay),
 
-    //private static Loadout CreateRanger2() => new()
-    //{
-    //    Armor = new()
-    //    {
-    //        Head = Def(ItemID.ChlorophyteHelmet),
-    //        Body = Def(ItemID.ChlorophytePlateMail),
-    //        Legs = Def(ItemID.ChlorophyteGreaves)
-    //    },
-    //    Accessories = new()
-    //    {
-    //        Accessory1 = Def(ItemID.RangerEmblem),
-    //        Accessory2 = Def(ItemID.GhostWings),
-    //        Accessory3 = Def(ItemID.Tabi),
-    //        Accessory4 = Def(ItemID.SniperScope),
-    //        Accessory5 = Def(ItemID.WormScarf)
-    //    },
-    //    Equipment = new()
-    //    {
-    //        GrapplingHook = Def(ItemID.WormHook),
-    //        Mount = Def(ItemID.QueenSlimeMountSaddle)
-    //    },
-    //    Inventory =
-    //    [
-    //        Item(ItemID.StoneBlock, 9999),
-    //        Item(ItemID.PickaxeAxe),
-    //        Item(ItemID.Binoculars),
-    //        Item(ItemID.Wood, 9999),
-    //        Item(ItemID.IceRod),
-    //        Item(ItemID.HoneyBucket),
-    //        Item(ItemID.SniperRifle),
-    //        Item(ItemID.HighVelocityBullet, 9999),
-    //        Item(ItemID.GreaterHealingPotion, 9999),
-    //        Item(ItemID.Torch, 9999),
-    //        Item(ItemID.Glowstick, 9999),
-    //        Item(ItemID.MoneyTrough),
-    //        Item(ItemID.HeartLantern, 9999),
-    //        Item(ItemID.StalkersQuiver),
-    //        Item(ItemID.PaladinsShield),
-    //        Item(ItemID.Stynger),
-    //        Item(ItemID.StyngerBolt, 9999),
-    //        Item(ItemID.Xenopopper),
-    //        Item(ItemID.ElectrosphereLauncher),
-    //        Item(ItemID.RocketLauncher),
-    //        Item(ItemID.MiniNukeII, 9999),
-    //        Item(ItemID.Tsunami),
-    //        Item(ItemID.VenomArrow, 9999),
-    //        Item(ItemID.VenusMagnum),
-    //        Item(ItemID.FairyQueenRangedItem),
-    //        Item(ItemID.WoodenArrow, 9999),
-    //        Item(ItemID.TacticalShotgun),
-    //        Item(ItemID.Sunflower),
-    //        Item(ItemID.AvengerEmblem),
-    //        Item(ItemID.ShroomiteHeadgear),
-    //        Item(ItemID.ShroomiteMask),
-    //        Item(ItemID.ShroomiteHelmet),
-    //        Item(ItemID.ShroomiteBreastplate),
-    //        Item(ItemID.ShroomiteLeggings),
-    //        Item(ItemID.QueenSlimeMountSaddle),
-    //        Item(ItemID.Teacup, 1999)
-    //    ]
-    //};
+            Item(ItemID.Torch, 9999),
+            Item(ItemID.Glowstick, 9999),
+            Item(ItemID.LunarCraftingStation),
+            Item(ItemID.GreaterHealingPotion, 1999),
+            Item(ItemID.GreaterManaPotion, 9999),
+            Item(ItemID.WoodPlatform, 9999),
+            Item(ItemID.Wood, 9999),
+
+            Item(ItemID.SpectreHood),
+            Item(ItemID.SpectreRobe),
+            Item(ItemID.SpectrePants),
+            Item(ItemID.SpectreMask),
+            Item(ItemID.QueenSlimeMountSaddle),
+            Item(ItemID.ChlorophytePlateMail),
+            Item(ItemID.ChlorophyteGreaves),
+            Item(ItemID.CrystalBall),
+            Item(ItemID.Teacup, 9999),
+            Item(ItemID.HeartLantern, 1999)
+        ]
+    };
+
+    private static Loadout CreateWarrior() => new()
+    {
+        Armor = new()
+        {
+            Head = Def(ItemID.ChlorophyteMask),
+            Body = Def(ItemID.ChlorophytePlateMail),
+            Legs = Def(ItemID.ChlorophyteGreaves)
+        },
+        Accessories = new()
+        {
+            Accessory1 = Def(ItemID.BeetleWings),
+            Accessory2 = Def(ItemID.Tabi),
+            Accessory3 = Def(ItemID.CelestialStone),
+            Accessory4 = Def(ItemID.FrozenTurtleShell),
+            Accessory5 = Def(ItemID.PaladinsShield)
+        },
+        Equipment = new()
+        {
+            GrapplingHook = Def(ItemID.DualHook),
+            Mount = Def(ItemID.QueenSlimeMountSaddle)
+        },
+        Inventory =
+        [
+            Item(ItemID.PaladinsHammer),
+            Item(ItemID.StoneBlock, 9999),
+            Item(ItemID.PickaxeAxe),
+            Item(ItemID.Binoculars),
+            Item(ItemID.Wood, 9999),
+            Item(ItemID.IceRod),
+            Item(ItemID.HoneyBucket),
+
+            Item(ItemID.Kraken),
+            Item(ItemID.ShadowJoustingLance),
+            Item(ItemID.LightDisc),
+            Item(ItemID.SniperRifle),
+            Item(ItemID.ShadowbeamStaff),
+            Item(ItemID.HighVelocityBullet, 9999),
+
+            Item(ItemID.GreaterHealingPotion, 8888),
+            Item(ItemID.Torch, 1888),
+            Item(ItemID.Glowstick, 1999),
+            Item(ItemID.MoneyTrough),
+            Item(ItemID.HeartLantern, 1999),
+            Item(ItemID.ChlorophytePartisan),
+            Item(ItemID.FireGauntlet),
+            Item(ItemID.Ale, 9999),
+            Item(ItemID.QueenSlimeMountSaddle),
+            Item(ItemID.Teacup, 1999),
+
+            Item(ItemID.BeetleHelmet),
+            Item(ItemID.BeetleScaleMail),
+            Item(ItemID.BeetleLeggings),
+            Item(ItemID.GolemFist)
+        ]
+    };
 
     #endregion
 
     #region Helpers
+
     private static ItemDefinition Def(int type) => new(type);
-    private static LoadoutItem Item(int type, int stack = 1) => new() { Item = Def(type), Stack = stack };
+
+    private static LoadoutItem Item(int type, int stack = 1) => new()
+    {
+        Item = Def(type),
+        Stack = stack
+    };
+
     #endregion
 }

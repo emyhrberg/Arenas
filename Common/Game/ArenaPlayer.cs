@@ -1,6 +1,7 @@
 using Arenas.Common.DataStructures;
 using PvPFramework.Common.Scoreboard;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using Terraria.DataStructures;
 using Terraria.Enums;
@@ -15,7 +16,7 @@ internal sealed class ArenaPlayer : ModPlayer
     private bool roundPrepared;
     private bool arenaSpawnActive;
 
-    internal FightPresets.ArenaClass SelectedClass;
+    internal int SelectedLoadoutIndex;
 
     internal long BossDamage { get; private set; }
 
@@ -64,15 +65,20 @@ internal sealed class ArenaPlayer : ModPlayer
     or RoundManager.RoundPhase.VotingOrEndScreen)
         {
             roundPrepared = false;
-            SelectedClass = FightPresets.ArenaClass.None;
+            SelectedLoadoutIndex = 0;
 
             ResetArenaSpawn();
 
             if (HasCarriedItems(Player))
-                ClearCarriedItems(Player, sync: Main.netMode == NetmodeID.Server);
+                ClearCarriedItems(
+                    Player,
+                    sync: Main.netMode == NetmodeID.Server);
 
-            if (Player.whoAmI == Main.myPlayer && !Main.mouseItem.IsAir)
+            if (Player.whoAmI == Main.myPlayer &&
+                !Main.mouseItem.IsAir)
+            {
                 Main.mouseItem.TurnToAir();
+            }
         }
 
         if (manager.CurrentPhase is RoundManager.RoundPhase.Generating or RoundManager.RoundPhase.FreezeCountdown)
@@ -131,10 +137,6 @@ internal sealed class ArenaPlayer : ModPlayer
         if (player?.active != true || preset == null || layout == null)
             return;
 
-        Log.Chat($"[Loadout] Preparing {player.name} (team {(Team)player.team}) for "
-            + $"{Lang.GetNPCNameValue(preset.Boss?.Type ?? 0)}: config loadout has "
-            + $"{preset.Loadout?.Inventory?.Count ?? -1} inventory entries.");
-
         RoundManager.SendArenaSections(player, layout);
 
         if (player.dead)
@@ -165,7 +167,7 @@ internal sealed class ArenaPlayer : ModPlayer
 
             ArenaPlayer arenaPlayer = player.GetModPlayer<ArenaPlayer>();
             arenaPlayer.roundPrepared = false;
-            arenaPlayer.SelectedClass = FightPresets.ArenaClass.None;
+            arenaPlayer.SelectedLoadoutIndex = 0;
             arenaPlayer.ResetArenaSpawn();
             ClearCarriedItems(player, sync: Main.netMode == NetmodeID.Server);
             if (player.hostile && (Team)player.team is Team.Red or Team.Blue)
@@ -354,65 +356,118 @@ internal sealed class ArenaPlayer : ModPlayer
         Player.SpawnY = -1;
     }
 
-    /// <summary>Client request to swap to a class kit during Generating/FreezeCountdown.</summary>
-    internal static void RequestClassSelect(FightPresets.ArenaClass arenaClass)
+    internal static void RequestLoadoutSelect(int loadoutIndex)
     {
-        Log.Chat($"[ClassSelect] Requested {arenaClass} (netMode={Main.netMode}).");
+        RoundManager manager = ModContent.GetInstance<RoundManager>();
+
+        if (manager.CurrentPhase is not (
+            RoundManager.RoundPhase.Generating
+            or RoundManager.RoundPhase.FreezeCountdown))
+        {
+            return;
+        }
+
+        if (!manager.TryGetSelectedPreset(out BossFightPreset preset) ||
+            !IsValidLoadoutIndex(preset, loadoutIndex))
+        {
+            return;
+        }
+
+        Player player = Main.LocalPlayer;
+        ArenaPlayer arenaPlayer = player.GetModPlayer<ArenaPlayer>();
+
+        arenaPlayer.SelectedLoadoutIndex = loadoutIndex;
+
+        // Apply immediately to the owning client.
+        ApplyLoadout(player, preset);
+
         if (Main.netMode == NetmodeID.MultiplayerClient)
         {
-            // Apply locally right away: without server-side characters the client owns its
-            // inventory (it ignores server-pushed slots), and with SSC the server's apply
-            // below simply confirms the same items.
-            RoundManager manager = ModContent.GetInstance<RoundManager>();
-            if (manager.TryGetSelectedPreset(out BossFightPreset preset) && FightPresets.PostMechKits.Supports(preset))
-            {
-                Main.LocalPlayer.GetModPlayer<ArenaPlayer>().SelectedClass = arenaClass;
-                ApplyLoadout(Main.LocalPlayer, preset);
-            }
+            ModPacket packet =
+                ModContent.GetInstance<Arenas>().GetPacket();
 
-            ModPacket packet = ModContent.GetInstance<Arenas>().GetPacket();
-            packet.Write((byte)Arenas.PacketType.SelectClass);
-            packet.Write((byte)arenaClass);
+            packet.Write((byte)Arenas.PacketType.SelectLoadout);
+            packet.Write(loadoutIndex);
             packet.Send();
             return;
         }
 
-        HandleClassSelect(Main.myPlayer, (byte)arenaClass);
+        HandleLoadoutSelect(Main.myPlayer, loadoutIndex);
     }
 
-    internal static void HandleClassSelect(int playerId, byte classId)
+    internal static void HandleLoadoutSelect(
+        int playerId,
+        int loadoutIndex)
     {
         if (Main.netMode == NetmodeID.MultiplayerClient)
             return;
 
         RoundManager manager = ModContent.GetInstance<RoundManager>();
-        if (manager.CurrentPhase is not (RoundManager.RoundPhase.Generating or RoundManager.RoundPhase.FreezeCountdown))
+
+        if (manager.CurrentPhase is not (
+            RoundManager.RoundPhase.Generating
+            or RoundManager.RoundPhase.FreezeCountdown))
         {
-            Log.Chat($"[ClassSelect] Rejected for player {playerId}: phase is {manager.CurrentPhase}.");
-            return;
-        }
-        if (playerId < 0 || playerId >= Main.maxPlayers || Main.player[playerId]?.active != true)
-        {
-            Log.Chat($"[ClassSelect] Rejected: player {playerId} is not active.");
-            return;
-        }
-        if (!manager.TryGetSelectedPreset(out BossFightPreset preset) || !FightPresets.PostMechKits.Supports(preset))
-        {
-            Log.Chat("[ClassSelect] Rejected: the selected preset does not support class kits.");
+            Log.Chat(
+                $"[LoadoutSelect] Rejected for player {playerId}: " +
+                $"phase is {manager.CurrentPhase}.");
+
             return;
         }
 
-        FightPresets.ArenaClass arenaClass = (FightPresets.ArenaClass)classId;
-        if (!Enum.IsDefined(arenaClass) || arenaClass == FightPresets.ArenaClass.None)
+        if (playerId < 0 ||
+            playerId >= Main.maxPlayers ||
+            Main.player[playerId]?.active != true)
         {
-            Log.Chat($"[ClassSelect] Rejected: invalid class id {classId}.");
+            Log.Chat(
+                $"[LoadoutSelect] Rejected: player {playerId} is inactive.");
+
+            return;
+        }
+
+        if (!manager.TryGetSelectedPreset(out BossFightPreset preset) ||
+            !IsValidLoadoutIndex(preset, loadoutIndex))
+        {
+            Log.Chat(
+                $"[LoadoutSelect] Rejected: loadout {loadoutIndex} is invalid.");
+
             return;
         }
 
         Player player = Main.player[playerId];
-        player.GetModPlayer<ArenaPlayer>().SelectedClass = arenaClass;
+
+        player.GetModPlayer<ArenaPlayer>()
+            .SelectedLoadoutIndex = loadoutIndex;
+
         ApplyLoadout(player, preset);
-        Log.Chat($"[Loadout] {player.name} selected the {arenaClass} kit.");
+
+        Log.Chat(
+            $"[Loadout] {player.name} selected " +
+            $"'{GetLoadoutName(preset, loadoutIndex)}'.");
+    }
+
+    private static bool IsValidLoadoutIndex(
+        BossFightPreset preset,
+        int index)
+    {
+        return preset?.Loadouts != null &&
+            index >= 0 &&
+            index < preset.Loadouts.Count &&
+            preset.Loadouts[index]?.Loadout != null;
+    }
+
+    private static string GetLoadoutName(
+        BossFightPreset preset,
+        int index)
+    {
+        if (!IsValidLoadoutIndex(preset, index))
+            return $"Loadout {index + 1}";
+
+        string name = preset.Loadouts[index].Name;
+
+        return string.IsNullOrWhiteSpace(name)
+            ? $"Loadout {index + 1}"
+            : name;
     }
 
     private static void ApplyLoadout(Player player, BossFightPreset preset)
@@ -470,37 +525,71 @@ internal sealed class ArenaPlayer : ModPlayer
         NetMessage.SendData(MessageID.PlayerMana, number: player.whoAmI);
     }
 
-    /// <summary>
-    /// Returns the preset's configured loadout, or the built-in default for the same boss when the
-    /// configured one is completely empty (typically a stale ServerConfig json saved before the
-    /// loadout schema moved; the empty saved list overrides the code defaults on deserialization).
-    /// </summary>
-    /// <summary>Per-player resolution: the player's chosen class kit wins when the preset supports kits.</summary>
-    internal static Loadout ResolveLoadout(BossFightPreset preset, Player player)
+    internal static Loadout ResolveLoadout(
+    BossFightPreset preset,
+    Player player)
     {
-        if (player != null && FightPresets.PostMechKits.Supports(preset))
-        {
-            Loadout kit = FightPresets.PostMechKits.Create(player.GetModPlayer<ArenaPlayer>().SelectedClass);
-            if (kit != null)
-                return kit;
-        }
+        int index = player?
+            .GetModPlayer<ArenaPlayer>()
+            .SelectedLoadoutIndex ?? 0;
 
-        return ResolveLoadout(preset);
+        return ResolveLoadout(preset, index);
     }
 
-    internal static Loadout ResolveLoadout(BossFightPreset preset)
+    internal static Loadout ResolveLoadout(
+        BossFightPreset preset,
+        int loadoutIndex = 0)
     {
-        if (!IsLoadoutEmpty(preset.Loadout))
-            return preset.Loadout;
+        Loadout loadout =
+            GetConfiguredLoadout(preset, loadoutIndex);
 
-        Log.Chat($"[Loadout] WARNING: the {Lang.GetNPCNameValue(preset.Boss?.Type ?? 0)} preset has an "
-            + "EMPTY loadout in ServerConfig; applying the built-in default instead. Reset the Arenas "
-            + "server config (or delete its json) to fix the saved presets.");
+        if (!IsLoadoutEmpty(loadout))
+            return loadout;
 
-        var defaults = FightPresets.CreateFightPresets();
-        Loadout fallback = defaults.FirstOrDefault(entry => entry?.Boss?.Type == preset.Boss?.Type)?.Loadout
-            ?? defaults.FirstOrDefault()?.Loadout;
+        BossFightPreset fallbackPreset =
+            FightPresets.CreateFightPresets()
+                .FirstOrDefault(entry =>
+                    entry?.Boss?.Type == preset?.Boss?.Type);
+
+        Loadout fallback =
+            GetConfiguredLoadout(
+                fallbackPreset,
+                loadoutIndex);
+
+        if (IsLoadoutEmpty(fallback))
+        {
+            fallback =
+                GetConfiguredLoadout(
+                    fallbackPreset,
+                    0);
+        }
+
         return fallback ?? new Loadout();
+    }
+
+    private static Loadout GetConfiguredLoadout(
+        BossFightPreset preset,
+        int index)
+    {
+        List<ArenaLoadoutOption> options =
+            preset?.Loadouts;
+
+        if (options == null || options.Count == 0)
+            return null;
+
+        if (index < 0 || index >= options.Count)
+            index = 0;
+
+        Loadout selected =
+            options[index]?.Loadout;
+
+        if (selected != null)
+            return selected;
+
+        return options
+            .FirstOrDefault(option =>
+                option?.Loadout != null)
+            ?.Loadout;
     }
 
     private static bool IsLoadoutEmpty(Loadout loadout)

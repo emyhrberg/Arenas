@@ -126,6 +126,11 @@ Mods: {
 					Label: Arena Height Tiles
 					Tooltip: ""
 				}
+
+				Loadouts: {
+					Label: Loadouts
+					Tooltip: ""
+				}
 			}
 
 			Loadout: {
@@ -296,6 +301,20 @@ Mods: {
 
 				JungleTemple: {
 					Label: Jungle Temple
+					Tooltip: ""
+				}
+			}
+
+			ArenaLoadoutOption: {
+				Tooltip: ""
+
+				Name: {
+					Label: Name
+					Tooltip: ""
+				}
+
+				Loadout: {
+					Label: Loadout
 					Tooltip: ""
 				}
 			}
