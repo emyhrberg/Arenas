@@ -191,126 +191,468 @@ internal sealed class ArenaSpawnBoxWorld : ModSystem
 
 internal sealed class ArenaSpawnBoxMap : ModMapLayer
 {
-    public override void Draw(ref MapOverlayDrawContext context, ref string text)
+    private const float MinimapSpawnLabelScale = .42f;
+    private const float MinimapArenaLabelScale = .52f;
+
+    public override void Draw(
+        ref MapOverlayDrawContext context,
+        ref string text)
     {
-        if (Main.mapFullscreenScale < .5f)
+        // mapFullscreenScale is irrelevant while drawing the minimap.
+        if (Main.mapFullscreen &&
+            Main.mapFullscreenScale < .5f)
+        {
             return;
+        }
 
         DrawArenaAreas(ref context);
-        DrawBox(ref context, ArenaSpawnBoxes.RedTileArea, Team.Red, ref text);
-        DrawBox(ref context, ArenaSpawnBoxes.BlueTileArea, Team.Blue, ref text);
+
+        DrawBox(
+            ref context,
+            ArenaSpawnBoxes.RedTileArea,
+            Team.Red,
+            ref text);
+
+        DrawBox(
+            ref context,
+            ArenaSpawnBoxes.BlueTileArea,
+            Team.Blue,
+            ref text);
     }
 
-    private static void DrawArenaAreas(ref MapOverlayDrawContext context)
+    private static void DrawArenaAreas(
+        ref MapOverlayDrawContext context)
     {
         if (!ArenaSpawnBoxes.Enabled)
             return;
 
-        RoundManager manager = ModContent.GetInstance<RoundManager>();
-        DrawMapArea(ref context, manager.CurrentLayout.ArenaBounds,
-            new Color(255, 196, 72) * .55f, 2);
-        DrawMapArea(ref context, manager.CurrentLayout.BossBounds,
-            new Color(255, 132, 24), 2);
-        DrawArenaLabel(ref context, manager.CurrentLayout.ArenaBounds);
+        RoundManager manager =
+            ModContent.GetInstance<RoundManager>();
+
+        DrawMapArea(
+            ref context,
+            manager.CurrentLayout.ArenaBounds,
+            new Color(255, 196, 72) * .55f,
+            2);
+
+        DrawMapArea(
+            ref context,
+            manager.CurrentLayout.BossBounds,
+            new Color(255, 132, 24),
+            2);
+
+        DrawArenaLabel(
+            ref context,
+            manager.CurrentLayout.ArenaBounds);
     }
 
-    private static void DrawArenaLabel(ref MapOverlayDrawContext context, Rectangle tileArea)
+    private static void DrawArenaLabel(
+        ref MapOverlayDrawContext context,
+        Rectangle tileArea)
     {
+        if (tileArea.Width <= 0 ||
+            tileArea.Height <= 0)
+        {
+            return;
+        }
+
         const string label = "Arena";
-        Rectangle rectangle = ToMapRectangle(ref context, tileArea);
-        DynamicSpriteFont font = FontAssets.DeathText.Value;
-        float scale = context.MapScale * context.DrawScale * 1.33f;
+
+        Rectangle mapRectangle =
+            ToMapRectangle(
+                ref context,
+                tileArea);
+
+        // Do not draw the label when its arena is entirely outside the
+        // visible minimap.
+        if (!IntersectsVisibleMap(mapRectangle))
+            return;
+
+        DynamicSpriteFont font =
+            FontAssets.DeathText.Value;
+
+        float scale = Main.mapFullscreen
+            ? context.MapScale *
+                context.DrawScale *
+                1.33f
+            : MinimapArenaLabelScale;
+
         if (scale <= 0f)
             return;
 
-        Vector2 textSize = font.MeasureString(label) * scale;
+        Vector2 textSize =
+            font.MeasureString(label) * scale;
+
         Vector2 position = new(
-            rectangle.Center.X - textSize.X / 2f,
-            rectangle.Top - textSize.Y - Math.Max(5f, 6f * context.DrawScale));
-        Main.spriteBatch.DrawString(font, label, position + new Vector2(3f, 3f),
-            Color.Black * .9f, 0f, Vector2.Zero, scale, SpriteEffects.None, 0f);
-        Main.spriteBatch.DrawString(font, label, position, new Color(255, 196, 72),
-            0f, Vector2.Zero, scale, SpriteEffects.None, 0f);
+            mapRectangle.Center.X -
+                textSize.X / 2f,
+            mapRectangle.Top -
+                textSize.Y -
+                GetLabelGap(
+                    context.DrawScale,
+                    fullscreenGap: 6f,
+                    minimapGap: 3f));
+
+        Rectangle textBounds =
+            CreateTextBounds(
+                position,
+                textSize,
+                shadowPadding: 3);
+
+        // SpriteBatch text is not automatically clipped by Terraria's
+        // minimap. Cull labels that would leak beyond its bounds.
+        if (!LabelFitsVisibleMap(textBounds))
+            return;
+
+        Main.spriteBatch.DrawString(
+            font,
+            label,
+            position + new Vector2(3f, 3f),
+            Color.Black * .9f,
+            0f,
+            Vector2.Zero,
+            scale,
+            SpriteEffects.None,
+            0f);
+
+        Main.spriteBatch.DrawString(
+            font,
+            label,
+            position,
+            new Color(255, 196, 72),
+            0f,
+            Vector2.Zero,
+            scale,
+            SpriteEffects.None,
+            0f);
     }
 
-    private static void DrawMapArea(ref MapOverlayDrawContext context, Rectangle tileArea,
-        Color color, int thickness)
+    private static void DrawMapArea(
+        ref MapOverlayDrawContext context,
+        Rectangle tileArea,
+        Color color,
+        int thickness)
     {
-        Rectangle rectangle = ToMapRectangle(ref context, tileArea);
-        if (ClipToMinimap(ref rectangle))
-            DrawBorder(rectangle, color, thickness);
+        Rectangle rectangle =
+            ToMapRectangle(
+                ref context,
+                tileArea);
+
+        if (!ClipToVisibleMap(ref rectangle))
+            return;
+
+        DrawBorder(
+            rectangle,
+            color,
+            thickness);
     }
 
-    private static void DrawBox(ref MapOverlayDrawContext context, Rectangle tileArea, Team team,
+    private static void DrawBox(
+        ref MapOverlayDrawContext context,
+        Rectangle tileArea,
+        Team team,
         ref string hoverText)
     {
-        if (tileArea.Width <= 0 || tileArea.Height <= 0)
+        if (tileArea.Width <= 0 ||
+            tileArea.Height <= 0)
+        {
             return;
+        }
 
-        Rectangle area = ArenaSpawnBoxes.BorderOuterTileArea(tileArea);
-        Rectangle rect = ToMapRectangle(ref context, area);
-        if (!ClipToMinimap(ref rect))
+        Rectangle area =
+            ArenaSpawnBoxes.BorderOuterTileArea(
+                tileArea);
+
+        // Keep the unmodified rectangle for label positioning.
+        Rectangle mapRectangle =
+            ToMapRectangle(
+                ref context,
+                area);
+
+        Rectangle visibleRectangle =
+            mapRectangle;
+
+        if (!ClipToVisibleMap(
+                ref visibleRectangle))
+        {
             return;
+        }
 
-        Color color = Main.teamColor[(int)team] * .88f;
-        DrawBorder(rect, color, Main.mapFullscreen ? (int)Main.mapFullscreenScale : 2);
+        Color teamColor =
+            Main.teamColor[(int)team];
 
-        string label = $"{team} Team Spawn";
-        DrawLabel(ref context, rect, label, Main.teamColor[(int)team]);
-        if (rect.Contains(Main.MouseScreen.ToPoint()))
+        Color borderColor =
+            teamColor * .88f;
+
+        int thickness = Main.mapFullscreen
+            ? Math.Max(
+                1,
+                (int)Main.mapFullscreenScale)
+            : 2;
+
+        DrawBorder(
+            visibleRectangle,
+            borderColor,
+            thickness);
+
+        string label =
+            $"{team} Team Spawn";
+
+        DrawLabel(
+            ref context,
+            mapRectangle,
+            label,
+            teamColor);
+
+        if (visibleRectangle.Contains(
+                Main.MouseScreen.ToPoint()))
+        {
             hoverText = label;
+        }
     }
 
-    private static Rectangle ToMapRectangle(ref MapOverlayDrawContext context, Rectangle area)
+    private static void DrawLabel(
+        ref MapOverlayDrawContext context,
+        Rectangle mapRectangle,
+        string label,
+        Color color)
     {
-        Vector2 topLeft = (new Vector2(area.X, area.Y) - context.MapPosition)
-            * context.MapScale + context.MapOffset;
-        Vector2 size = new(area.Width * context.MapScale, area.Height * context.MapScale);
-        return new Rectangle((int)topLeft.X, (int)topLeft.Y, (int)size.X, (int)size.Y);
-    }
+        if (!IntersectsVisibleMap(mapRectangle))
+            return;
 
-    private static bool ClipToMinimap(ref Rectangle rectangle)
-    {
-        if (!Main.mapFullscreen && Main.mapStyle == 1)
-            rectangle = Rectangle.Intersect(rectangle,
-                new Rectangle(Main.miniMapX, Main.miniMapY, Main.miniMapWidth, Main.miniMapHeight));
-        return rectangle.Width > 0 && rectangle.Height > 0;
-    }
+        DynamicSpriteFont font =
+            FontAssets.DeathText.Value;
 
-    private static void DrawLabel(ref MapOverlayDrawContext context, Rectangle rectangle,
-        string label, Color color)
-    {
-        DynamicSpriteFont font = FontAssets.DeathText.Value;
-        Vector2 unscaledSize = font.MeasureString(label);
-        float scale = context.MapScale * context.DrawScale * .6f;
+        float scale = Main.mapFullscreen
+            ? context.MapScale *
+                context.DrawScale *
+                .6f
+            : MinimapSpawnLabelScale;
+
         if (scale <= 0f)
             return;
 
-        Vector2 textSize = unscaledSize * scale;
-        Vector2 position = new(
-            rectangle.Center.X - textSize.X / 2f,
-            rectangle.Top - textSize.Y - Math.Max(2f, 3f * context.DrawScale));
-        Main.spriteBatch.DrawString(font, label, position + Vector2.One, Color.Black * .8f,
-            0f, Vector2.Zero, scale, SpriteEffects.None, 0f);
-        Main.spriteBatch.DrawString(font, label, position, color,
-            0f, Vector2.Zero, scale, SpriteEffects.None, 0f);
-    }
+        Vector2 textSize =
+            font.MeasureString(label) * scale;
 
-    private static void DrawBorder(Rectangle rectangle, Color color, int thickness)
-    {
-        if (thickness < 1)
-            thickness = 1;
-        if (rectangle.Width <= thickness * 2 || rectangle.Height <= thickness * 2)
+        Vector2 position = new(
+            mapRectangle.Center.X -
+                textSize.X / 2f,
+            mapRectangle.Top -
+                textSize.Y -
+                GetLabelGap(
+                    context.DrawScale,
+                    fullscreenGap: 3f,
+                    minimapGap: 2f));
+
+        Rectangle textBounds =
+            CreateTextBounds(
+                position,
+                textSize,
+                shadowPadding: 1);
+
+        if (!LabelFitsVisibleMap(textBounds))
             return;
 
-        Texture2D pixel = TextureAssets.MagicPixel.Value;
-        Main.spriteBatch.Draw(pixel, new Rectangle(rectangle.X + thickness, rectangle.Y,
-            rectangle.Width - thickness * 2, thickness), color);
-        Main.spriteBatch.Draw(pixel, new Rectangle(rectangle.X + thickness,
-            rectangle.Bottom - thickness, rectangle.Width - thickness * 2, thickness), color);
-        Main.spriteBatch.Draw(pixel, new Rectangle(rectangle.X, rectangle.Y, thickness,
-            rectangle.Height), color);
-        Main.spriteBatch.Draw(pixel, new Rectangle(rectangle.Right - thickness, rectangle.Y,
-            thickness, rectangle.Height), color);
+        Main.spriteBatch.DrawString(
+            font,
+            label,
+            position + Vector2.One,
+            Color.Black * .8f,
+            0f,
+            Vector2.Zero,
+            scale,
+            SpriteEffects.None,
+            0f);
+
+        Main.spriteBatch.DrawString(
+            font,
+            label,
+            position,
+            color,
+            0f,
+            Vector2.Zero,
+            scale,
+            SpriteEffects.None,
+            0f);
+    }
+
+    private static Rectangle ToMapRectangle(
+        ref MapOverlayDrawContext context,
+        Rectangle area)
+    {
+        Vector2 topLeft =
+            (new Vector2(area.X, area.Y) -
+                context.MapPosition) *
+            context.MapScale +
+            context.MapOffset;
+
+        Vector2 size = new(
+            area.Width * context.MapScale,
+            area.Height * context.MapScale);
+
+        return new Rectangle(
+            (int)MathF.Floor(topLeft.X),
+            (int)MathF.Floor(topLeft.Y),
+            Math.Max(
+                1,
+                (int)MathF.Ceiling(size.X)),
+            Math.Max(
+                1,
+                (int)MathF.Ceiling(size.Y)));
+    }
+
+    private static bool ClipToVisibleMap(
+        ref Rectangle rectangle)
+    {
+        if (TryGetMinimapBounds(
+                out Rectangle minimap))
+        {
+            rectangle =
+                Rectangle.Intersect(
+                    rectangle,
+                    minimap);
+        }
+
+        return rectangle.Width > 0 &&
+            rectangle.Height > 0;
+    }
+
+    private static bool IntersectsVisibleMap(
+        Rectangle rectangle)
+    {
+        if (!TryGetMinimapBounds(
+                out Rectangle minimap))
+        {
+            return true;
+        }
+
+        return minimap.Intersects(rectangle);
+    }
+
+    private static bool LabelFitsVisibleMap(
+        Rectangle textBounds)
+    {
+        if (!TryGetMinimapBounds(
+                out Rectangle minimap))
+        {
+            return true;
+        }
+
+        // Text rendering is not scissored by the minimap. Completely hide
+        // labels that would extend outside it.
+        return textBounds.Left >= minimap.Left &&
+            textBounds.Top >= minimap.Top &&
+            textBounds.Right <= minimap.Right &&
+            textBounds.Bottom <= minimap.Bottom;
+    }
+
+    private static bool TryGetMinimapBounds(
+        out Rectangle minimap)
+    {
+        if (!Main.mapFullscreen &&
+            Main.mapStyle == 1 &&
+            Main.miniMapWidth > 0 &&
+            Main.miniMapHeight > 0)
+        {
+            minimap = new Rectangle(
+                Main.miniMapX,
+                Main.miniMapY,
+                Main.miniMapWidth,
+                Main.miniMapHeight);
+
+            return true;
+        }
+
+        minimap = Rectangle.Empty;
+        return false;
+    }
+
+    private static Rectangle CreateTextBounds(
+        Vector2 position,
+        Vector2 size,
+        int shadowPadding)
+    {
+        return new Rectangle(
+            (int)MathF.Floor(position.X),
+            (int)MathF.Floor(position.Y),
+            Math.Max(
+                1,
+                (int)MathF.Ceiling(size.X) +
+                shadowPadding),
+            Math.Max(
+                1,
+                (int)MathF.Ceiling(size.Y) +
+                shadowPadding));
+    }
+
+    private static float GetLabelGap(
+        float drawScale,
+        float fullscreenGap,
+        float minimapGap)
+    {
+        return Main.mapFullscreen
+            ? Math.Max(
+                fullscreenGap - 1f,
+                fullscreenGap * drawScale)
+            : minimapGap;
+    }
+
+    private static void DrawBorder(
+        Rectangle rectangle,
+        Color color,
+        int thickness)
+    {
+        thickness =
+            Math.Max(1, thickness);
+
+        if (rectangle.Width <=
+                thickness * 2 ||
+            rectangle.Height <=
+                thickness * 2)
+        {
+            return;
+        }
+
+        Texture2D pixel =
+            TextureAssets.MagicPixel.Value;
+
+        Main.spriteBatch.Draw(
+            pixel,
+            new Rectangle(
+                rectangle.X + thickness,
+                rectangle.Y,
+                rectangle.Width -
+                    thickness * 2,
+                thickness),
+            color);
+
+        Main.spriteBatch.Draw(
+            pixel,
+            new Rectangle(
+                rectangle.X + thickness,
+                rectangle.Bottom - thickness,
+                rectangle.Width -
+                    thickness * 2,
+                thickness),
+            color);
+
+        Main.spriteBatch.Draw(
+            pixel,
+            new Rectangle(
+                rectangle.X,
+                rectangle.Y,
+                thickness,
+                rectangle.Height),
+            color);
+
+        Main.spriteBatch.Draw(
+            pixel,
+            new Rectangle(
+                rectangle.Right - thickness,
+                rectangle.Y,
+                thickness,
+                rectangle.Height),
+            color);
     }
 }
