@@ -541,30 +541,54 @@ internal sealed class ArenaPlayer : ModPlayer
         int loadoutIndex = 0)
     {
         Loadout loadout =
-            GetConfiguredLoadout(preset, loadoutIndex);
+            ResolveBaseLoadout(preset, loadoutIndex);
+
+        return Main.dedServ
+            ? loadout
+            : LocalLoadoutOrder.Apply(
+                preset,
+                loadoutIndex,
+                loadout);
+    }
+
+    internal static Loadout ResolveBaseLoadout(
+        BossFightPreset preset,
+        int loadoutIndex = 0)
+    {
+        List<ArenaLoadoutOption> options =
+            preset?.Loadouts;
+
+        if (options == null || options.Count == 0)
+            return new Loadout();
+
+        loadoutIndex =
+            Math.Clamp(loadoutIndex, 0, options.Count - 1);
+
+        Loadout loadout =
+            options[loadoutIndex]?.Loadout;
 
         if (!IsLoadoutEmpty(loadout))
             return loadout;
 
-        BossFightPreset fallbackPreset =
+        BossFightPreset defaults =
             FightPresets.CreateFightPresets()
                 .FirstOrDefault(entry =>
                     entry?.Boss?.Type == preset?.Boss?.Type);
 
-        Loadout fallback =
-            GetConfiguredLoadout(
-                fallbackPreset,
-                loadoutIndex);
-
-        if (IsLoadoutEmpty(fallback))
+        if (defaults?.Loadouts?.Count > 0)
         {
-            fallback =
-                GetConfiguredLoadout(
-                    fallbackPreset,
-                    0);
+            loadoutIndex =
+                Math.Clamp(
+                    loadoutIndex,
+                    0,
+                    defaults.Loadouts.Count - 1);
+
+            loadout =
+                defaults.Loadouts[loadoutIndex]?.Loadout
+                ?? defaults.Loadouts[0]?.Loadout;
         }
 
-        return fallback ?? new Loadout();
+        return loadout ?? new Loadout();
     }
 
     private static Loadout GetConfiguredLoadout(

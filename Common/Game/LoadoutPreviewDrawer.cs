@@ -23,7 +23,8 @@ internal static class LoadoutPreviewDrawer
     private readonly record struct SlotEntry(
         Item Item,
         bool Equip,
-        int? HotbarNumber);
+        int? HotbarNumber,
+        int InventoryIndex = -1);
 
     private const int InventoryColumns = 10;
     private const int SlotStep = 40;
@@ -40,6 +41,14 @@ internal static class LoadoutPreviewDrawer
     private const int LoadoutCardMaxWidth = 180;
     private const int LoadoutSelectorBottomPadding = 8;
     private const int CardGap = 8;
+
+    private const int EditButtonAreaHeight = 42;
+
+    private static bool editMode;
+    private static int heldItemIndex = -1;
+    private static List<int> editOrder = [];
+    private static BossFightPreset currentPreset;
+    private static int editingLoadoutIndex = -1;
 
     private const int PreviewJumpDuration = 32;
     private const float PreviewJumpHeight = 30f;
@@ -120,6 +129,7 @@ internal static class LoadoutPreviewDrawer
         {
             return;
         }
+        currentPreset = preset;
 
         int optionCount = preset.Loadouts?.Count ?? 0;
         bool showSelector = optionCount > 1;
@@ -140,12 +150,15 @@ internal static class LoadoutPreviewDrawer
 
         if (manager.SelectedPresetIndex != cachedPresetIndex)
         {
+            StopEditing(save: false);
+
             localLoadoutIndex = playerSelectedIndex;
             hoveredLoadoutIndex = -1;
             InvalidateCache();
         }
-        else if (hoveredLoadoutIndex < 0 &&
-                 localLoadoutIndex != playerSelectedIndex)
+        else if (!editMode &&
+         hoveredLoadoutIndex < 0 &&
+         localLoadoutIndex != playerSelectedIndex)
         {
             // Handles resets between consecutive rounds that happen to use
             // the same preset index.
@@ -193,7 +206,7 @@ internal static class LoadoutPreviewDrawer
                 S(designWidth),
                 S(designHeight));
 
-            int newHoveredIndex = showSelector
+            int newHoveredIndex = !editMode && showSelector
                 ? GetHoveredLoadoutIndex(
                     preset,
                     panel,
@@ -328,6 +341,243 @@ internal static class LoadoutPreviewDrawer
                 mouse,
                 S);
         }
+
+        // Edit loadout button
+
+        int gridBottom =
+    contentTop +
+    finalInventoryRows * S(SlotStep);
+
+        Rectangle editButton = new(
+            panel.Center.X - S(82),
+            gridBottom + S(7),
+            S(164),
+            S(28));
+
+        DrawEditButton(
+            editButton,
+            preset,
+            scale,
+            mouse,
+            S);
+
+        DrawHeldItem(scale);
+
+        //Rectangle button = new(panel.Center.X - S(100), contentTop + finalInventoryRows * S(SlotStep) + S(10), S(200), S(40));
+        //bool hover = button.Contains(mouse);
+
+        //DrawPanel(button, hover ? new(50, 65, 130) : new(35, 48, 105), PanelEdge, S(7));
+
+        //Texture2D icon = PvPFramework.Core.Utilities.Ass.Attack.Value;
+        //Vector2 textSize = FontAssets.MouseText.Value.MeasureString("Edit Loadout") * scale;
+        //float width = S(24) + S(8) + textSize.X;
+        //Vector2 pos = new(button.Center.X - width / 2, button.Center.Y);
+
+        //Main.spriteBatch.Draw(icon, new Rectangle((int)pos.X, button.Center.Y - S(12), S(24), S(24)), Color.White * alpha);
+        //Utils.DrawBorderString(Main.spriteBatch, "Edit Loadout", new(pos.X + S(32), pos.Y - textSize.Y / 2), Color.White * alpha, scale);
+
+        //if (hover)
+        //{
+        //    Main.LocalPlayer.mouseInterface = true;
+        //    if (Main.mouseLeft && Main.mouseLeftRelease)
+        //        OpenLoadoutEditor();
+        //}
+    }
+
+    private static void DrawEditButton(
+    Rectangle button,
+    BossFightPreset preset,
+    float scale,
+    Point mouse,
+    Func<float, int> S)
+    {
+        bool hovered = button.Contains(mouse);
+
+        DrawPanel(
+            button,
+            hovered ? RowHover : RowFill,
+            editMode
+                ? Selected
+                : hovered
+                    ? HoverEdge
+                    : DarkEdge,
+            S(8));
+
+        Text(
+            editMode ? "Done" : "Edit Loadout",
+            new Vector2(
+                button.Center.X,
+                button.Y + S(6)),
+            editMode ? new Color(206, 255, 142) : Color.White,
+            .78f * scale,
+            button.Width - S(12));
+
+        if (!hovered)
+            return;
+
+        Main.LocalPlayer.mouseInterface = true;
+
+        if (!Main.mouseLeft || !Main.mouseLeftRelease)
+            return;
+
+        Main.mouseLeftRelease = false;
+
+        if (editMode)
+            StopEditing(save: true);
+        else
+            StartEditing(preset);
+    }
+
+    private static void StartEditing(BossFightPreset preset)
+    {
+        currentPreset = preset;
+        hoveredLoadoutIndex = -1;
+        heldItemIndex = -1;
+
+        editingLoadoutIndex =
+            NormalizeLoadoutIndex(preset, localLoadoutIndex);
+
+        Loadout loadout =
+            ArenaPlayer.ResolveBaseLoadout(
+                preset,
+                editingLoadoutIndex);
+
+        editOrder =
+            LocalLoadoutOrder.GetOrder(
+                preset,
+                editingLoadoutIndex,
+                loadout);
+
+        editMode = true;
+        InvalidateCache();
+    }
+
+    private static void StopEditing(bool save)
+    {
+        if (!editMode)
+            return;
+
+        if (save)
+        {
+            if (heldItemIndex >= 0)
+            {
+                int emptySlot = editOrder.IndexOf(-1);
+
+                if (emptySlot >= 0)
+                    editOrder[emptySlot] = heldItemIndex;
+
+                heldItemIndex = -1;
+            }
+
+            SaveEditing();
+        }
+
+        editMode = false;
+        editingLoadoutIndex = -1;
+        heldItemIndex = -1;
+        editOrder.Clear();
+        InvalidateCache();
+    }
+
+    private static void SaveEditing()
+    {
+        if (currentPreset == null ||
+            editingLoadoutIndex < 0)
+        {
+            return;
+        }
+
+        Loadout loadout =
+            ArenaPlayer.ResolveBaseLoadout(
+                currentPreset,
+                editingLoadoutIndex);
+
+        LocalLoadoutOrder.SetOrder(
+            currentPreset,
+            editingLoadoutIndex,
+            loadout,
+            editOrder);
+
+        ArenaPlayer.RequestLoadoutSelect(
+            editingLoadoutIndex);
+    }
+
+    private static void HandleEditClick(
+    Rectangle cell,
+    SlotEntry entry,
+    Point mouse)
+    {
+        if (!editMode ||
+        entry.InventoryIndex < 0 ||
+        entry.InventoryIndex >= editOrder.Count ||
+        !cell.Contains(mouse))
+            {
+                return;
+            }
+
+        Main.LocalPlayer.mouseInterface = true;
+
+        if (!Main.mouseLeft || !Main.mouseLeftRelease)
+            return;
+
+        Main.mouseLeftRelease = false;
+
+        int clickedItem =
+            editOrder[entry.InventoryIndex];
+
+        // Clicking an empty slot while holding nothing.
+        if (heldItemIndex < 0 && clickedItem < 0)
+            return;
+
+        editOrder[entry.InventoryIndex] =
+            heldItemIndex;
+
+        heldItemIndex =
+            clickedItem;
+
+        InvalidateCache();
+
+        // The held item was placed into an empty slot.
+        if (heldItemIndex < 0)
+            SaveEditing();
+    }
+
+    private static void DrawHeldItem(float scale)
+    {
+        if (!editMode ||
+            heldItemIndex < 0 ||
+            currentPreset == null)
+        {
+            return;
+        }
+
+        Loadout loadout =
+        ArenaPlayer.ResolveBaseLoadout(
+            currentPreset,
+            editingLoadoutIndex);
+
+        LoadoutItem entry =
+            LocalLoadoutOrder.ItemAt(
+                loadout,
+                heldItemIndex);
+
+        Item item = MakeItem(
+            entry?.Item?.Type ?? ItemID.None,
+            entry?.Stack ?? 1);
+
+        if (item.IsAir)
+            return;
+
+        Main.LocalPlayer.mouseInterface = true;
+
+        ItemSlot.DrawItemIcon(
+            item,
+            ItemSlot.Context.InventoryItem,
+            Main.spriteBatch,
+            Main.MouseScreen + new Vector2(12f, 12f),
+            scale,
+            36f,
+            Color.White);
     }
 
     private static int GetDesignWidth(
@@ -350,7 +600,8 @@ internal static class LoadoutPreviewDrawer
         return HeaderHeight
             + GetLoadoutSelectorHeight(optionCount)
             + inventoryRows * SlotStep
-            + SidePadding;
+            + SidePadding
+            + EditButtonAreaHeight; // Extra space for the edit loadout button
     }
 
     private static float CalculateScale(
@@ -523,7 +774,8 @@ internal static class LoadoutPreviewDrawer
             {
                 Main.LocalPlayer.mouseInterface = true;
 
-                if (Main.mouseLeft &&
+                if (!editMode &&
+                    Main.mouseLeft &&
                     Main.mouseLeftRelease &&
                     !selected)
                 {
@@ -667,11 +919,21 @@ internal static class LoadoutPreviewDrawer
         cachedDisplayLoadoutIndex = loadoutIndex;
         cacheValid = true;
 
+        Loadout baseLoadout =
+    ArenaPlayer.ResolveBaseLoadout(
+        preset,
+        loadoutIndex);
+
         Loadout loadout =
-            ArenaPlayer.ResolveLoadout(
-                preset,
-                loadoutIndex)
-            ?? new Loadout();
+            editMode &&
+            loadoutIndex == editingLoadoutIndex
+                ? LocalLoadoutOrder.Apply(
+                    baseLoadout,
+                    editOrder)
+                : LocalLoadoutOrder.Apply(
+                    preset,
+                    loadoutIndex,
+                    baseLoadout);
 
         equipmentSlots.Clear();
         inventorySlots.Clear();
@@ -731,7 +993,8 @@ internal static class LoadoutPreviewDrawer
                         ? i == 9
                             ? 10
                             : i + 1
-                        : null));
+                        : null,
+                    i));
         }
 
         previewPlayer =
@@ -765,6 +1028,7 @@ internal static class LoadoutPreviewDrawer
         return item;
     }
 
+    #region Preview player
     private static Player BuildPreviewPlayer(
         Loadout loadout)
     {
@@ -1023,6 +1287,7 @@ internal static class LoadoutPreviewDrawer
 
         previewPlayer.headFrame.Y = 0;
     }
+    #endregion
 
     private static void DrawInventorySlots(
         int originX,
@@ -1174,6 +1439,8 @@ internal static class LoadoutPreviewDrawer
             Main.HoverItem = entry.Item.Clone();
             Main.hoverItemName = entry.Item.Name;
         }
+
+        HandleEditClick(cell, entry, mouse);
     }
 
     private static void DrawPanel(

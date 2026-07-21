@@ -13,8 +13,8 @@ internal static class FightPresets
         {
             Boss = new NPCDefinition(NPCID.KingSlime),
             ArenaKind = ArenaKind.WorldCenterSurface,
-            ArenaWidthTiles = 400,
-            ArenaHeightTiles = 200,
+            ArenaWidthTiles = 200,
+            ArenaHeightTiles = 100,
             MaxHealth = 200,
             MaxMana = 100,
             Loadouts = CreatePreBossLoadouts()
@@ -23,8 +23,8 @@ internal static class FightPresets
         {
             Boss = new NPCDefinition(NPCID.EyeofCthulhu),
             ArenaKind = ArenaKind.WorldCenterSurface,
-            ArenaWidthTiles = 400,
-            ArenaHeightTiles = 200,
+            ArenaWidthTiles = 200,
+            ArenaHeightTiles = 100,
             MaxHealth = 240,
             MaxMana = 100,
             Loadouts = CreatePreBossLoadouts()
@@ -33,8 +33,8 @@ internal static class FightPresets
         {
             Boss = new NPCDefinition(NPCID.Plantera),
             ArenaKind = ArenaKind.UndergroundJungle,
-            ArenaWidthTiles = 400,
-            ArenaHeightTiles = 200,
+            ArenaWidthTiles = 200,
+            ArenaHeightTiles = 100,
             MaxHealth = 400,
             MaxMana = 180,
             Loadouts = CreatePostMechLoadouts()
@@ -43,8 +43,8 @@ internal static class FightPresets
         {
             Boss = new NPCDefinition(NPCID.Golem),
             ArenaKind = ArenaKind.JungleTemple,
-            ArenaWidthTiles = 400,
-            ArenaHeightTiles = 200,
+            ArenaWidthTiles = 200,
+            ArenaHeightTiles = 100,
             MaxHealth = 500,
             MaxMana = 200,
             Loadouts = CreatePostPlanteraLoadouts()
