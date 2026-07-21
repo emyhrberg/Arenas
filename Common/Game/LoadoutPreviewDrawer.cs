@@ -46,6 +46,7 @@ internal static class LoadoutPreviewDrawer
 
     private static bool editMode;
     private static int heldItemIndex = -1;
+    private static Item heldItem = new();
     private static List<int> editOrder = [];
     private static BossFightPreset currentPreset;
     private static int editingLoadoutIndex = -1;
@@ -362,26 +363,6 @@ internal static class LoadoutPreviewDrawer
             S);
 
         DrawHeldItem(scale);
-
-        //Rectangle button = new(panel.Center.X - S(100), contentTop + finalInventoryRows * S(SlotStep) + S(10), S(200), S(40));
-        //bool hover = button.Contains(mouse);
-
-        //DrawPanel(button, hover ? new(50, 65, 130) : new(35, 48, 105), PanelEdge, S(7));
-
-        //Texture2D icon = PvPFramework.Core.Utilities.Ass.Attack.Value;
-        //Vector2 textSize = FontAssets.MouseText.Value.MeasureString("Edit Loadout") * scale;
-        //float width = S(24) + S(8) + textSize.X;
-        //Vector2 pos = new(button.Center.X - width / 2, button.Center.Y);
-
-        //Main.spriteBatch.Draw(icon, new Rectangle((int)pos.X, button.Center.Y - S(12), S(24), S(24)), Color.White * alpha);
-        //Utils.DrawBorderString(Main.spriteBatch, "Edit Loadout", new(pos.X + S(32), pos.Y - textSize.Y / 2), Color.White * alpha, scale);
-
-        //if (hover)
-        //{
-        //    Main.LocalPlayer.mouseInterface = true;
-        //    if (Main.mouseLeft && Main.mouseLeftRelease)
-        //        OpenLoadoutEditor();
-        //}
     }
 
     private static void DrawEditButton(
@@ -432,10 +413,12 @@ internal static class LoadoutPreviewDrawer
     {
         currentPreset = preset;
         hoveredLoadoutIndex = -1;
-        heldItemIndex = -1;
+        ClearHeldItem();
 
         editingLoadoutIndex =
-            NormalizeLoadoutIndex(preset, localLoadoutIndex);
+            NormalizeLoadoutIndex(
+                preset,
+                localLoadoutIndex);
 
         Loadout loadout =
             ArenaPlayer.ResolveBaseLoadout(
@@ -450,6 +433,10 @@ internal static class LoadoutPreviewDrawer
 
         editMode = true;
         InvalidateCache();
+
+        Log.Chat(
+            $"Started. loadout={editingLoadoutIndex}, " +
+            $"slots={editOrder.Count}.");
     }
 
     private static void StopEditing(bool save)
@@ -461,12 +448,24 @@ internal static class LoadoutPreviewDrawer
         {
             if (heldItemIndex >= 0)
             {
-                int emptySlot = editOrder.IndexOf(-1);
+                int emptySlot =
+                    editOrder.IndexOf(-1);
 
                 if (emptySlot >= 0)
-                    editOrder[emptySlot] = heldItemIndex;
+                {
+                    editOrder[emptySlot] =
+                        heldItemIndex;
 
-                heldItemIndex = -1;
+                    Log.Chat(
+                        $"Returned held item " +
+                        $"{heldItemIndex} to slot {emptySlot}.");
+                }
+                else
+                {
+                    Log.Chat(
+                        $"No empty slot for held item " +
+                        $"{heldItemIndex}.");
+                }
             }
 
             SaveEditing();
@@ -474,7 +473,7 @@ internal static class LoadoutPreviewDrawer
 
         editMode = false;
         editingLoadoutIndex = -1;
-        heldItemIndex = -1;
+        ClearHeldItem();
         editOrder.Clear();
         InvalidateCache();
     }
@@ -501,43 +500,109 @@ internal static class LoadoutPreviewDrawer
         ArenaPlayer.RequestLoadoutSelect(
             editingLoadoutIndex);
     }
+    private static void ClearHeldItem()
+    {
+        heldItemIndex = -1;
+        heldItem.TurnToAir();
+    }
 
+    private static Item GetOriginalItem(int originalIndex)
+    {
+        if (originalIndex < 0 ||
+            currentPreset == null ||
+            editingLoadoutIndex < 0)
+        {
+            return new Item();
+        }
+
+        Loadout loadout =
+            ArenaPlayer.ResolveBaseLoadout(
+                currentPreset,
+                editingLoadoutIndex);
+
+        LoadoutItem entry =
+            LocalLoadoutOrder.ItemAt(
+                loadout,
+                originalIndex);
+
+        return MakeItem(
+            entry?.Item?.Type ?? ItemID.None,
+            entry?.Stack ?? 1);
+    }
     private static void HandleEditClick(
     Rectangle cell,
     SlotEntry entry,
     Point mouse)
     {
         if (!editMode ||
-        entry.InventoryIndex < 0 ||
-        entry.InventoryIndex >= editOrder.Count ||
-        !cell.Contains(mouse))
-            {
-                return;
-            }
+            entry.InventoryIndex < 0 ||
+            entry.InventoryIndex >= editOrder.Count ||
+            !cell.Contains(mouse))
+        {
+            return;
+        }
 
         Main.LocalPlayer.mouseInterface = true;
 
-        if (!Main.mouseLeft || !Main.mouseLeftRelease)
+        if (!Main.mouseLeft ||
+            !Main.mouseLeftRelease)
+        {
             return;
+        }
 
         Main.mouseLeftRelease = false;
 
-        int clickedItem =
-            editOrder[entry.InventoryIndex];
+        int slotIndex = entry.InventoryIndex;
+        int clickedItemIndex = editOrder[slotIndex];
 
-        // Clicking an empty slot while holding nothing.
-        if (heldItemIndex < 0 && clickedItem < 0)
+        if (heldItemIndex < 0 &&
+            clickedItemIndex < 0)
+        {
+            Log.Chat(
+                $"Clicked empty slot {slotIndex}.");
+
             return;
+        }
 
-        editOrder[entry.InventoryIndex] =
-            heldItemIndex;
+        int previousHeldIndex = heldItemIndex;
 
+        // Resolve and cache the item being picked up before changing the order.
+        Item nextHeldItem = clickedItemIndex >= 0
+            ? entry.Item.Clone()
+            : new Item();
+
+        // Fall back to the original preset item if the displayed slot happened
+        // to be stale for this frame.
+        if (clickedItemIndex >= 0 &&
+            nextHeldItem.IsAir)
+        {
+            nextHeldItem =
+                GetOriginalItem(clickedItemIndex);
+        }
+
+        // Put the previously held item into the clicked slot.
+        editOrder[slotIndex] =
+            previousHeldIndex;
+
+        // Pick up the item that was in the clicked slot.
         heldItemIndex =
-            clickedItem;
+            clickedItemIndex;
+
+        heldItem =
+            nextHeldItem;
+
+        if (heldItemIndex < 0)
+            heldItem.TurnToAir();
+
+        Log.Chat(
+            $"Slot {slotIndex}: " +
+            $"placed={previousHeldIndex}, " +
+            $"pickedUp={heldItemIndex}, " +
+            $"visual={heldItem.type}:{heldItem.Name}.");
 
         InvalidateCache();
 
-        // The held item was placed into an empty slot.
+        // Moving into an empty slot completes the operation.
         if (heldItemIndex < 0)
             SaveEditing();
     }
@@ -546,38 +611,22 @@ internal static class LoadoutPreviewDrawer
     {
         if (!editMode ||
             heldItemIndex < 0 ||
-            currentPreset == null)
+            heldItem == null ||
+            heldItem.IsAir)
         {
             return;
         }
 
-        Loadout loadout =
-        ArenaPlayer.ResolveBaseLoadout(
-            currentPreset,
-            editingLoadoutIndex);
-
-        LoadoutItem entry =
-            LocalLoadoutOrder.ItemAt(
-                loadout,
-                heldItemIndex);
-
-        Item item = MakeItem(
-            entry?.Item?.Type ?? ItemID.None,
-            entry?.Stack ?? 1);
-
-        if (item.IsAir)
-            return;
-
         Main.LocalPlayer.mouseInterface = true;
 
         ItemSlot.DrawItemIcon(
-            item,
+            heldItem,
             ItemSlot.Context.InventoryItem,
             Main.spriteBatch,
-            Main.MouseScreen + new Vector2(12f, 12f),
+            Main.MouseScreen + new Vector2(28f, 28f),
             scale,
-            36f,
-            Color.White);
+            40f,
+            Color.White * alpha);
     }
 
     private static int GetDesignWidth(

@@ -6,3 +6,4 @@ global using Terraria.ModLoader;
 
 // Mod specific usings
 global using Arenas.Core.Utilities;
+global using Log = Arenas.Core.Utilities.Log;
