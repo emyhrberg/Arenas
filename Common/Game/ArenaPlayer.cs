@@ -335,8 +335,19 @@ internal sealed class ArenaPlayer : ModPlayer
     /// <summary>Client request to swap to a class kit during Generating/FreezeCountdown.</summary>
     internal static void RequestClassSelect(FightPresets.ArenaClass arenaClass)
     {
+        Log.Chat($"[ClassSelect] Requested {arenaClass} (netMode={Main.netMode}).");
         if (Main.netMode == NetmodeID.MultiplayerClient)
         {
+            // Apply locally right away: without server-side characters the client owns its
+            // inventory (it ignores server-pushed slots), and with SSC the server's apply
+            // below simply confirms the same items.
+            RoundManager manager = ModContent.GetInstance<RoundManager>();
+            if (manager.TryGetSelectedPreset(out BossFightPreset preset) && FightPresets.PostMechKits.Supports(preset))
+            {
+                Main.LocalPlayer.GetModPlayer<ArenaPlayer>().SelectedClass = arenaClass;
+                ApplyLoadout(Main.LocalPlayer, preset);
+            }
+
             ModPacket packet = ModContent.GetInstance<Arenas>().GetPacket();
             packet.Write((byte)Arenas.PacketType.SelectClass);
             packet.Write((byte)arenaClass);
@@ -354,15 +365,27 @@ internal sealed class ArenaPlayer : ModPlayer
 
         RoundManager manager = ModContent.GetInstance<RoundManager>();
         if (manager.CurrentPhase is not (RoundManager.RoundPhase.Generating or RoundManager.RoundPhase.FreezeCountdown))
+        {
+            Log.Chat($"[ClassSelect] Rejected for player {playerId}: phase is {manager.CurrentPhase}.");
             return;
+        }
         if (playerId < 0 || playerId >= Main.maxPlayers || Main.player[playerId]?.active != true)
+        {
+            Log.Chat($"[ClassSelect] Rejected: player {playerId} is not active.");
             return;
+        }
         if (!manager.TryGetSelectedPreset(out BossFightPreset preset) || !FightPresets.PostMechKits.Supports(preset))
+        {
+            Log.Chat("[ClassSelect] Rejected: the selected preset does not support class kits.");
             return;
+        }
 
         FightPresets.ArenaClass arenaClass = (FightPresets.ArenaClass)classId;
         if (!Enum.IsDefined(arenaClass) || arenaClass == FightPresets.ArenaClass.None)
+        {
+            Log.Chat($"[ClassSelect] Rejected: invalid class id {classId}.");
             return;
+        }
 
         Player player = Main.player[playerId];
         player.GetModPlayer<ArenaPlayer>().SelectedClass = arenaClass;
