@@ -61,12 +61,16 @@ internal sealed class ArenaPlayer : ModPlayer
         RoundManager manager = ModContent.GetInstance<RoundManager>();
 
         if (manager.CurrentPhase is RoundManager.RoundPhase.WaitingForPlayers
-            or RoundManager.RoundPhase.VotingOrEndScreen)
+    or RoundManager.RoundPhase.VotingOrEndScreen)
         {
             roundPrepared = false;
+            SelectedClass = FightPresets.ArenaClass.None;
+
             ResetArenaSpawn();
+
             if (HasCarriedItems(Player))
                 ClearCarriedItems(Player, sync: Main.netMode == NetmodeID.Server);
+
             if (Player.whoAmI == Main.myPlayer && !Main.mouseItem.IsAir)
                 Main.mouseItem.TurnToAir();
         }
@@ -86,10 +90,23 @@ internal sealed class ArenaPlayer : ModPlayer
             if (manager.CurrentLayout != null)
                 SetArenaSpawn(manager.CurrentLayout.PlayerSpawn((Team)Player.team));
 
-            if (Main.netMode != NetmodeID.MultiplayerClient && !roundPrepared
+            if (!roundPrepared
                 && manager.CurrentLayout != null
                 && manager.TryGetSelectedPreset(out BossFightPreset preset))
-                Prepare(Player, preset, manager.CurrentLayout);
+            {
+                if (Main.netMode == NetmodeID.MultiplayerClient)
+                {
+                    if (Player.whoAmI == Main.myPlayer)
+                    {
+                        ApplyLoadout(Player, preset);
+                        roundPrepared = true;
+                    }
+                }
+                else
+                {
+                    Prepare(Player, preset, manager.CurrentLayout);
+                }
+            }
 
             Player.hostile = true;
             KeepInsideArena(manager.CurrentLayout);
@@ -281,9 +298,14 @@ internal sealed class ArenaPlayer : ModPlayer
     {
         if (items == null)
             return;
+
         for (int i = 0; i < items.Length; i++)
-            NetMessage.SendData(MessageID.SyncEquipment, number: player.whoAmI,
-                number2: firstSlot + i, number3: items[i]?.prefix ?? 0);
+        {
+            NetMessage.SendData(
+                MessageID.SyncEquipment,
+                number: player.whoAmI,
+                number2: firstSlot + i);
+        }
     }
 
     internal void AddBossDamage(uint damage) =>

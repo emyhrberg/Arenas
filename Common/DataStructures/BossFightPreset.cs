@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.ComponentModel;
 using Terraria.ModLoader.Config;
 
@@ -6,6 +7,9 @@ namespace Arenas.Common.DataStructures;
 internal sealed class BossFightPreset
 {
     public NPCDefinition Boss = new();
+
+    [Expand(true)]
+    public List<ArenaLoadoutOption> Loadouts = [];
 
     [DefaultValue(ArenaKind.WorldCenterSurface)]
     public ArenaKind ArenaKind = ArenaKind.WorldCenterSurface;
@@ -24,6 +28,4 @@ internal sealed class BossFightPreset
 
     [DefaultValue(5), Range(0, 300)]
     public int GracePeriodSeconds = 5;
-
-    public Loadout Loadout = new();
 }
