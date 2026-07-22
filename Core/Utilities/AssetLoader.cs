@@ -18,24 +18,16 @@ namespace PvPArenas.Core.Utilities;
 public static class Ass
 {
     // Assets
-    public static Asset<Texture2D> IconLock;
     public static Asset<Texture2D> IconEndGame;
     public static Asset<Texture2D> IconStartGame;
     public static Asset<Texture2D> IconRefresh;
     public static Asset<Texture2D> IconResize;
-    public static Asset<Texture2D> IconGem;
     public static Asset<Texture2D> IconArenas;
     public static Asset<Texture2D> IconArenasHighlighted;
     public static Asset<Texture2D> IconCheckOn;
     public static Asset<Texture2D> IconCheckOnHover;
     public static Asset<Texture2D> IconCheckOff;
     public static Asset<Texture2D> IconCheckOffHover;
-
-    public static Asset<Texture2D> SliderButton;
-    public static Asset<Texture2D> SliderButtonHighlight;
-    public static Asset<Texture2D> SliderGradient;
-    public static Asset<Texture2D> SliderHighlight;
-    public static Asset<Texture2D> Slider;
 
     // Item spawner
     public static Asset<Texture2D> FilterAll;
@@ -65,7 +57,7 @@ public static class Ass
             return;
         }
 
-        const string ModName = "Arenas";
+        const string ModName = "PvPArenas";
 
         // Use a tuple to store both the field name and the path we searched for
         List<(string AssetName, string Path)> missingAssets = new List<(string, string)>();

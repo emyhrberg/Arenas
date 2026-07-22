@@ -13,8 +13,8 @@ namespace PvPArenas.Common.AdminTools.UI;
 
 internal sealed class UISlider : UIElement
 {
-    private readonly Asset<Texture2D> innerTexture = Ass.SliderGradient;
-    private readonly Asset<Texture2D> outerTexture = Ass.SliderHighlight;
+    private readonly Asset<Texture2D> innerTexture = PvPFramework.Core.Utilities.Ass.SliderGradient;
+    private readonly Asset<Texture2D> outerTexture = PvPFramework.Core.Utilities.Ass.SliderHighlight;
     public bool Enabled = true;
     public bool IsHeld;
     public float Ratio;
@@ -80,7 +80,7 @@ internal sealed class UISlider : UIElement
     {
         Rectangle rect = GetDimensions().ToRectangle();
         Color drawColor = Enabled ? Color.White : Color.Gray * 0.65f;
-        DrawBar(sb, Ass.Slider.Value, rect, drawColor);
+        DrawBar(sb, PvPFramework.Core.Utilities.Ass.Slider.Value, rect, drawColor);
         if (Enabled && (IsHeld || IsMouseHovering))
             DrawBar(sb, outerTexture.Value, rect, Main.OurFavoriteColor);
         Rectangle innerBarArea = rect;

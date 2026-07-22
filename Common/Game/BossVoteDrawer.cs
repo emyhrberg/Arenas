@@ -115,13 +115,13 @@ internal static class BossVoteDrawer
 
     private static void DrawProgressBar(Rectangle track, float progress)
     {
-        UISlider.DrawBar(Main.spriteBatch, Ass.Slider.Value, track, new Color(5, 10, 35) * animAlpha);
-        UISlider.DrawBar(Main.spriteBatch, Ass.SliderHighlight.Value, track, DarkEdge * animAlpha);
+        UISlider.DrawBar(Main.spriteBatch, PvPFramework.Core.Utilities.Ass.Slider.Value, track, new Color(5, 10, 35) * animAlpha);
+        UISlider.DrawBar(Main.spriteBatch, PvPFramework.Core.Utilities.Ass.SliderHighlight.Value, track, DarkEdge * animAlpha);
         Rectangle inner = track; inner.Inflate(-4, -4);
         int width = (int)MathF.Round(inner.Width * progress); if (width <= 0) return;
         Rectangle fill = new(inner.X, inner.Y, Math.Min(inner.Width, Math.Max(12, width)), inner.Height);
-        UISlider.DrawBar(Main.spriteBatch, Ass.Slider.Value, fill, Yellow * animAlpha);
-        UISlider.DrawBar(Main.spriteBatch, Ass.SliderHighlight.Value, fill, new Color(255, 239, 145) * animAlpha);
+        UISlider.DrawBar(Main.spriteBatch, PvPFramework.Core.Utilities.Ass.Slider.Value, fill, Yellow * animAlpha);
+        UISlider.DrawBar(Main.spriteBatch, PvPFramework.Core.Utilities.Ass.SliderHighlight.Value, fill, new Color(255, 239, 145) * animAlpha);
     }
 
     internal static void DrawBossHead(int type, Rectangle box, float opacity = 1f)
