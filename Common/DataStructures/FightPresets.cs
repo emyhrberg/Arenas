@@ -48,10 +48,52 @@ internal static class FightPresets
             MaxHealth = 500,
             MaxMana = 200,
             Loadouts = CreatePostPlanteraLoadouts()
+        },
+        new()
+        {
+            // Sandbox arena: no boss NPC. It is the 5th "arena" and runs bossless.
+            Boss = new NPCDefinition(),
+            ArenaKind = ArenaKind.WorldCenterSurface,
+            ArenaWidthTiles = 200,
+            ArenaHeightTiles = 100,
+            MaxHealth = 500,
+            MaxMana = 200,
+            Loadouts = CreateSandboxLoadouts()
         }
     ];
 
+    // Sandbox mode: four empty loadouts the player fills in themselves via the item picker.
+    private static List<ArenaLoadoutOption> CreateSandboxLoadouts() =>
+    [
+        new() { Name = "1", Loadout = new() },
+        new() { Name = "2", Loadout = new() },
+        new() { Name = "3", Loadout = new() },
+        new() { Name = "4", Loadout = new() }
+    ];
+
     #region Pre-Hardmode loadouts
+
+    // Shared pre-boss utility/base items, mirroring the post-mech base kit but limited
+    // to what is obtainable before defeating any boss (and with saner stack sizes).
+    private static LoadoutItem[] PreBossBase() =>
+    [
+        Item(ItemID.Binoculars),
+        Item(ItemID.Teacup, 9999),
+        Item(ItemID.IceRod),
+        Item(ItemID.HoneyBucket),
+        Item(ItemID.LavaBucket),
+        Item(ItemID.Bomb, 500),
+        Item(ItemID.HealingPotion, 9999),
+        Item(ItemID.EncumberingStone),
+        Item(ItemID.MoltenPickaxe),
+        Item(ItemID.Campfire, 5),
+        Item(ItemID.HeartLantern, 5),
+        Item(ItemID.Bed, 5),
+        Item(ItemID.Wood, 500),
+        Item(ItemID.StoneBlock, 500),
+        Item(ItemID.Torch, 9999),
+        Item(ItemID.Glowstick, 9999)
+    ];
 
     private static List<ArenaLoadoutOption> CreatePreBossLoadouts() =>
     [
@@ -89,23 +131,14 @@ internal static class FightPresets
         },
         Inventory =
         [
-            Item(ItemID.StoneBlock, 9999),
-            Item(ItemID.Binoculars),
-            Item(ItemID.Wood, 9999),
-            Item(ItemID.HoneyBucket),
-            Item(ItemID.LavaBucket),
             Item(ItemID.FieryGreatsword),
             Item(ItemID.Valor),
             Item(ItemID.MoltenFury),
             Item(ItemID.HellfireArrow, 9999),
-            Item(ItemID.HealingPotion, 9999),
-            Item(ItemID.Torch, 9999),
-            Item(ItemID.Glowstick, 9999),
-            Item(ItemID.Bomb, 9999),
-            Item(ItemID.Ale, 9999),
-            Item(ItemID.MoltenPickaxe),
             Item(ItemID.DarkLance),
-            Item(ItemID.Sunfury)
+            Item(ItemID.Sunfury),
+            Item(ItemID.Ale, 9999),
+            .. PreBossBase()
         ]
     };
 
@@ -136,12 +169,6 @@ internal static class FightPresets
         },
         Inventory =
         [
-            Item(ItemID.StoneBlock, 9999),
-            Item(ItemID.Binoculars),
-            Item(ItemID.Wood, 9999),
-            Item(ItemID.HoneyBucket),
-            Item(ItemID.LavaBucket),
-
             Item(ItemID.SpaceGun),
             Item(ItemID.DemonScythe),
             Item(ItemID.WaterBolt),
@@ -150,14 +177,9 @@ internal static class FightPresets
             Item(ItemID.FlowerofFire),
             Item(ItemID.AquaScepter),
             Item(ItemID.MagicMissile),
-
             Item(ItemID.ManaPotion, 9999),
-            Item(ItemID.HealingPotion, 9999),
-            Item(ItemID.Torch, 9999),
-            Item(ItemID.Glowstick, 9999),
-            Item(ItemID.Bomb, 9999),
-            Item(ItemID.MoltenPickaxe),
-            Item(ItemID.CrystalBall)
+            Item(ItemID.CrystalBall),
+            .. PreBossBase()
         ]
     };
 

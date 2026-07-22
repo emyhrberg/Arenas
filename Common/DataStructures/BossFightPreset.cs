@@ -28,4 +28,10 @@ internal sealed class BossFightPreset
 
     [DefaultValue(5), Range(0, 300)]
     public int GracePeriodSeconds = 5;
+
+    /// <summary>
+    /// A sandbox arena has no boss NPC configured. Its loadouts are empty by default and are
+    /// filled in per-player through the local loadout editor / item picker.
+    /// </summary>
+    public bool IsSandbox() => (Boss?.Type ?? 0) <= 0;
 }

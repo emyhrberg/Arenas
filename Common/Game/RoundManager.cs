@@ -104,7 +104,9 @@ internal sealed class RoundManager : ModSystem
                 return;
             }
 
-            if (ModContent.GetInstance<BossManager>().Update() == BossState.Missing)
+            // Sandbox rounds have no boss to track; they simply run until the timer ends.
+            if (!IsSandboxRound
+                && ModContent.GetInstance<BossManager>().Update() == BossState.Missing)
             {
                 FinishRound(RoundEndReason.BossDespawned);
                 return;
@@ -131,6 +133,9 @@ internal sealed class RoundManager : ModSystem
                 break;
         }
     }
+
+    private bool IsSandboxRound =>
+        TryGetSelectedPreset(out BossFightPreset preset) && preset.IsSandbox();
 
     internal bool TryGetSelectedPreset(out BossFightPreset preset)
     {
@@ -340,8 +345,15 @@ internal sealed class RoundManager : ModSystem
 
     private void StartPlaying()
     {
-        if (!TryGetSelectedPreset(out BossFightPreset preset) || currentLayout == null
-            || !ModContent.GetInstance<BossManager>().TrySpawn(preset, currentLayout))
+        if (!TryGetSelectedPreset(out BossFightPreset preset) || currentLayout == null)
+        {
+            FinishRound(RoundEndReason.SpawnFailed);
+            return;
+        }
+
+        // Sandbox arenas run bossless; every other arena must spawn its NPC.
+        if (!preset.IsSandbox()
+            && !ModContent.GetInstance<BossManager>().TrySpawn(preset, currentLayout))
         {
             FinishRound(RoundEndReason.SpawnFailed);
             return;
@@ -456,6 +468,7 @@ internal sealed class RoundManager : ModSystem
 
     private static string ArenaAnnouncement(int bossType) => bossType switch
     {
+        <= NPCID.None => "The Sandbox arena opens... build your loadout and have at it!",
         NPCID.KingSlime => "The ground squelches... the King Slime Arena is awakening!",
         NPCID.EyeofCthulhu => "You feel an evil presence watching the arena...",
         NPCID.EaterofWorldsHead => "A horrible chill crawls through the corrupted arena...",

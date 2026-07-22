@@ -28,9 +28,17 @@ internal sealed class BossVoteSystem : ModSystem
         return result;
     }
 
-    internal static bool IsVotable(BossFightPreset preset) =>
-        preset?.Boss?.Type > NPCID.None && preset.Boss.Type < NPCLoader.NPCCount
-        && Enum.IsDefined(preset.ArenaKind);
+    internal static bool IsVotable(BossFightPreset preset)
+    {
+        if (preset == null || !Enum.IsDefined(preset.ArenaKind))
+            return false;
+
+        // Sandbox arenas have no boss NPC but are still a selectable arena.
+        if (preset.IsSandbox())
+            return true;
+
+        return preset.Boss.Type > NPCID.None && preset.Boss.Type < NPCLoader.NPCCount;
+    }
 
     internal IReadOnlyList<byte> VotersFor(int option) => option >= 0 && option < voters.Count ? voters[option] : [];
     internal int VoteCount(int option) => option >= 0 && option < voters.Count ? voters[option].Count : 0;

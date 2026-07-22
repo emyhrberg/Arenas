@@ -131,6 +131,11 @@ Mods: {
 					Label: Loadouts
 					Tooltip: ""
 				}
+
+				Sandbox: {
+					Label: Sandbox
+					Tooltip: ""
+				}
 			}
 
 			Loadout: {

@@ -543,12 +543,15 @@ internal sealed class ArenaPlayer : ModPlayer
         Loadout loadout =
             ResolveBaseLoadout(preset, loadoutIndex);
 
-        return Main.dedServ
-            ? loadout
-            : LocalLoadoutOrder.Apply(
-                preset,
-                loadoutIndex,
-                loadout);
+        // Sandbox loadouts are already the player's exact slot layout; the reorder
+        // pass only applies to fixed preset loadouts.
+        if (preset?.IsSandbox() == true || Main.dedServ)
+            return loadout;
+
+        return LocalLoadoutOrder.Apply(
+            preset,
+            loadoutIndex,
+            loadout);
     }
 
     internal static Loadout ResolveBaseLoadout(
@@ -560,6 +563,16 @@ internal sealed class ArenaPlayer : ModPlayer
 
         if (options == null || options.Count == 0)
             return new Loadout();
+
+        // Sandbox loadouts live only in the local per-player store, never the shared
+        // config, and must not fall back to a boss's built-in default kit.
+        if (preset.IsSandbox())
+        {
+            int sandboxIndex = Math.Clamp(loadoutIndex, 0, options.Count - 1);
+            return Main.dedServ
+                ? new Loadout()
+                : LocalSandboxLoadouts.Get(preset, sandboxIndex);
+        }
 
         loadoutIndex =
             Math.Clamp(loadoutIndex, 0, options.Count - 1);

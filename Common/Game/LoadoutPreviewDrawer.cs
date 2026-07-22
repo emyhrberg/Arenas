@@ -24,11 +24,25 @@ internal static class LoadoutPreviewDrawer
         Item Item,
         bool Equip,
         int? HotbarNumber,
-        int InventoryIndex = -1);
+        int InventoryIndex = -1,
+        SandboxSlot? Sandbox = null);
+
+    // Equipment slot order, matching how Rebuild adds them. The null entry is the
+    // empty gap between the accessories and the hook/mount column.
+    private static readonly SandboxSlotKind?[] EquipKinds =
+    [
+        SandboxSlotKind.Head, SandboxSlotKind.Body, SandboxSlotKind.Legs,
+        SandboxSlotKind.Accessory1, SandboxSlotKind.Accessory2, SandboxSlotKind.Accessory3,
+        SandboxSlotKind.Accessory4, SandboxSlotKind.Accessory5,
+        null,
+        SandboxSlotKind.GrapplingHook, SandboxSlotKind.Mount
+    ];
 
     private const int InventoryColumns = 10;
+    private const int EquipmentRows = 3;
     private const int SlotStep = 40;
     private const int SlotSize = 36;
+    private const int EquipmentPhysicsKeyOffset = 1000;
 
     private const int HeaderHeight = 60;
     private const int PreviewWidth = 96;
@@ -105,6 +119,9 @@ internal static class LoadoutPreviewDrawer
             (inventorySlots.Count + InventoryColumns - 1)
             / InventoryColumns);
 
+    // Equipment always lays out in a fixed 3-row grid (armor | accessories |
+    // accessories + gap | hook & mount), independent of how many inventory rows
+    // the loadout happens to fill.
     private static int EquipmentColumnCount
     {
         get
@@ -114,11 +131,16 @@ internal static class LoadoutPreviewDrawer
 
             return (
                 equipmentSlots.Count
-                + InventoryRowCount
+                + EquipmentRows
                 - 1)
-                / InventoryRowCount;
+                / EquipmentRows;
         }
     }
+
+    private static int GridRowCount =>
+        Math.Max(
+            InventoryRowCount,
+            equipmentSlots.Count > 0 ? EquipmentRows : 0);
 
     public static void Draw(int top)
     {
@@ -140,6 +162,13 @@ internal static class LoadoutPreviewDrawer
         entrance.Advance();
         alpha = entrance.Alpha;
         top -= entrance.SlideOffset;
+
+        // While picking an item, the whole loadout body is replaced by the picker.
+        if (preset.IsSandbox() && SandboxLoadoutEditor.IsOpen)
+        {
+            SandboxLoadoutEditor.DrawOverlay(top, alpha);
+            return;
+        }
 
         ArenaPlayer localArenaPlayer =
             Main.LocalPlayer.GetModPlayer<ArenaPlayer>();
@@ -267,8 +296,10 @@ internal static class LoadoutPreviewDrawer
             0f);
 
         string bossName =
-            Lang.GetNPCNameValue(
-                preset.Boss?.Type ?? NPCID.None);
+            preset.IsSandbox()
+                ? "Sandbox"
+                : Lang.GetNPCNameValue(
+                    preset.Boss?.Type ?? NPCID.None);
 
         string subtitle = showSelector
             ? $"Pick your loadout for {bossName}!"
@@ -304,7 +335,7 @@ internal static class LoadoutPreviewDrawer
         }
 
         int gridHeight =
-            finalInventoryRows * S(SlotStep);
+            GridRowCount * S(SlotStep);
 
         Rectangle previewBox = new(
             panel.X + S(SidePadding),
@@ -337,30 +368,33 @@ internal static class LoadoutPreviewDrawer
             DrawEquipmentSlots(
                 equipmentOriginX,
                 contentTop,
-                finalInventoryRows,
+                EquipmentRows,
                 scale,
                 mouse,
                 S);
         }
 
-        // Edit loadout button
+        // Edit loadout button. Sandbox loadouts are edited directly by clicking
+        // slots, so they skip the reorder-style edit button entirely.
+        if (!preset.IsSandbox())
+        {
+            int gridBottom =
+                contentTop +
+                GridRowCount * S(SlotStep);
 
-        int gridBottom =
-    contentTop +
-    finalInventoryRows * S(SlotStep);
+            Rectangle editButton = new(
+                panel.Center.X - S(82),
+                gridBottom + S(7),
+                S(164),
+                S(28));
 
-        Rectangle editButton = new(
-            panel.Center.X - S(82),
-            gridBottom + S(7),
-            S(164),
-            S(28));
-
-        DrawEditButton(
-            editButton,
-            preset,
-            scale,
-            mouse,
-            S);
+            DrawEditButton(
+                editButton,
+                preset,
+                scale,
+                mouse,
+                S);
+        }
 
         DrawHeldItem(scale);
     }
@@ -432,6 +466,7 @@ internal static class LoadoutPreviewDrawer
                 loadout);
 
         editMode = true;
+        LoadoutItemPhysics.Reset();
         InvalidateCache();
 
         Log.Chat(
@@ -475,6 +510,7 @@ internal static class LoadoutPreviewDrawer
         editingLoadoutIndex = -1;
         ClearHeldItem();
         editOrder.Clear();
+        LoadoutItemPhysics.Reset();
         InvalidateCache();
     }
 
@@ -566,6 +602,8 @@ internal static class LoadoutPreviewDrawer
 
         int previousHeldIndex = heldItemIndex;
 
+        LoadoutItemPhysics.SwapWithCursor(slotIndex);
+
         // Resolve and cache the item being picked up before changing the order.
         Item nextHeldItem = clickedItemIndex >= 0
             ? entry.Item.Clone()
@@ -619,14 +657,12 @@ internal static class LoadoutPreviewDrawer
 
         Main.LocalPlayer.mouseInterface = true;
 
-        ItemSlot.DrawItemIcon(
+        LoadoutItemPhysics.DrawCursorItem(
             heldItem,
-            ItemSlot.Context.InventoryItem,
-            Main.spriteBatch,
             Main.MouseScreen + new Vector2(28f, 28f),
             scale,
             40f,
-            Color.White * alpha);
+            alpha);
     }
 
     private static int GetDesignWidth(
@@ -648,7 +684,7 @@ internal static class LoadoutPreviewDrawer
     {
         return HeaderHeight
             + GetLoadoutSelectorHeight(optionCount)
-            + inventoryRows * SlotStep
+            + Math.Max(inventoryRows, equipmentSlots.Count > 0 ? EquipmentRows : 0) * SlotStep
             + SidePadding
             + EditButtonAreaHeight; // Extra space for the edit loadout button
     }
@@ -1006,6 +1042,9 @@ internal static class LoadoutPreviewDrawer
         AddEquipment(
             loadout.Accessories?.Accessory5);
 
+        // Empty gap slot between the accessories and the hook/mount column.
+        AddEquipmentSpacer();
+
         AddEquipment(
             loadout.Equipment?.GrapplingHook);
 
@@ -1017,9 +1056,14 @@ internal static class LoadoutPreviewDrawer
                 loadout.Inventory?.Count ?? 0,
                 50);
 
+        // Sandbox always shows the full editable grid; other presets grow to fit.
+        int minimumSlots = preset.IsSandbox()
+            ? LocalSandboxLoadouts.InventorySlots
+            : 10;
+
         int displayedInventoryCount =
             Math.Max(
-                10,
+                minimumSlots,
                 inventoryCount);
 
         for (int i = 0;
@@ -1043,7 +1087,20 @@ internal static class LoadoutPreviewDrawer
                             ? 10
                             : i + 1
                         : null,
-                    i));
+                    i,
+                    preset.IsSandbox()
+                        ? new SandboxSlot(SandboxSlotKind.Inventory, i)
+                        : null));
+        }
+
+        if (preset.IsSandbox())
+        {
+            for (int i = 0; i < equipmentSlots.Count && i < EquipKinds.Length; i++)
+                if (EquipKinds[i] is SandboxSlotKind kind)
+                    equipmentSlots[i] = equipmentSlots[i] with
+                    {
+                        Sandbox = new SandboxSlot(kind)
+                    };
         }
 
         previewPlayer =
@@ -1058,6 +1115,15 @@ internal static class LoadoutPreviewDrawer
                 MakeItem(
                     definition?.Type
                     ?? ItemID.None),
+                true,
+                null));
+    }
+
+    private static void AddEquipmentSpacer()
+    {
+        equipmentSlots.Add(
+            new SlotEntry(
+                new Item(),
                 true,
                 null));
     }
@@ -1081,32 +1147,26 @@ internal static class LoadoutPreviewDrawer
     private static Player BuildPreviewPlayer(
         Loadout loadout)
     {
-        Player preview = new()
-        {
-            active = true,
-            dead = false,
-            ghost = false,
-            statLife = 1,
-            direction = 1,
-            isDisplayDollOrInanimate = true
-        };
+        // A bare "new Player()" is not renderable: the draw path depends on
+        // deep state (dye vars, cloned appearance, frame setup) that only a
+        // fully-initialized player has. Cloning the local player like vanilla's
+        // UICharacter does gives us that for free; we then strip its gear and
+        // apply the loadout so only the loadout armor is visible.
+        Player preview =
+            (Main.LocalPlayer ?? new Player()).SerializedClone();
 
-        Player source = Main.LocalPlayer;
+        preview.active = true;
+        preview.dead = false;
+        preview.ghost = false;
+        preview.direction = 1;
+        preview.isDisplayDollOrInanimate = true;
+        preview.selectedItem = 0;
 
-        if (source != null)
-        {
-            preview.skinVariant = source.skinVariant;
-            preview.Male = source.Male;
-            preview.hair = source.hair;
-            preview.hairColor = source.hairColor;
-            preview.skinColor = source.skinColor;
-            preview.eyeColor = source.eyeColor;
-            preview.shirtColor = source.shirtColor;
-            preview.underShirtColor =
-                source.underShirtColor;
-            preview.pantsColor = source.pantsColor;
-            preview.shoeColor = source.shoeColor;
-        }
+        for (int i = 0; i < preview.inventory.Length; i++)
+            preview.inventory[i] = new Item();
+
+        for (int i = 0; i < preview.armor.Length; i++)
+            preview.armor[i] = new Item();
 
         SetPreviewEquipment(
             preview,
@@ -1148,11 +1208,14 @@ internal static class LoadoutPreviewDrawer
             7,
             loadout.Accessories?.Accessory5);
 
-        preview.ResetEffects();
-        preview.ResetVisibleAccessories();
-        preview.UpdateDyes();
-        preview.DisplayDollUpdate();
-        preview.PlayerFrame();
+        using (new Main.CurrentPlayerOverride(preview))
+        {
+            preview.ResetEffects();
+            preview.ResetVisibleAccessories();
+            preview.UpdateDyes();
+            preview.DisplayDollUpdate();
+            preview.PlayerFrame();
+        }
 
         return preview;
     }
@@ -1216,8 +1279,6 @@ internal static class LoadoutPreviewDrawer
         previewPlayer.ghost = false;
         previewPlayer.isDisplayDollOrInanimate = true;
 
-        previewPlayer.PlayerFrame();
-
         float jumpOffset =
             ApplyPreviewAnimation(hovered);
 
@@ -1234,16 +1295,24 @@ internal static class LoadoutPreviewDrawer
 
         try
         {
+            // gameMenu forces full-bright lighting (the panel may sit over
+            // unlit tiles); the player override makes the renderer treat the
+            // preview as the active player, both required for it to appear.
             Main.gameMenu = true;
 
-            Main.PlayerRenderer.DrawPlayer(
-                Main.Camera,
-                previewPlayer,
-                drawPosition,
-                0f,
-                Vector2.Zero,
-                0f,
-                1f);
+            using (new Main.CurrentPlayerOverride(previewPlayer))
+            {
+                previewPlayer.PlayerFrame();
+
+                Main.PlayerRenderer.DrawPlayer(
+                    Main.Camera,
+                    previewPlayer,
+                    drawPosition,
+                    0f,
+                    Vector2.Zero,
+                    0f,
+                    1f);
+            }
         }
         finally
         {
@@ -1367,7 +1436,8 @@ internal static class LoadoutPreviewDrawer
                 cell,
                 inventorySlots[i],
                 scale,
-                mouse);
+                mouse,
+                i);
         }
     }
 
@@ -1401,7 +1471,8 @@ internal static class LoadoutPreviewDrawer
                 cell,
                 equipmentSlots[i],
                 scale,
-                mouse);
+                mouse,
+                EquipmentPhysicsKeyOffset + i);
         }
     }
 
@@ -1409,7 +1480,8 @@ internal static class LoadoutPreviewDrawer
         Rectangle cell,
         SlotEntry entry,
         float uiScale,
-        Point mouse)
+        Point mouse,
+        int physicsKey)
     {
         Texture2D background =
             (entry.Equip
@@ -1434,14 +1506,28 @@ internal static class LoadoutPreviewDrawer
 
         if (!entry.Item.IsAir)
         {
-            ItemSlot.DrawItemIcon(
-                entry.Item,
-                31,
-                Main.spriteBatch,
-                cell.Center.ToVector2(),
-                uiScale * .85f,
-                cell.Width - 8f,
-                Color.White * alpha);
+            if (editMode)
+            {
+                LoadoutItemPhysics.DrawSlotItem(
+                    entry.Item,
+                    cell.Center.ToVector2(),
+                    uiScale * .85f,
+                    cell.Width - 8f,
+                    alpha,
+                    physicsKey,
+                    cell.Contains(mouse));
+            }
+            else
+            {
+                ItemSlot.DrawItemIcon(
+                    entry.Item,
+                    31,
+                    Main.spriteBatch,
+                    cell.Center.ToVector2(),
+                    uiScale * .85f,
+                    cell.Width - 8f,
+                    Color.White * alpha);
+            }
         }
 
         float textScale =
@@ -1487,6 +1573,18 @@ internal static class LoadoutPreviewDrawer
             Main.LocalPlayer.mouseInterface = true;
             Main.HoverItem = entry.Item.Clone();
             Main.hoverItemName = entry.Item.Name;
+        }
+
+        if (currentPreset?.IsSandbox() == true && entry.Sandbox.HasValue)
+        {
+            SandboxLoadoutEditor.HandleSlotClick(
+                currentPreset,
+                cachedDisplayLoadoutIndex,
+                entry.Sandbox.Value,
+                cell,
+                mouse);
+
+            return;
         }
 
         HandleEditClick(cell, entry, mouse);
@@ -1553,4 +1651,7 @@ internal static class LoadoutPreviewDrawer
     {
         cacheValid = false;
     }
+
+    /// <summary>Forces the next draw to rebuild cached slots (used after a sandbox slot changes).</summary>
+    internal static void Invalidate() => InvalidateCache();
 }

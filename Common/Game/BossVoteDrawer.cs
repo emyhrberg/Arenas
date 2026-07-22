@@ -88,7 +88,8 @@ internal static class BossVoteDrawer
         }
     }
 
-    private static string PresetName(BossFightPreset preset) => preset?.Boss?.DisplayName ?? "Boss";
+    private static string PresetName(BossFightPreset preset) =>
+        preset == null ? "Boss" : preset.IsSandbox() ? "Sandbox" : preset.Boss?.DisplayName ?? "Boss";
 
     private static void DrawVoters(Rectangle row, Rectangle counter, IReadOnlyList<byte> voters, Point mouse, float scale, Func<float, int> s)
     {
