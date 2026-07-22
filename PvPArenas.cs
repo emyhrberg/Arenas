@@ -4,9 +4,9 @@ using System;
 using System.IO;
 using Terraria.ID;
 
-namespace Arenas;
+namespace PvPArenas;
 
-public sealed class Arenas : Mod
+public sealed class PvPArenas : Mod
 {
     internal enum PacketType : byte
     {
@@ -46,3 +46,4 @@ public sealed class Arenas : Mod
         }
     }
 }
+
