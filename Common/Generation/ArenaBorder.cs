@@ -104,12 +104,13 @@ internal static class ArenaBorder
 
     private static void FrameArea(Rectangle area)
     {
-        Rectangle framing = area;
-        framing.Inflate(1, 1);
-        for (int x = framing.Left; x < framing.Right; x++)
-            for (int y = framing.Top; y < framing.Bottom; y++)
-                if (WorldGen.InWorld(x, y, 5))
-                    WorldGen.TileFrame(x, y, resetFrame: true);
+        int left = Math.Clamp(area.Left, 1, Main.maxTilesX - 2);
+        int top = Math.Clamp(area.Top, 1, Main.maxTilesY - 2);
+        int right = Math.Clamp(area.Right - 1, 1, Main.maxTilesX - 2);
+        int bottom = Math.Clamp(area.Bottom - 1, 1, Main.maxTilesY - 2);
+
+        if (left <= right && top <= bottom)
+            WorldGen.RangeFrame(left, top, right, bottom);
     }
 
     private static void SyncArea(Rectangle area)
@@ -122,15 +123,13 @@ internal static class ArenaBorder
 
     private static void Frame(Rectangle outer, Rectangle bounds)
     {
-        Rectangle framing = outer;
-        framing.Inflate(1, 1);
-        Rectangle skip = bounds;
-        skip.Inflate(-1, -1);
+        int left = Math.Clamp(outer.Left, 1, Main.maxTilesX - 2);
+        int top = Math.Clamp(outer.Top, 1, Main.maxTilesY - 2);
+        int right = Math.Clamp(outer.Right - 1, 1, Main.maxTilesX - 2);
+        int bottom = Math.Clamp(outer.Bottom - 1, 1, Main.maxTilesY - 2);
 
-        for (int x = framing.Left; x < framing.Right; x++)
-            for (int y = framing.Top; y < framing.Bottom; y++)
-                if (!skip.Contains(x, y) && WorldGen.InWorld(x, y, 5))
-                    WorldGen.TileFrame(x, y, resetFrame: true);
+        if (left <= right && top <= bottom)
+            WorldGen.RangeFrame(left, top, right, bottom);
     }
 
     private static void Sync(Rectangle outer)

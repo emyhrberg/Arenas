@@ -7,6 +7,7 @@ namespace Arenas.Common.AdminTools.GameManager;
 internal sealed class ArenaGameManagerErkySSCTool : ModSystem
 {
     private const string GameOwner = "Arenas.GameManager";
+    private const string WorldGenOwner = "Arenas.WorldGenManager";
 
     public override void PostSetupContent() => RegisterEntries();
     public override void OnWorldLoad() => RegisterEntries();
@@ -16,6 +17,7 @@ internal sealed class ArenaGameManagerErkySSCTool : ModSystem
         if (!TryGetErkySSC(out Mod mod))
             return;
         Clear(mod, GameOwner);
+        Clear(mod, WorldGenOwner);
     }
 
     private static void RegisterEntries()
@@ -28,6 +30,11 @@ internal sealed class ArenaGameManagerErkySSCTool : ModSystem
             "Start and end rounds and voting", 31,
             () => ModContent.GetInstance<ArenaGameManagerUISystem>().Toggle(),
             () => ModContent.GetInstance<ArenaGameManagerUISystem>().IsActive);
+
+        Add(mod, WorldGenOwner, "world_gen_manager", "Arenas: World Gen Manager",
+            "Run vanilla world-generation passes in the loaded world", 32,
+            () => ModContent.GetInstance<global::Arenas.Common.AdminTools.WorldGenManager.WorldGenManagerUISystem>().Toggle(),
+            () => ModContent.GetInstance<global::Arenas.Common.AdminTools.WorldGenManager.WorldGenManagerUISystem>().IsActive);
     }
 
     private static void Add(Mod mod, string owner, string key, string title, string tooltip, int order, Action toggle, Func<bool> active)
