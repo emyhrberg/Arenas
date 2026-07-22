@@ -1,5 +1,5 @@
-using Arenas.Core.Compat;
-using Arenas.Core.Configs;
+using PvPArenas.Core.Compat;
+using PvPArenas.Core.Configs;
 using PvPFramework.Common.Combat.TeamBoss;
 using System;
 using System.Collections.Generic;
@@ -8,7 +8,7 @@ using Terraria.GameContent;
 using Terraria.Enums;
 using Terraria.UI;
 
-namespace Arenas.Common.Game;
+namespace PvPArenas.Common.Game;
 
 [Autoload(Side = ModSide.Client)]
 internal sealed class ScorelineUISystem : ModSystem

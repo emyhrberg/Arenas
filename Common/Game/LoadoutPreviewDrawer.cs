@@ -1,4 +1,4 @@
-using Arenas.Common.DataStructures;
+using PvPArenas.Common.DataStructures;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using PvPFramework.Core.Utilities;
@@ -12,7 +12,7 @@ using Terraria.ModLoader;
 using Terraria.ModLoader.Config;
 using Terraria.UI;
 
-namespace Arenas.Common.Game;
+namespace PvPArenas.Common.Game;
 
 /// <summary>
 /// Shows the selected arena loadout below the scoreline during the freeze countdown.

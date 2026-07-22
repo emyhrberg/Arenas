@@ -1,11 +1,11 @@
-﻿using Arenas.Common.DataStructures;
+﻿using PvPArenas.Common.DataStructures;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Terraria.ModLoader.IO;
 
-namespace Arenas.Common.Game;
+namespace PvPArenas.Common.Game;
 
 internal static class LocalLoadoutOrder
 {

@@ -1,15 +1,15 @@
-using Arenas.Common.AdminTools.UI;
-using Arenas.Common.DataStructures;
-using Arenas.Core;
-using Arenas.Core.Compat;
-using Arenas.Core.Configs;
+using PvPArenas.Common.AdminTools.UI;
+using PvPArenas.Common.DataStructures;
+using PvPArenas.Core;
+using PvPArenas.Core.Compat;
+using PvPArenas.Core.Configs;
 using Microsoft.Xna.Framework.Graphics;
 using System;
 using System.Collections.Generic;
 using Terraria.GameContent;
 using Terraria.ID;
 
-namespace Arenas.Common.Game;
+namespace PvPArenas.Common.Game;
 
 /// <summary>Draws the intermission boss vote panel above the end screen.</summary>
 internal static class BossVoteDrawer

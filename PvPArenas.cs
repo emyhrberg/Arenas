@@ -1,5 +1,5 @@
-using Arenas.Common.Game;
-using Arenas.Core.Compat;
+using PvPArenas.Common.Game;
+using PvPArenas.Core.Compat;
 using System;
 using System.IO;
 using Terraria.ID;

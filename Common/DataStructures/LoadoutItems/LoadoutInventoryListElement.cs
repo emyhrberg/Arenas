@@ -1,4 +1,4 @@
-using Arenas.Common.DataStructures;
+using PvPArenas.Common.DataStructures;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -10,7 +10,7 @@ using Terraria.ModLoader.Config.UI;
 using Terraria.ModLoader.UI;
 using Terraria.UI;
 
-namespace Arenas.Common.DataStructures.LoadoutItems;
+namespace PvPArenas.Common.DataStructures.LoadoutItems;
 
 internal sealed class LoadoutInventoryListElement : ListElement
 {

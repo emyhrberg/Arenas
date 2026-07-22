@@ -9,7 +9,7 @@ using Terraria.GameContent.UI.Elements;
 using Terraria.ID;
 using Terraria.UI;
 
-namespace Arenas.Common.AdminTools.UI;
+namespace PvPArenas.Common.AdminTools.UI;
 
 internal sealed class UISlider : UIElement
 {

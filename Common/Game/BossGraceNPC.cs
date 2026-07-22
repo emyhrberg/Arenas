@@ -3,7 +3,7 @@ using System.IO;
 using Terraria.ID;
 using Terraria.ModLoader.IO;
 
-namespace Arenas.Common.Game;
+namespace PvPArenas.Common.Game;
 
 /// <summary>Pauses the server-owned round boss without replacing its vanilla AI state.</summary>
 internal sealed class BossGraceNPC : GlobalNPC

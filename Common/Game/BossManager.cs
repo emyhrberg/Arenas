@@ -1,4 +1,4 @@
-using Arenas.Common.DataStructures;
+using PvPArenas.Common.DataStructures;
 using PvPFramework.Common.Combat.TeamBoss;
 using PvPFramework.Core.Configs.ConfigElements;
 using System;
@@ -8,7 +8,7 @@ using Terraria.ID;
 using Terraria.ModLoader.Config;
 using FrameworkServerConfig = PvPFramework.Core.Configs.ServerConfig;
 
-namespace Arenas.Common.Game;
+namespace PvPArenas.Common.Game;
 
 internal enum BossState : byte
 {

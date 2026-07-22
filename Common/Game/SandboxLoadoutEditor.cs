@@ -1,4 +1,4 @@
-using Arenas.Common.DataStructures;
+using PvPArenas.Common.DataStructures;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System;
@@ -10,7 +10,7 @@ using Terraria.ID;
 using Terraria.ModLoader;
 using Terraria.UI;
 
-namespace Arenas.Common.Game;
+namespace PvPArenas.Common.Game;
 
 /// <summary>
 /// Full-item picker shown when a slot of a "Sandbox mode" loadout is clicked. Isolates the

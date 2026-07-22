@@ -3,7 +3,7 @@ using System.Linq;
 using Terraria.Enums;
 using Terraria.ID;
 
-namespace Arenas.Common.Game;
+namespace PvPArenas.Common.Game;
 
 /// <summary>Server-owned Red/Blue assignment shared by joins, voting, and admin controls.</summary>
 internal static class TeamBalancer

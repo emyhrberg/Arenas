@@ -7,7 +7,7 @@ using System.Reflection;
 using Terraria;
 using Terraria.ModLoader;
 
-namespace Arenas.Core.Utilities;
+namespace PvPArenas.Core.Utilities;
 
 /// <summary>
 /// Provides static access to miscallaneous texture assets within the Arenas mod.

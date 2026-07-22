@@ -1,7 +1,7 @@
 using PvPFramework.Common.Spawnbox;
 using System;
 
-namespace Arenas.Common.Game;
+namespace PvPArenas.Common.Game;
 
 /// <summary>Hides PvPFramework's center-spawn box while Arenas owns the two team spawn boxes.</summary>
 internal sealed class ArenaSpawnBoxIntegration : ModSystem

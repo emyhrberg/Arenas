@@ -4,7 +4,7 @@ using PvPFramework.Core.Utilities;
 using System;
 using Terraria.ID;
 
-namespace Arenas.Common.Game;
+namespace PvPArenas.Common.Game;
 
 internal sealed class ArenaSpawnBoxCollision : ModSystem
 {

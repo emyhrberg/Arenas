@@ -1,12 +1,12 @@
-using Arenas.Common.DataStructures;
-using Arenas.Core.Configs;
+using PvPArenas.Common.DataStructures;
+using PvPArenas.Core.Configs;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Terraria.ID;
 
-namespace Arenas.Common.Game;
+namespace PvPArenas.Common.Game;
 
 /// <summary>Server-authoritative boss voting during the intermission, synced through world data.</summary>
 internal sealed class BossVoteSystem : ModSystem
@@ -58,8 +58,8 @@ internal sealed class BossVoteSystem : ModSystem
     {
         if (Main.netMode == NetmodeID.MultiplayerClient)
         {
-            ModPacket packet = ModContent.GetInstance<Arenas>().GetPacket();
-            packet.Write((byte)Arenas.PacketType.CastVote);
+            ModPacket packet = ModContent.GetInstance<PvPArenas>().GetPacket();
+            packet.Write((byte)PvPArenas.PacketType.CastVote);
             packet.Write((byte)option);
             packet.Send();
             return;

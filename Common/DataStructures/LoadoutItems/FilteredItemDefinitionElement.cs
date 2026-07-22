@@ -7,7 +7,7 @@ using Terraria.ModLoader;
 using Terraria.ModLoader.Config;
 using Terraria.ModLoader.Config.UI;
 
-namespace Arenas.Common.DataStructures.LoadoutItems;
+namespace PvPArenas.Common.DataStructures.LoadoutItems;
 
 internal abstract class FilteredItemDefinitionElement : DefinitionElement<ItemDefinition>
 {

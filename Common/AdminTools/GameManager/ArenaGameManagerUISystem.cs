@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using Terraria.UI;
 
-namespace Arenas.Common.AdminTools.GameManager;
+namespace PvPArenas.Common.AdminTools.GameManager;
 
 [Autoload(Side = ModSide.Client)]
 internal sealed class ArenaGameManagerUISystem : ModSystem

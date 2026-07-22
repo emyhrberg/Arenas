@@ -6,7 +6,7 @@ using Terraria;
 using Terraria.GameInput;
 using Terraria.ID;
 
-namespace Arenas.Common.Game;
+namespace PvPArenas.Common.Game;
 
 /// <summary>
 /// Spring motion used by item icons while the loadout reorder UI is active.

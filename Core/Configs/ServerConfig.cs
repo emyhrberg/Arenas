@@ -1,13 +1,13 @@
-using Arenas.Common.DataStructures;
-using Arenas.Common.DataStructures.ConfigElements;
-using Arenas.Core.Compat;
+using PvPArenas.Common.DataStructures;
+using PvPArenas.Common.DataStructures.ConfigElements;
+using PvPArenas.Core.Compat;
 using System.Collections.Generic;
 using System.ComponentModel;
 using Terraria.ID;
 using Terraria.Localization;
 using Terraria.ModLoader.Config;
 
-namespace Arenas.Core.Configs;
+namespace PvPArenas.Core.Configs;
 
 internal sealed class ServerConfig : ModConfig
 {

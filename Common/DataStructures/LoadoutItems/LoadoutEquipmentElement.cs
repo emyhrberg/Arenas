@@ -1,7 +1,7 @@
-using Arenas.Common.DataStructures;
+using PvPArenas.Common.DataStructures;
 using Terraria.ModLoader.Config.UI;
 
-namespace Arenas.Common.DataStructures.LoadoutItems;
+namespace PvPArenas.Common.DataStructures.LoadoutItems;
 
 internal sealed class LoadoutEquipmentElement : ObjectElement
 {

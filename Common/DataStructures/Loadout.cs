@@ -1,4 +1,4 @@
-using Arenas.Common.DataStructures.LoadoutItems;
+using PvPArenas.Common.DataStructures.LoadoutItems;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -6,7 +6,7 @@ using Terraria;
 using Terraria.ID;
 using Terraria.ModLoader.Config;
 
-namespace Arenas.Common.DataStructures;
+namespace PvPArenas.Common.DataStructures;
 
 public class Loadout
 {

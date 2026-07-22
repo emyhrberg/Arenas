@@ -1,7 +1,7 @@
 ﻿using System.Linq;
 using Terraria.ModLoader.Config;
 
-namespace Arenas.Common.DataStructures.LoadoutItems;
+namespace PvPArenas.Common.DataStructures.LoadoutItems;
 
 internal static class TagUtilities
 {

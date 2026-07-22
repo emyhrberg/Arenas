@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using Terraria.UI;
 
-namespace Arenas.Common.AdminTools.WorldGenManager;
+namespace PvPArenas.Common.AdminTools.WorldGenManager;
 
 [Autoload(Side = ModSide.Client)]
 internal sealed class WorldGenManagerUISystem : ModSystem

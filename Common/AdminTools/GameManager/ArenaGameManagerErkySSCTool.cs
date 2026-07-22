@@ -1,7 +1,7 @@
 ﻿using System;
 using Microsoft.Xna.Framework;
 
-namespace Arenas.Common.AdminTools.GameManager;
+namespace PvPArenas.Common.AdminTools.GameManager;
 
 [Autoload(Side = ModSide.Client)]
 internal sealed class ArenaGameManagerErkySSCTool : ModSystem
@@ -33,8 +33,8 @@ internal sealed class ArenaGameManagerErkySSCTool : ModSystem
 
         Add(mod, WorldGenOwner, "world_gen_manager", "Arenas: World Gen Manager",
             "Run vanilla world-generation passes in the loaded world", 32,
-            () => ModContent.GetInstance<global::Arenas.Common.AdminTools.WorldGenManager.WorldGenManagerUISystem>().Toggle(),
-            () => ModContent.GetInstance<global::Arenas.Common.AdminTools.WorldGenManager.WorldGenManagerUISystem>().IsActive);
+            () => ModContent.GetInstance<WorldGenManager.WorldGenManagerUISystem>().Toggle(),
+            () => ModContent.GetInstance<WorldGenManager.WorldGenManagerUISystem>().IsActive);
     }
 
     private static void Add(Mod mod, string owner, string key, string title, string tooltip, int order, Action toggle, Func<bool> active)

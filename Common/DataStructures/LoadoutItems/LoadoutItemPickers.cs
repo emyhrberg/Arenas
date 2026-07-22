@@ -1,6 +1,6 @@
 using Terraria.ID;
 
-namespace Arenas.Common.DataStructures.LoadoutItems;
+namespace PvPArenas.Common.DataStructures.LoadoutItems;
 
 internal sealed class ItemHeadDefinitionElement : FilteredItemDefinitionElement
 {

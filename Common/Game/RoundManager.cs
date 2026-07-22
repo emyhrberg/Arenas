@@ -1,6 +1,6 @@
-using Arenas.Common.DataStructures;
-using Arenas.Common.Generation;
-using Arenas.Core.Configs;
+using PvPArenas.Common.DataStructures;
+using PvPArenas.Common.Generation;
+using PvPArenas.Core.Configs;
 using PvPFramework.Common.EndScreen;
 using System;
 using System.IO;
@@ -11,7 +11,7 @@ using Terraria.GameContent.NetModules;
 using Terraria.ID;
 using Terraria.Net;
 
-namespace Arenas.Common.Game;
+namespace PvPArenas.Common.Game;
 
 /// <summary>Server-authoritative Arenas round loop.</summary>
 internal sealed class RoundManager : ModSystem
@@ -183,8 +183,8 @@ internal sealed class RoundManager : ModSystem
     {
         if (Main.netMode == NetmodeID.MultiplayerClient)
         {
-            ModPacket packet = ModContent.GetInstance<Arenas>().GetPacket();
-            packet.Write((byte)Arenas.PacketType.AdminRoundAction);
+            ModPacket packet = ModContent.GetInstance<PvPArenas>().GetPacket();
+            packet.Write((byte)PvPArenas.PacketType.AdminRoundAction);
             packet.Write((byte)action);
             packet.Send();
             return;

@@ -6,7 +6,7 @@ using Terraria.Chat;
 using Terraria.ID;
 using Terraria.Localization;
 
-namespace Arenas.Core.Utilities;
+namespace PvPArenas.Core.Utilities;
 
 /// <summary>
 /// A static logging helper for Arenas..
@@ -21,7 +21,7 @@ public static class Log
     {
         get
         {
-            var m = ModContent.GetInstance<Arenas>();
+            var m = ModContent.GetInstance<PvPArenas>();
             return (m != null && m.Logger != null) ? m.Logger : LogManager.GetLogger("Arenas");
         }
     }

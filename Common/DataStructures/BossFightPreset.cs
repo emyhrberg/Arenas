@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using Terraria.ModLoader.Config;
 
-namespace Arenas.Common.DataStructures;
+namespace PvPArenas.Common.DataStructures;
 
 internal sealed class BossFightPreset
 {

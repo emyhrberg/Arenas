@@ -1,7 +1,7 @@
 using Terraria;
 using Terraria.ModLoader;
 
-namespace Arenas.Core;
+namespace PvPArenas.Core;
 
 internal sealed class Keybinds : ModSystem
 {

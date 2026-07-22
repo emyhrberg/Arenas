@@ -1,4 +1,4 @@
-using Arenas.Common.Game;
+using PvPArenas.Common.Game;
 using Microsoft.Xna.Framework.Graphics;
 using System;
 using System.Collections;
@@ -10,7 +10,7 @@ using Terraria.ModLoader.Config.UI;
 using Terraria.ModLoader.UI;
 using Terraria.UI;
 
-namespace Arenas.Common.DataStructures.ConfigElements;
+namespace PvPArenas.Common.DataStructures.ConfigElements;
 
 internal sealed class BossFightPresetListElement : ListElement
 {

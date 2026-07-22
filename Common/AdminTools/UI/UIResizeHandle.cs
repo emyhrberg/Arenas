@@ -2,7 +2,7 @@ using System;
 using Terraria.GameContent.UI.Elements;
 using Terraria.UI;
 
-namespace Arenas.Common.AdminTools.UI;
+namespace PvPArenas.Common.AdminTools.UI;
 
 internal sealed class UIResizeHandle() : UIImageButton(Ass.IconResize)
 {

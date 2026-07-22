@@ -1,9 +1,8 @@
 using System.Collections.Generic;
 using Terraria.ID;
 using Terraria.ModLoader.Config;
-using static Arenas.Core.Configs.ServerConfig;
 
-namespace Arenas.Common.DataStructures;
+namespace PvPArenas.Common.DataStructures;
 
 internal static class FightPresets
 {

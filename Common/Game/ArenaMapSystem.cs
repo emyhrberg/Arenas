@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using Terraria.ID;
 using Terraria.Map;
 
-namespace Arenas.Common.Game;
+namespace PvPArenas.Common.Game;
 
 /// <summary>Locally reveals only the current arena and hides the map between rounds.</summary>
 [Autoload(Side = ModSide.Client)]

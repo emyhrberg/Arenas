@@ -1,6 +1,6 @@
 ﻿using Terraria.ModLoader.Config;
 
-namespace Arenas.Common.DataStructures;
+namespace PvPArenas.Common.DataStructures;
 
 public sealed class ArenaLoadoutOption
 {

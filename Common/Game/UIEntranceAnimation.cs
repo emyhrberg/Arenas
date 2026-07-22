@@ -1,6 +1,6 @@
 using System;
 
-namespace Arenas.Common.Game;
+namespace PvPArenas.Common.Game;
 
 /// <summary>
 /// Frame-driven entrance animation for immediate-mode panels: a fast fade-in paired with a

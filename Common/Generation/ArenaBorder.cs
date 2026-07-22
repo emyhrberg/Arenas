@@ -1,9 +1,9 @@
-using Arenas.Common.DataStructures;
-using Arenas.Common.Game;
+using PvPArenas.Common.DataStructures;
+using PvPArenas.Common.Game;
 using System;
 using Terraria.ID;
 
-namespace Arenas.Common.Generation;
+namespace PvPArenas.Common.Generation;
 
 /// <summary>Performs and synchronizes server-side arena tile preparation.</summary>
 internal static class ArenaBorder

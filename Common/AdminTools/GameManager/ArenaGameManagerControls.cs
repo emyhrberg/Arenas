@@ -1,4 +1,4 @@
-using Arenas.Common.Game;
+using PvPArenas.Common.Game;
 using Microsoft.Xna.Framework.Graphics;
 using System;
 using System.Collections.Generic;
@@ -10,7 +10,7 @@ using Terraria.GameContent.UI.Elements;
 using Terraria.ID;
 using Terraria.UI;
 
-namespace Arenas.Common.AdminTools.GameManager;
+namespace PvPArenas.Common.AdminTools.GameManager;
 
 internal sealed class ArenaGameStatusPanel : UIPanel
 {

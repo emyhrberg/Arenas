@@ -1,4 +1,4 @@
-using Arenas.Core.Configs;
+using PvPArenas.Core.Configs;
 using PvPFramework.Common.EndScreen;
 using PvPFramework.Common.Scoreboard;
 using System;
@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Terraria.Enums;
 
-namespace Arenas.Common.Game;
+namespace PvPArenas.Common.Game;
 
 internal static class ArenaEndScreen
 {

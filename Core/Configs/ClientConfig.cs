@@ -2,7 +2,7 @@ using PvPFramework.Core.Configs.ConfigElements;
 using System.ComponentModel;
 using Terraria.ModLoader.Config;
 
-namespace Arenas.Core.Configs;
+namespace PvPArenas.Core.Configs;
 
 internal sealed class ClientConfig : ModConfig
 {

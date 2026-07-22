@@ -1,4 +1,4 @@
-using Arenas.Common.DataStructures;
+using PvPArenas.Common.DataStructures;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -7,7 +7,7 @@ using Terraria.ID;
 using Terraria.ModLoader.Config;
 using Terraria.ModLoader.IO;
 
-namespace Arenas.Common.Game;
+namespace PvPArenas.Common.Game;
 
 /// <summary>Identifies one editable slot inside a sandbox loadout.</summary>
 internal enum SandboxSlotKind : byte

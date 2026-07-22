@@ -5,5 +5,5 @@ global using Terraria;
 global using Terraria.ModLoader;
 
 // Mod specific usings
-global using Arenas.Core.Utilities;
-global using Log = Arenas.Core.Utilities.Log;
+global using PvPArenas.Core.Utilities;
+global using Log = PvPArenas.Core.Utilities.Log;

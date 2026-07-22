@@ -3,7 +3,7 @@ using Microsoft.Xna.Framework.Graphics;
 using ReLogic.Content;
 using Terraria.ModLoader;
 
-namespace Arenas.Core.Utilities;
+namespace PvPArenas.Core.Utilities;
 
 public class EffectLoader : ModSystem
 {

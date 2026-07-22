@@ -1,5 +1,5 @@
-using Arenas.Common.AdminTools.GameManager;
-using Arenas.Common.AdminTools.UI;
+using PvPArenas.Common.AdminTools.GameManager;
+using PvPArenas.Common.AdminTools.UI;
 using System;
 using Terraria.Audio;
 using Terraria.GameContent;
@@ -7,7 +7,7 @@ using Terraria.GameContent.UI.Elements;
 using Terraria.ID;
 using Terraria.UI;
 
-namespace Arenas.Common.AdminTools.WorldGenManager;
+namespace PvPArenas.Common.AdminTools.WorldGenManager;
 
 internal sealed class WorldGenManagerPanel : UIDraggablePanel
 {

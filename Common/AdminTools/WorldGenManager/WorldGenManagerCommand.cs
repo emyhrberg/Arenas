@@ -1,7 +1,7 @@
 using System;
 using System.Linq;
 
-namespace Arenas.Common.AdminTools.WorldGenManager;
+namespace PvPArenas.Common.AdminTools.WorldGenManager;
 
 internal sealed class WorldGenManagerCommand : ModCommand
 {

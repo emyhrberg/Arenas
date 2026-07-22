@@ -4,7 +4,7 @@ using Terraria.GameContent;
 using Terraria.ID;
 using Terraria.UI;
 
-namespace Arenas.Common.AdminTools.UI;
+namespace PvPArenas.Common.AdminTools.UI;
 
 /// <summary>
 /// A single "+" or "-" step button with the shared PvPAdventure / ErkySSC style.

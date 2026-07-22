@@ -11,7 +11,7 @@ using Terraria.IO;
 using Terraria.Utilities;
 using Terraria.WorldBuilding;
 
-namespace Arenas.Common.AdminTools.WorldGenManager;
+namespace PvPArenas.Common.AdminTools.WorldGenManager;
 
 internal sealed class WorldGenPassRunner : ModSystem
 {

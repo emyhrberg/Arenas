@@ -1,9 +1,9 @@
-﻿using Arenas.Common.AdminTools.UI;
-using Arenas.Common.Game;
+﻿using PvPArenas.Common.AdminTools.UI;
+using PvPArenas.Common.Game;
 using Terraria.GameContent.UI.Elements;
 using Terraria.Localization;
 
-namespace Arenas.Common.AdminTools.GameManager;
+namespace PvPArenas.Common.AdminTools.GameManager;
 
 internal sealed class ArenaGameManagerPanel : UIDraggablePanel
 {

@@ -1,6 +1,6 @@
 using Microsoft.Xna.Framework;
 
-namespace Arenas.Core.Compat;
+namespace PvPArenas.Core.Compat;
 
 internal static class ErkySSCCompat
 {

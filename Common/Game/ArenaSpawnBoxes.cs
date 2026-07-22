@@ -9,7 +9,7 @@ using Terraria.GameContent;
 using Terraria.Map;
 using Terraria.UI;
 
-namespace Arenas.Common.Game;
+namespace PvPArenas.Common.Game;
 
 internal static class ArenaSpawnBoxes
 {

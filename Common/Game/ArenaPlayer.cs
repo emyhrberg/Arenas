@@ -1,14 +1,13 @@
-using Arenas.Common.DataStructures;
+using PvPArenas.Common.DataStructures;
 using PvPFramework.Common.Scoreboard;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Terraria.DataStructures;
 using Terraria.Enums;
 using Terraria.ID;
 using Terraria.ModLoader.Config;
 
-namespace Arenas.Common.Game;
+namespace PvPArenas.Common.Game;
 
 /// <summary>Applies round loadouts, spawn rules, freezing, and arena bounds.</summary>
 internal sealed class ArenaPlayer : ModPlayer
@@ -384,9 +383,9 @@ internal sealed class ArenaPlayer : ModPlayer
         if (Main.netMode == NetmodeID.MultiplayerClient)
         {
             ModPacket packet =
-                ModContent.GetInstance<Arenas>().GetPacket();
+                ModContent.GetInstance<PvPArenas>().GetPacket();
 
-            packet.Write((byte)Arenas.PacketType.SelectLoadout);
+            packet.Write((byte)PvPArenas.PacketType.SelectLoadout);
             packet.Write(loadoutIndex);
             packet.Send();
             return;

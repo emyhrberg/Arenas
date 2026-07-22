@@ -1,8 +1,8 @@
-using Arenas.Common.DataStructures;
+using PvPArenas.Common.DataStructures;
 using System;
 using Terraria.ID;
 
-namespace Arenas.Common.Generation;
+namespace PvPArenas.Common.Generation;
 
 /// <summary>
 /// Resolves configured arenas from existing world terrain. It does not create,
