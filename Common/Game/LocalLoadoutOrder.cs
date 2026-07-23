@@ -9,7 +9,7 @@ namespace PvPArenas.Common.Game;
 
 internal static class LocalLoadoutOrder
 {
-    private static string Folder => Path.Combine(Main.SavePath, "Arenas");
+    private static string Folder => Path.Combine(Main.SavePath, "PvPArenas");
     private static string File => Path.Combine(Folder, "Loadouts.nbt");
 
     private static readonly Dictionary<string, List<int>> Orders = [];

@@ -30,7 +30,7 @@ internal static class LocalSandboxLoadouts
 {
     internal const int InventorySlots = 30;
 
-    private static string Folder => Path.Combine(Main.SavePath, "Arenas");
+    private static string Folder => Path.Combine(Main.SavePath, "PvPArenas");
     private static string FilePath => Path.Combine(Folder, "SandboxLoadouts.nbt");
 
     private static readonly Dictionary<string, Loadout> store = [];
